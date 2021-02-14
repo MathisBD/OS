@@ -17,4 +17,4 @@ typedef struct {
 
 void init_idt(void);
 
-void add_idt_entry(IDT_entry entry, int position);
+void set_idt_handler(uint32_t handler_addr, int position);

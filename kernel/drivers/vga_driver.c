@@ -29,6 +29,15 @@ inline void set_vga_buffer(int row, int col, uint8_t color, char c)
     vga_buffer[index] = vga_entry(color, c);
 }
 
+void clear_screen(void)
+{
+    for (int col = 0; col < VGA_COLS; col++) {
+        for (int row = 0; row < VGA_ROWS; row++) {      
+            set_vga_buffer(row, col, default_color, ' ');
+        }
+    }
+}
+
 void init_vga_driver(void)
 {
     vga_buffer = (uint16_t*)0xB8000;
@@ -37,16 +46,17 @@ void init_vga_driver(void)
     // white text, black background
     default_color = 0x0F;
 
-    // clear the terminal
-    for (int col = 0; col < VGA_COLS; col++) {
-        for (int row = 0; row < VGA_ROWS; row++) {      
-            set_vga_buffer(row, col, default_color, ' ');
-        }
-    }
+    clear_screen();
 }
 
 void vga_putc(char c)
 {
+    if (term_row >= VGA_ROWS) {
+        term_col = 0;
+        term_row = 0;
+        clear_screen();
+    }
+    
     switch(c) {
     case '\n':
         {
@@ -65,10 +75,6 @@ void vga_putc(char c)
     if (term_col >= VGA_COLS) {
         term_col = 0;
         term_row++;
-    }
-    if (term_row >= VGA_ROWS) {
-        term_col = 0;
-        term_row = 0;
     }
 }
 

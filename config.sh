@@ -16,7 +16,7 @@ export CPPFLAGS=""
 # the cross compiler was configured with
 # --without-headers but not --with-sysroot
 # and -elf gcc targets don't have a system include directory
-# so we need to do this
+# so we need to do this ?? or not ?
 # export CC="$CC -isystem=$INCLUDEDIR"
 
 
