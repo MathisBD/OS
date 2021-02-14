@@ -3,9 +3,20 @@
 #include "vga_driver.h"
 
 
+// io ports to communicate with the vga cursor
+#define CURSOR_PORT_1 0x3D4
+#define CURSOR_PORT_2 0x3D5
+
 #define VGA_COLS 80
 #define VGA_ROWS 25
 
+// sets the height of the cursor
+// range : 0 (very top) to 15 (very bottom)
+#define CURSOR_TOP 13
+#define CURSOR_BOTTOM 15
+
+extern int write_io_port();
+extern int read_io_port();
 
 // text output buffer
 // entry format : 0xBFCC
@@ -38,6 +49,36 @@ void clear_screen(void)
     }
 }
 
+void enable_cursor(void)
+{
+    uint8_t b;
+
+    write_io_port(CURSOR_PORT_1, 0x0A);
+    b = read_io_port(CURSOR_PORT_2);
+    write_io_port(CURSOR_PORT_2, b & 0xC0 | CURSOR_TOP);
+
+    write_io_port(CURSOR_PORT_1, 0x0B);
+    b = read_io_port(CURSOR_PORT_2);
+    write_io_port(CURSOR_PORT_2, (b & 0xE0) | CURSOR_BOTTOM);
+}
+
+void disable_cursor(void)
+{
+    write_io_port(CURSOR_PORT_1, 0x0A);
+    write_io_port(CURSOR_PORT_2, 0x20);
+}
+
+void move_cursor(int row, int col)
+{
+    uint16_t pos = row * VGA_COLS + col;
+
+    write_io_port(CURSOR_PORT_1, 0x0F);
+    write_io_port(CURSOR_PORT_2, (uint8_t)(pos & 0xFF));
+
+    write_io_port(CURSOR_PORT_1, 0x0E);
+    write_io_port(CURSOR_PORT_2, (uint8_t)((pos & 0xFF00) >> 8));
+}
+
 void init_vga_driver(void)
 {
     vga_buffer = (uint16_t*)0xB8000;
@@ -47,11 +88,15 @@ void init_vga_driver(void)
     default_color = 0x0F;
 
     clear_screen();
+
+    // setup cursor
+    enable_cursor();
+    move_cursor(0, 0);
 }
 
-void vga_putc(char c)
+void private_putc(char c) 
 {
-    if (term_row >= VGA_ROWS) {
+   if (term_row >= VGA_ROWS) {
         term_col = 0;
         term_row = 0;
         clear_screen();
@@ -78,9 +123,16 @@ void vga_putc(char c)
     }
 }
 
+void vga_putc(char c)
+{
+    private_putc(c);
+    move_cursor(term_row, term_col);
+}
+
 void vga_print(const char* str) 
 {
     for (size_t i = 0; str[i] != '\0'; i++) {
-        vga_putc(str[i]);
+        private_putc(str[i]);
     }
+    move_cursor(term_row, term_col);
 }
