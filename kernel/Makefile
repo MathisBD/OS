@@ -7,16 +7,9 @@ CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
 CPPFLAGS:=$(CPPFLAGS) -D__is_kernel -Iinclude
 LIBS:=$(LIBS) -nostdlib -lk -lgcc
 
-#OBJS=\
-kernel.o boot.o \
-idt.o idt_asm.o \
-drivers/io_asm.o \
-drivers/keyboard_driver_asm.o drivers/keyboard_driver.o \
-drivers/pic_driver.o \
-drivers/vga_driver.o
-
 OBJS=kernel.o boot.o \
-idt.o idt_asm.o\
+tables/idt.o tables/idt_asm.o\
+tables/gdt.o tables/gdt_asm.o\
 drivers/vga_driver.o \
 drivers/pic_driver.o \
 drivers/io_asm.o \

@@ -2,6 +2,20 @@
 #include "idt.h"
 #include "vga_driver.h"
 
+typedef struct {
+    uint16_t offset_lowbits;
+    uint16_t selector;
+    uint8_t zero;
+    uint8_t type_attr;
+    uint16_t offset_highbits;
+} __attribute__((packed)) IDT_entry;
+
+typedef struct {
+	uint16_t limit;
+	uint32_t start;
+	uint16_t pack;
+} __attribute__((packed)) IDTR_contents;
+
 #define IDT_SIZE 256
 IDT_entry IDT[IDT_SIZE];
 
@@ -12,18 +26,18 @@ void set_idt_handler(uint32_t handler_addr, int position)
 	// only handle the case of pic interrupts for now
 	if (IDT_USER_OFFSET <= position && position < IDT_USER_OFFSET + 16) {
     	IDT[position].offset_lowbits = handler_addr & 0xFFFF;
-		IDT[position].selector = 0x08; /* KERNEL_CODE_SEGMENT_OFFSET */
+		IDT[position].selector = 0x08; // offset in the gdt of the kernel code descriptor
 		IDT[position].zero = 0;
-		IDT[position].type_attr = 0x8e; /* INTERRUPT_GATE */
+		IDT[position].type_attr = 0x8e; // interrupt gate
 		IDT[position].offset_highbits = (handler_addr & 0xFFFF0000) >> 16;
 	}
 }
 
 void init_idt(void)
 {
-    extern int load_idtr();
-	extern int default_pic1_intr();
-	extern int default_pic2_intr();
+    extern void load_idtr();
+	extern void default_pic1_intr();
+	extern void default_pic2_intr();
 
 	// ignore all interrupts for now
 	for (int i = IDT_USER_OFFSET; i < IDT_USER_OFFSET + 16; i++) {
@@ -37,11 +51,8 @@ void init_idt(void)
 		set_idt_handler(address, i);
 	}
 
-    // IDTR : bytes 0 and 1 contain the IDT size,
-    // bytes 2 to 5 contain the IDT address
-    uint32_t address = (uint32_t)IDT;
-    uint32_t idtr_contents[2];
-    idtr_contents[0] = (IDT_SIZE * sizeof(IDT_entry)) + ((address & 0xFFFF) << 16);
-    idtr_contents[1] = address >> 16;
-    load_idtr(idtr_contents);
+    IDTR_contents idtr;
+	idtr.limit = sizeof(IDT_entry) * IDT_SIZE - 1;
+	idtr.start = (uint32_t)&IDT;
+    load_idtr((uint32_t)&idtr);
 }
