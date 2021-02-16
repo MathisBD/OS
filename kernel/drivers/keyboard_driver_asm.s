@@ -1,10 +1,9 @@
-.global keyboard_intr
-.extern keyboard_intr_handler
-.global keyboard_intr_handler
+.global keyboard_isr
+.extern keyboard_isr_c
 
-keyboard_intr:
+keyboard_isr:
     pusha
-    call keyboard_intr_handler
+    call keyboard_isr_c
     popa
     iret
     

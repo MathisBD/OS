@@ -167,9 +167,9 @@ void init_keyboard_driver(void)
     kbd_state.rshift_pressed = false;
 
     // setup keyboard interrupts
-    extern int keyboard_intr();
-    uint32_t address = (uint32_t)keyboard_intr;
-    set_idt_handler(address, IDT_USER_OFFSET + KEYBOARD_IRQ);
+    extern int keyboard_isr();
+    uint32_t address = (uint32_t)keyboard_isr;
+    set_isr(address, IDT_USER_OFFSET + KEYBOARD_IRQ);
 }
 
 
@@ -208,7 +208,7 @@ void key_pressed(uint8_t keycode)
     }
 }
 
-void keyboard_intr_handler(void)
+void keyboard_isr_c(void)
 {
     extern int read_io_port();
 

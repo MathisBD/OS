@@ -39,6 +39,8 @@ void init_gdt(void)
     extern void load_gdtr();
 
     // flat memory model/segmentation
+    // order is VERY important here : we use it each time
+    // we want to load a segment register
     set_gdt_entry(0, 0, 0, 0, 0); // null segment
     set_gdt_entry(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // kernel code segment
     set_gdt_entry(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // kernel data segment

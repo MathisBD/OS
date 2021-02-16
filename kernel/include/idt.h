@@ -9,4 +9,4 @@
 
 void init_idt(void);
 
-void set_idt_handler(uint32_t handler_addr, int position);
+void set_isr(uint32_t handler_addr, int position);

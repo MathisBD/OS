@@ -9,7 +9,7 @@ load_gdtr:
 
     // reload every segment register
     // 0x10 is the byte offset of the kernel 
-    // data segment descriptor in the gdt
+    // data selector in the gdt
     mov $0x10, %ax 
     mov %ax, %ds 
     mov %ax, %es 
@@ -18,6 +18,6 @@ load_gdtr:
     mov %ax, %ss
     // a far jump implicitly reloads %cs,
     // here using 0x08 (offset of the kernel code descriptor)
-    // TODO : find the right syntax jmp 0x08:.finish
+    // TODO : load 0x08 into CS
 .finish:
     ret
