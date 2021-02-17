@@ -1,4 +1,6 @@
 *.o
 *.d
 *.kernel
+*.iso
 sysroot
+isodir
