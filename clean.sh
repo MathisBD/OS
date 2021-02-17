@@ -7,3 +7,5 @@ for PROJECT in $PROJECTS; do
 done 
 
 rm -rf sysroot
+rm -rf isodir
+rm -f minios.iso

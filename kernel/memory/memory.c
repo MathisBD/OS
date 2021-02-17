@@ -99,6 +99,8 @@ void get_mmap(multiboot_info_t * mbd, unsigned int magic)
     }
 }
 
+
+/*
 void alloc_frame(page_t * page, bool user, bool writeable)
 {
     // the page already has a frame
@@ -124,7 +126,7 @@ void free_frame(page_t * page)
         // TODO : free the actual frame
     }
 }
-
+*/
 
 void init_memory(void)
 {
