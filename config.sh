@@ -8,6 +8,7 @@ export SYSROOT="$(pwd)/sysroot"
 export BOOTDIR=/boot 
 export INCLUDEDIR=/usr/include
 
+
 # compiler and compiler options
 export CC=i686-elf-gcc
 export CC="$CC --sysroot=$SYSROOT"

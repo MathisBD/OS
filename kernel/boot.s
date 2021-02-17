@@ -1,4 +1,5 @@
 .extern kernel_main
+.extern get_mmap
 .global start
 
 // GRUB constants
@@ -25,11 +26,18 @@ stack_top:
 
 .section .text
 start:
+    cli
     mov $stack_top, %esp // initialize stack
     
-    cli
+    // GRUB puts some values in %ebx and %eax
+    push %eax
+    push %ebx
+    call get_mmap // get the mmap that GRUB setup
+    add $8, %esp
+
     call kernel_main // start the kernel
 
+    // this should not happen
     cli
     hlt
 

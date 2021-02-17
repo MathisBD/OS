@@ -16,8 +16,8 @@ load_gdtr:
     mov %ax, %fs 
     mov %ax, %gs 
     mov %ax, %ss
-    // a far jump implicitly reloads %cs,
+    // a long jump implicitly reloads %cs,
     // here using 0x08 (offset of the kernel code descriptor)
-    // TODO : load 0x08 into CS
+    ljmp $0x08, $.finish
 .finish:
     ret

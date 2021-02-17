@@ -2,18 +2,27 @@
 #include "vga_driver.h"
 #include "keyboard_driver.h"
 #include "idt.h"
+#include "gdt.h"
+#include "memory.h"
+   
 
 
 void kernel_main(void)
 {
-    // the vga driver is standalone
-    init_vga_driver();
-
-    // order is important
-    init_pic_driver();
+    // tables
+    init_gdt();
     init_idt();
+
+    // memory (the memory map has already been loaded
+    // before kernel_main even started)
+    init_memory();
+
+    // drivers
+    init_vga_driver();
+    init_pic_driver();
     init_keyboard_driver();
 
+    print_mem_blocks();
 
     while (1) {
 

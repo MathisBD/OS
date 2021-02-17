@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
-. ./build.sh 
+. ./iso.sh 
 
-qemu-system-i386 -kernel "$SYSROOT$BOOTDIR/minios.kernel"
+# -m is the memory in MB
+qemu-system-i386 -cdrom minios.iso -m 8192
