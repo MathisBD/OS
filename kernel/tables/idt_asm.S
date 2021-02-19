@@ -6,11 +6,6 @@
 .extern pic_eoi
 .extern interrupt_handler
 
-.global do_fault
-do_fault:
-    int $12
-    ret
-
 // arguments (stack) :
 //   1) address of an 8 byte memory location containing 
 //      the new contents of idtr

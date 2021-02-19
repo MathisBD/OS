@@ -12,10 +12,6 @@ void kernel_main(void)
     init_gdt();
     init_idt();
 
-    // memory (the memory map has already been loaded
-    // before kernel_main even started)
-    //init_memory();
-
     // drivers
     init_vga_driver();
     init_pic_driver();
@@ -25,8 +21,8 @@ void kernel_main(void)
 
     vga_print("Hello paging world\n");
 
-    extern void do_fault();
-    //do_fault();
+    init_memory();
+
     while (1) {
 
     }

@@ -10,29 +10,29 @@ SECTIONS
     . = V_AVAILABLE_START;
 
     /* Multiboot header near the start, otherwise the bootloader won't find it. */
-    .text ALIGN(PAGE_SIZE) : AT(ADDR(.text) - V_KERNEL_START)
+    .text ALIGN(4K) : AT(ADDR(.text) - V_KERNEL_START)
     {
         _kernel_start = .;
-        *(.text) 
-        . = ALIGN(PAGE_SIZE);
+        KEEP(*(.text)) 
+        . = ALIGN(4K);
     } 
-    .rodata ALIGN(PAGE_SIZE) : AT(ADDR(.rodata) - V_KERNEL_START)
+    .rodata ALIGN(4K) : AT(ADDR(.rodata) - V_KERNEL_START)
     {
-        *(.rodata)
-        . = ALIGN(PAGE_SIZE);
+        KEEP(*(.rodata))
+        . = ALIGN(4K);
         _kernel_ro_end = .;
     }
  
-    .data ALIGN(PAGE_SIZE) : AT(ADDR(.data) - V_KERNEL_START)
+    .data ALIGN(4K) : AT(ADDR(.data) - V_KERNEL_START)
     {
-        *(.data)
-        . = ALIGN(PAGE_SIZE);
+        KEEP(*(.data))
+        . = ALIGN(4K);
     }
-    .bss ALIGN(PAGE_SIZE) : AT(ADDR(.bss) - V_KERNEL_START)
+    .bss ALIGN(4K) : AT(ADDR(.bss) - V_KERNEL_START)
     {
-        *(COMMON)
-        *(.bss)
-        . = ALIGN(PAGE_SIZE);
+        KEEP(*(COMMON))
+        KEEP(*(.bss))
+        . = ALIGN(4K);
     }
     _kernel_rw_end = .;
 }

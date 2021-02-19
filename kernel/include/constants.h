@@ -18,8 +18,6 @@
 
 // paging
 
-#define PAGE_SIZE 0x1000 // 4KB
-// number of pages in a page table
-#define PT_SIZE 1024
-// number of page tables in a page directory
+#define PAGE_SIZE 0x400000 // 4MB
+// number of pages in a page directory
 #define PD_SIZE 1024
