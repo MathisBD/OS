@@ -3,7 +3,7 @@
 #include "multiboot.h"
 #include "string_utils.h"
 #include "vga_driver.h"
-
+#include "constants.h"
 
 typedef struct {
     uint64_t address;
@@ -28,20 +28,8 @@ typedef struct {
     uint32_t frame_addr : 20;// higher 20 bits of the frame physical address
 } page_t;
 
-
-// the size of a physical frame
-#define FRAME_SIZE 4096
-
-// number of pages in a page table
-#define PT_SIZE 1024 
 typedef struct {
-    page_t pages[PT_SIZE];
-} page_table_t;
-
-// number of page tables in a page directory
-#define PD_SIZE 1024 
-typedef struct {
-    page_table_t* page_tables[PD_SIZE];
+    page_t* pages[PD_SIZE];
 } page_directory_t;
 
 
@@ -130,4 +118,5 @@ void free_frame(page_t * page)
 
 void init_memory(void)
 {
+    
 }

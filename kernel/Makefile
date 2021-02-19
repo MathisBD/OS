@@ -7,6 +7,7 @@ CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
 CPPFLAGS:=$(CPPFLAGS) -D__is_kernel -Iinclude
 LIBS:=$(LIBS) -nostdlib -lgcc
 
+
 OBJS=kernel.o boot.o \
 tables/idt.o tables/idt_asm.o\
 tables/gdt.o tables/gdt_asm.o\
@@ -15,20 +16,27 @@ drivers/pic_driver.o \
 drivers/io_asm.o \
 drivers/keyboard_driver.o drivers/keyboard_driver_asm.o \
 string_utils.o \
-memory/memory.o 
+memory/memory.o
 
 .PHONY: all clean install install-headers install-kernel
 
 all: minios.kernel
 
-minios.kernel: $(OBJS) linker.ld
-	$(CC) -T linker.ld $(CFLAGS) -nostdlib -o $@ $(OBJS) $(LIBS)
+minios.kernel: $(OBJS) linker.o
+	$(CC) -T linker.o $(CFLAGS) -nostdlib -o $@ $(OBJS) $(LIBS)
 	grub-file --is-x86-multiboot minios.kernel
+
+# we run the C preprocessor on the linker script
+%.o: %.ld
+	# grep to remove comments (in particular #include lines)
+	$(CC) -x c -E $(CPPFLAGS) $< | grep -v '^#' >$@
 
 %.o: %.c
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
-%.o: %.s
+# we run the C preprocessor on assembly files
+# (implicit since gcc does it on .S files)
+%.o: %.S
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
 
@@ -45,6 +53,7 @@ install-kernel: minios.kernel
 
 clean:
 	rm -f $(OBJS)
+	rm -f linker.o
 	rm -f minios.kernel
 	rm -f $(OBJS:.o=.d)
 

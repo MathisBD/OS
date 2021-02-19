@@ -4,7 +4,6 @@
 #include "idt.h"
 #include "gdt.h"
 #include "memory.h"
-   
 
 
 void kernel_main(void)
@@ -15,15 +14,19 @@ void kernel_main(void)
 
     // memory (the memory map has already been loaded
     // before kernel_main even started)
-    init_memory();
+    //init_memory();
 
     // drivers
     init_vga_driver();
     init_pic_driver();
     init_keyboard_driver();
 
-    print_mem_blocks();
+    //print_mem_blocks();
 
+    vga_print("Hello paging world\n");
+
+    extern void do_fault();
+    //do_fault();
     while (1) {
 
     }

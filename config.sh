@@ -12,7 +12,7 @@ export INCLUDEDIR=/usr/include
 # compiler and compiler options
 export CC=i686-elf-gcc
 export CC="$CC --sysroot=$SYSROOT"
-export CFLAGS="-O2 -g"
+export CFLAGS="-O0 -g"
 export CPPFLAGS=""
 # the cross compiler was configured with
 # --without-headers but not --with-sysroot

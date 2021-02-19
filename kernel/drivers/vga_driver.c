@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "vga_driver.h"
-
+#include "constants.h"
 
 // io ports to communicate with the vga cursor
 #define CURSOR_PORT_1 0x3D4
@@ -29,12 +29,12 @@ int term_col;
 int term_row;
 uint8_t default_color;
 
-inline uint16_t vga_entry(uint8_t color, char c)
+uint16_t vga_entry(uint8_t color, char c)
 {
     return (((uint16_t)color) << 8) | c;
 }
 
-inline void set_vga_buffer(int row, int col, uint8_t color, char c)
+void set_vga_buffer(int row, int col, uint8_t color, char c)
 {
     const int index = VGA_COLS * row + col;
     vga_buffer[index] = vga_entry(color, c);
@@ -81,7 +81,7 @@ void move_cursor(int row, int col)
 
 void init_vga_driver(void)
 {
-    vga_buffer = (uint16_t*)0xB8000;
+    vga_buffer = (uint16_t*)V_VGA_ADDRESS;
     term_col = 0;
     term_row = 0;
     // white text, black background

@@ -19,18 +19,16 @@ typedef struct {
 // registers pushed by the isrs in assembly
 // and passed to the interrupt handler in c
 typedef struct {
-	// user data segment selector
-	uint32_t ds;
-	// user registers (pushed by pusha)
-	uint32_t edi, esi, ebp, nothing, ebx, edx, ecx, eax;
+	// user data segment selectors
+	uint32_t gs, fs, es, ds;
+	// user registers
+	uint32_t ebp, edx, ecx, ebx, eax, esi, edi;
 	// pushed by the isrxx
 	uint32_t intr_num, error_code;
 } __attribute__((packed)) registers;
 
 #define IDT_SIZE 256
 IDT_entry IDT[IDT_SIZE];
-
-
 
 void set_isr(uint32_t handler_addr, int index)
 {
@@ -141,5 +139,10 @@ void init_idt(void)
 
 void interrupt_handler(registers * user_regs)
 {
-
+	//vga_print("Interrupt !\n");
+	
+	char str[32];
+	int_to_string((uint64_t)user_regs->intr_num, str, 32);
+	vga_print(str);
+	vga_print("\n");
 }
