@@ -184,10 +184,10 @@ void page_fault(page_fault_info_t info)
 {
     vga_print("Page fault !\n");
     if (info.present) {
-        vga_print("(present)\n");
+        vga_print("(present)\n"); /////////////////// TODO : not working
     }
     char str[64];
-    int_to_string(info.address, str, 64);
+    int_to_string_base(info.address, str, 64, 16);
     vga_print(str);
     while (1) {
         
