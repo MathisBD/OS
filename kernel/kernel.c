@@ -4,7 +4,7 @@
 #include "idt.h"
 #include "gdt.h"
 #include "memory.h"
-
+#include "heap.h"
 
 void kernel_main(void)
 {
@@ -17,11 +17,11 @@ void kernel_main(void)
     init_pic_driver();
     init_keyboard_driver();
 
-    //print_mem_blocks();
+    print_mem_blocks();
 
     vga_print("Hello paging world\n");
 
-    init_memory();
+    init_heap();
 
     while (1) {
 

@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "idt.h"
 #include "vga_driver.h"
+#include "memory.h"
+#include "string_utils.h"
 
 typedef struct {
     uint16_t offset_lowbits;
@@ -141,8 +143,34 @@ void interrupt_handler(registers * user_regs)
 {
 	//vga_print("Interrupt !\n");
 	
-	char str[32];
-	int_to_string((uint64_t)user_regs->intr_num, str, 32);
-	vga_print(str);
-	vga_print("\n");
+
+	switch(user_regs->intr_num) {
+	// Page fault
+	case 14:
+	{
+		page_fault_info_t info;
+		info.present = user_regs->error_code & 0x01;
+		info.read_write = user_regs->error_code & 0x02;
+		info.user_supervisor = user_regs->error_code & 0x04;
+		info.reserved = user_regs->error_code & 0x08;
+		info.instr_fetch = user_regs->error_code & 0x10;
+
+		extern uint32_t get_cr2();
+		info.address = get_cr2();
+
+		page_fault(info);
+		break;
+	}
+	default:
+		vga_print("Uncatched interrupt !\n");
+		char str[32];
+		int_to_string((uint64_t)user_regs->intr_num, str, 32);
+		vga_print(str);
+		vga_print("\n");
+
+		while (1) {
+
+		}
+		break;
+	}
 }

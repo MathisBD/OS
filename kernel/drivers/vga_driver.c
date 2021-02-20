@@ -55,7 +55,7 @@ void enable_cursor(void)
 
     write_io_port(CURSOR_PORT_1, 0x0A);
     b = read_io_port(CURSOR_PORT_2);
-    write_io_port(CURSOR_PORT_2, b & 0xC0 | CURSOR_TOP);
+    write_io_port(CURSOR_PORT_2, (b & 0xC0) | CURSOR_TOP);
 
     write_io_port(CURSOR_PORT_1, 0x0B);
     b = read_io_port(CURSOR_PORT_2);

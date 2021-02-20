@@ -18,7 +18,8 @@ drivers/keyboard_driver.o drivers/keyboard_driver_asm.o \
 utils/string_utils.o \
 memory/memory.o \
 memory/memory_asm.o \
-memory/bitset.o
+memory/bitset.o \
+memory/heap.o
 
 .PHONY: all clean install install-headers install-kernel
 

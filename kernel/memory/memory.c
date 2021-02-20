@@ -40,7 +40,7 @@ typedef struct {
 
 #define ALIGN(addr, align) (\
     ((addr) & ((align) - 1)) ? \
-    (((addr) & ((align) - 1)) + (align)) : \
+    (((addr) & ~((align) - 1)) + (align)) : \
     (addr) \
 )
 
@@ -112,8 +112,10 @@ void add_mem_block(uint64_t addr, uint64_t len)
     mem_blocks[mem_blocks_count].address = addr;
     mem_blocks[mem_blocks_count].frame_count = (uint32_t)((end - addr) / PAGE_SIZE);
 
-    uint32_t size = 1 + mem_blocks[mem_blocks_count].frame_count >> 3;
+    uint32_t size = 1 + (mem_blocks[mem_blocks_count].frame_count >> 3);
     mem_blocks[mem_blocks_count].avail_frames_bitset = (uint64_t*)palloc(size);
+
+    extern void* memset(void*, int, size_t);
     memset(mem_blocks[mem_blocks_count].avail_frames_bitset, 0xFF, size);
     
     if (mem_blocks_count == 0) {
@@ -125,10 +127,10 @@ void add_mem_block(uint64_t addr, uint64_t len)
 }
 
 
-// called directly from boot.s
+// called directly from boot.S
 void get_mmap(multiboot_info_t * mbd, unsigned int magic)
 {
-    extern void _kernel_rw_end;
+    extern int _kernel_rw_end;
     // I have to cast to uint32_t (and then implicitly promote to uint64_t), 
     // because casting to uint64_t would sign extend and I definitely don't want that
     placement_addr = (uint32_t)&_kernel_rw_end;
@@ -173,18 +175,34 @@ uint32_t find_free_frame()
     // TODO : no free frame
 }
 
-void page_fault()
+void alloc_page(uint32_t page_idx, uint32_t frame_addr)
 {
-    // find_free_frame
-    // find the page corresponding to the faulting address
-    // allocate the page with a free frame
+
 }
 
-void init_memory(void)
+void page_fault(page_fault_info_t info)
 {
-    print_mem_blocks();
-
+    vga_print("Page fault !\n");
+    if (info.present) {
+        vga_print("(present)\n");
+    }
     char str[64];
-    int_to_string(find_free_frame(), str, 64);
+    int_to_string(info.address, str, 64);
     vga_print(str);
+    while (1) {
+        
+    }
+
+
+    if (info.present) {
+        uint32_t frame_addr = find_free_frame();
+        uint32_t page_idx = info.address / PAGE_SIZE;
+        alloc_page(page_idx, frame_addr);
+    }
+    else {
+        // TODO : other cases
+        vga_print("Unknown page fault type\n");
+        while (1) {
+        }
+    }
 }
