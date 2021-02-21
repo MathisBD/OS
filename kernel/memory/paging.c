@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "memory.h"
+#include "paging.h"
 #include "multiboot.h"
 #include "string_utils.h"
 #include "vga_driver.h"
@@ -28,15 +28,17 @@ typedef struct {
     uint32_t reserved_1 : 2; // cpu-reserved
     uint32_t accessed   : 1; // if set the page has been accessed since last refresh
     uint32_t dirty      : 1; // if set the page has been written to since last refresh
-    uint32_t reserved_2 : 2; // cpu-reserved
+    uint32_t size       : 1; // must be set for 4MB pages
+    uint32_t reserved_2 : 1; // cpu-reserved
     uint32_t unused     : 3; // unused, avaible for use
     uint32_t reserved_3 : 10;// cpu-reserved (because of PSE)
     uint32_t frame_addr : 10;// higher 10 bits of the frame physical address
-} page_t;
+} pde_entry_t;
 
-typedef struct {
-    page_t* pages[PD_SIZE];
-} page_directory_t;
+// kernel page directory
+// has to be aligned on 4K
+pde_entry_t kernel_pd[PD_SIZE] __attribute__((aligned(4096)));
+
 
 #define ALIGN(addr, align) (\
     ((addr) & ((align) - 1)) ? \
@@ -127,14 +129,8 @@ void add_mem_block(uint64_t addr, uint64_t len)
 }
 
 
-// called directly from boot.S
-void get_mmap(multiboot_info_t * mbd, unsigned int magic)
+void get_mmap(multiboot_info_t * mbd)
 {
-    extern int _kernel_rw_end;
-    // I have to cast to uint32_t (and then implicitly promote to uint64_t), 
-    // because casting to uint64_t would sign extend and I definitely don't want that
-    placement_addr = (uint32_t)&_kernel_rw_end;
-    
     // if the GRUB memory map is valid
     if (!(mbd->flags & 0x20)) {
         return;
@@ -162,6 +158,25 @@ void get_mmap(multiboot_info_t * mbd, unsigned int magic)
     }
 }    
 
+// transfer ownership of paging structures from boot.S
+// to the kernel
+void setup_page_dir()
+{
+    // initialise page directory
+    extern void* memset(void*, int, size_t);
+    memset(kernel_pd, 0, PD_SIZE * sizeof(pde_entry_t));
+    // kernel page mapped to 0x00
+    uint32_t idx = V_KERNEL_START / PAGE_SIZE;
+    kernel_pd[idx].present = 1;
+    kernel_pd[idx].rw = 1;
+    kernel_pd[idx].size = 1;
+    kernel_pd[idx].frame_addr = 0;
+
+    uint32_t pd_phys_addr = (uint32_t)(&kernel_pd) - V_KERNEL_START;
+    extern void load_cr3(uint32_t);
+    load_cr3(pd_phys_addr);
+}
+
 // returns the physical address of the first free frame
 uint32_t find_free_frame()
 {
@@ -175,26 +190,54 @@ uint32_t find_free_frame()
     // TODO : no free frame
 }
 
-void alloc_page(uint32_t page_idx, uint32_t frame_addr)
+void claim_frame(uint32_t frame_addr)
 {
-
+    for (int i = 0; i < mem_blocks_count; i++) {
+        if (mem_blocks[i].address <= frame_addr && 
+            frame_addr <= mem_blocks[i].address + mem_blocks[i].frame_count * PAGE_SIZE) 
+        {
+            uint32_t index = (frame_addr - mem_blocks[i].address) / PAGE_SIZE;
+            bitset_unset(mem_blocks[i].avail_frames_bitset, index);
+        }
+    }
 }
+
+void free_frame(uint32_t frame_addr)
+{
+    for (int i = 0; i < mem_blocks_count; i++) {
+        if (mem_blocks[i].address <= frame_addr && 
+            frame_addr <= mem_blocks[i].address + mem_blocks[i].frame_count * PAGE_SIZE) 
+        {
+            uint32_t index = (frame_addr - mem_blocks[i].address) / PAGE_SIZE;
+            bitset_set(mem_blocks[i].avail_frames_bitset, index);
+        }
+    }
+}
+
+void alloc_page(uint32_t idx, uint32_t frame_addr)
+{
+    claim_frame(frame_addr);
+
+    kernel_pd[idx].present = 1;
+    kernel_pd[idx].rw = 1;
+    kernel_pd[idx].size = 1;
+    kernel_pd[idx].frame_addr = frame_addr >> 22;
+}
+
 
 void page_fault(page_fault_info_t info)
 {
-    vga_print("Page fault !\n");
-    if (info.present) {
-        vga_print("(present)\n"); /////////////////// TODO : not working
+    vga_print("Page fault ! ");
+    if (!info.present) {
+        vga_print("(page absent) "); 
     }
     char str[64];
     int_to_string_base(info.address, str, 64, 16);
     vga_print(str);
-    while (1) {
-        
-    }
+    vga_print("\n");
 
-
-    if (info.present) {
+    // page was absent
+    if (!info.present) {
         uint32_t frame_addr = find_free_frame();
         uint32_t page_idx = info.address / PAGE_SIZE;
         alloc_page(page_idx, frame_addr);
@@ -205,4 +248,16 @@ void page_fault(page_fault_info_t info)
         while (1) {
         }
     }
+}
+
+void init_paging(multiboot_info_t * mbd, unsigned int magic)
+{   
+    // initialise placement address
+    extern int _kernel_rw_end;
+    // I have to cast to uint32_t (and then implicitly promote to uint64_t), 
+    // because casting to uint64_t would sign extend and I definitely don't want that
+    placement_addr = (uint32_t)&_kernel_rw_end;
+
+    get_mmap(mbd);
+    setup_page_dir();
 }

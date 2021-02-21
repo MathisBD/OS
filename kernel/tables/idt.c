@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include "idt.h"
 #include "vga_driver.h"
-#include "memory.h"
+#include "paging.h"
 #include "string_utils.h"
+
 
 typedef struct {
     uint16_t offset_lowbits;
@@ -79,12 +80,27 @@ void init_idt(void)
 	extern void isr30();
 	extern void isr31();
 
-	extern void default_pic1_isr();
-	extern void default_pic2_isr();
+	extern void isr32();
+	extern void isr33();
+	extern void isr34();
+	extern void isr35();
+	extern void isr36();
+	extern void isr37();
+	extern void isr38();
+	extern void isr39();
+
+	extern void isr40();
+	extern void isr41();
+	extern void isr42();
+	extern void isr43();
+	extern void isr44();
+	extern void isr45();
+	extern void isr46();
+	extern void isr47();
 
     extern void load_idtr();
 
-	// we setup the 32 cpu-reserved interrupts
+	// we setup the 32 general interrupts
 	set_isr((uint32_t)isr0, 0);
 	set_isr((uint32_t)isr1, 1);
 	set_isr((uint32_t)isr2, 2);
@@ -121,18 +137,25 @@ void init_idt(void)
 	set_isr((uint32_t)isr30, 30);
 	set_isr((uint32_t)isr31, 31);
 
-	// ignore all PIC interrupts for now
-	for (int i = IDT_USER_OFFSET; i < IDT_USER_OFFSET + 16; i++) {
-		uint32_t address;
-		if (i < IDT_USER_OFFSET + 8) {
-			address = (uint32_t)default_pic1_isr;
-		}
-		else {
-			address = (uint32_t)default_pic2_isr;
-		}
-		set_isr(address, i);
-	}
+	// PIC interrupts are remapped to 32 and on
+	set_isr((uint32_t)isr32, 32);
+	set_isr((uint32_t)isr33, 33);
+	set_isr((uint32_t)isr34, 34);
+	set_isr((uint32_t)isr35, 35);
+	set_isr((uint32_t)isr36, 36);
+	set_isr((uint32_t)isr37, 37);
+	set_isr((uint32_t)isr38, 38);
+	set_isr((uint32_t)isr39, 39);
 
+	set_isr((uint32_t)isr40, 40);
+	set_isr((uint32_t)isr41, 41);
+	set_isr((uint32_t)isr42, 42);
+	set_isr((uint32_t)isr43, 43);
+	set_isr((uint32_t)isr44, 44);
+	set_isr((uint32_t)isr45, 45);
+	set_isr((uint32_t)isr46, 46);
+	set_isr((uint32_t)isr47, 47);
+	
     IDTR_contents idtr;
 	idtr.limit = sizeof(IDT_entry) * IDT_SIZE - 1;
 	idtr.start = (uint32_t)&IDT;
@@ -141,12 +164,23 @@ void init_idt(void)
 
 void interrupt_handler(registers * user_regs)
 {
-	//vga_print("Interrupt !\n");
-	
+	// PIC IRQs
+	if (IDT_PIC_OFFSET <= user_regs->intr_num && 
+		user_regs->intr_num < IDT_PIC_OFFSET + 16)
+	{
+		int irq = user_regs->intr_num - IDT_PIC_OFFSET;
+		pic_eoi(irq);
+		
+		switch(irq) {
+		case 1: // keyboard
+			keyboard_interrupt();
+		}
+		return;
+	}
 
+	// general interrupts
 	switch(user_regs->intr_num) {
-	// Page fault
-	case 14:
+	case 14: // page fault
 	{
 		page_fault_info_t info;
 		info.present = user_regs->error_code & 0x01;

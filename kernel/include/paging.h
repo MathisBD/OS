@@ -23,8 +23,7 @@ typedef struct {
 } page_fault_info_t;
 
 
-// called directly from boot.S
-void get_mmap(multiboot_info_t * mbd, unsigned int magic);
+void init_paging(multiboot_info_t * mbd, unsigned int magic);
 
 void print_mem_blocks(void);
 

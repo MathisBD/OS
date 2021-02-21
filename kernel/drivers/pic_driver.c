@@ -22,10 +22,9 @@ void init_pic_driver(void)
     write_io_port(PIC_2_COMM, BEGIN_INIT);
 
     // ICW2 : IDT offset (we need to remap the 16 interrupts
-    // of PIC 1 and 2 because they overlap the reserved interrupts,
-    // which are 0x00 to 0x1F)
-    write_io_port(PIC_1_DATA, IDT_USER_OFFSET);
-    write_io_port(PIC_2_DATA, IDT_USER_OFFSET + 8);
+    // of PIC 1 and 2 because they overlap the general purpose interrupts)
+    write_io_port(PIC_1_DATA, IDT_PIC_OFFSET);
+    write_io_port(PIC_2_DATA, IDT_PIC_OFFSET + 8);
 
     // ICW3 : cascading (not used here)
     write_io_port(PIC_1_DATA, 0x00);

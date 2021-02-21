@@ -30,7 +30,7 @@ stack_top:
 .section .data
 // boot page directory
 .set KERNEL_PAGE_IDX, V_KERNEL_START >> 22
-.align 0x1000
+.align 0x1000 // page directories must be aligned on 4K
 boot_page_dir:
     // bits :
     // 0 : present 
@@ -57,7 +57,6 @@ _start:
     or $0x80000000, %ecx
     mov %ecx, %cr0
 
-
     // jump to higher half with an absolute jump
     lea launch_kernel, %ecx 
     jmp *%ecx
@@ -81,11 +80,8 @@ launch_kernel:
     push %eax
     add $V_KERNEL_START, %ebx 
     push %ebx
-    call get_mmap   
+    call kernel_main   
     add $8, %esp  
-
-    // start the kernel 
-    call kernel_main
 
     // this should not happen
     cli

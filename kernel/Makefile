@@ -14,9 +14,9 @@ tables/gdt.o tables/gdt_asm.o\
 drivers/vga_driver.o \
 drivers/pic_driver.o \
 drivers/io_asm.o \
-drivers/keyboard_driver.o drivers/keyboard_driver_asm.o \
+drivers/keyboard_driver.o \
 utils/string_utils.o \
-memory/memory.o \
+memory/paging.o \
 memory/memory_asm.o \
 memory/bitset.o \
 memory/heap.o

@@ -165,11 +165,6 @@ void init_keyboard_driver(void)
     kbd_state.ctrl_pressed = false;
     kbd_state.lshift_pressed = false;
     kbd_state.rshift_pressed = false;
-
-    // setup keyboard interrupts
-    extern int keyboard_isr();
-    uint32_t address = (uint32_t)keyboard_isr;
-    set_isr(address, IDT_USER_OFFSET + KEYBOARD_IRQ);
 }
 
 
@@ -208,13 +203,11 @@ void key_pressed(uint8_t keycode)
     }
 }
 
-void keyboard_isr_c(void)
+void keyboard_interrupt(void)
 {
     extern int read_io_port();
-
-    pic_eoi(KEYBOARD_IRQ);
-
 	int status = read_io_port(KEYBOARD_COMM);
+    
     // bit 1 of status tells us if the output buffer is empty/full
 	if (status & 0x01) {
 		uint8_t keycode = read_io_port(KEYBOARD_DATA);

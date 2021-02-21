@@ -1,39 +1,15 @@
-.global load_idtr
 
-.global default_pic1_isr
-.global default_pic2_isr
-
-.extern pic_eoi
 .extern interrupt_handler
 
 // arguments (stack) :
 //   1) address of an 8 byte memory location containing 
 //      the new contents of idtr
+.global load_idtr
 load_idtr:
     mov 4(%esp), %edx
     lidt (%edx)
     sti // enable interrupts
     ret
-
-// irq 0 to 7
-default_pic1_isr:
-    pusha
-    push $0
-    call pic_eoi
-    add $4, %esp
-    popa
-    iret
-
-// irq 8 to 15
-default_pic2_isr:
-    pusha
-    push $8
-    call pic_eoi
-    add $4, %esp
-    popa
-    iret
- 
-.section .text
 
 isr_common:
     // save registers 
@@ -129,3 +105,24 @@ isr_no_errcode 28
 isr_no_errcode 29
 isr_no_errcode 30
 isr_no_errcode 31
+
+// IRQs (for PICs)
+// PIC 1
+isr_no_errcode 32
+isr_no_errcode 33
+isr_no_errcode 34
+isr_no_errcode 35
+isr_no_errcode 36
+isr_no_errcode 37
+isr_no_errcode 38
+isr_no_errcode 39
+
+// PIC 2
+isr_no_errcode 40
+isr_no_errcode 41
+isr_no_errcode 42
+isr_no_errcode 43
+isr_no_errcode 44
+isr_no_errcode 45
+isr_no_errcode 46
+isr_no_errcode 47

@@ -1,5 +1,7 @@
 #include "heap.h"
 #include "constants.h"
+#include "string_utils.h"
+#include "vga_driver.h"
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,
@@ -98,27 +100,64 @@ mem_node_t* find_hole(uint32_t size)
     return 0;
 }
 
+void print_node(mem_node_t* node)
+{
+    if (node) {
+        char str[64];
+
+        vga_print("addr=");
+        int_to_string_base((uint32_t)node, str, 64, 16);
+        vga_print(str);
+
+        vga_print("  size=");
+        int_to_string_base(node->size, str, 64, 16);
+        vga_print(str);
+        vga_print("\n");
+    }
+    else {
+        vga_print("(none)\n");
+    }
+}
+
+void print_lists()
+{
+    vga_print("FREE LIST\n");
+    for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {
+        print_node(hole);
+    }
+    
+    vga_print("BLOCK LIST\n");
+    for (mem_node_t* block = first_block; block != 0; block = block->next) {
+        print_node(block);
+    }
+    vga_print("\n");
+}
+
 void* malloc(uint32_t size)
 {
+    // align size
+    if (size & (NODE_ALIGN - 1)) {
+        size &= ~(NODE_ALIGN - 1);
+        size += NODE_ALIGN;   
+    }
+
     mem_node_t* hole = find_hole(size);
 
     remove_hole(hole);
     add_block(hole);
 
-    // try to use the remaining space
-    uint32_t remain_addr = (uint32_t)hole + sizeof(mem_node_t) + size;
-    if (remain_addr & (NODE_ALIGN - 1)) {
-        remain_addr &= ~(NODE_ALIGN - 1);
-        remain_addr += NODE_ALIGN;
+    // address of the potential new node
+    uint32_t node_addr = (uint32_t)hole + sizeof(mem_node_t) + size;
+    // end of the memory owned by the hole
+    uint32_t end_addr = (uint32_t)hole + sizeof(mem_node_t) + hole->size;
+    // node_addr and end_addr are aligned, since nodes and size are aligned
+    if (node_addr + sizeof(mem_node_t) < end_addr) {
+        mem_node_t* node = (mem_node_t*)node_addr;
+        node->size = end_addr - (node_addr + sizeof(mem_node_t));
+        hole->size = size;
+        add_hole(node);
     }
-
-    // we can use the remaining space
-    if (remain_addr + sizeof(mem_node_t) < (uint32_t)hole + sizeof(mem_node_t) + hole->size) {
-        mem_node_t* remain = (mem_node_t*)remain_addr;
-        remain->size = (uint32_t)hole + sizeof(mem_node_t) + hole->size - 
-            (remain_addr + sizeof(mem_node_t));
-        add_hole(remain);
-    }
+    // otherwise don't change the hole size
 
     return (void*)((uint32_t)hole + sizeof(mem_node_t));
 
@@ -129,7 +168,7 @@ void* malloc(uint32_t size)
 
 void free(void* ptr)
 {
-    mem_node_t* node = (mem_node_t*)ptr;
+    mem_node_t* node = (mem_node_t*)(ptr - sizeof(mem_node_t));
     remove_block(node);
     add_hole(node);
 }

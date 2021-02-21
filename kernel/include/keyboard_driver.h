@@ -9,3 +9,4 @@ typedef struct {
 } KeyboardState;
 
 void init_keyboard_driver(void);
+void keyboard_interrupt(void);

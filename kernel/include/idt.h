@@ -2,11 +2,7 @@
 #include <stdint.h>
 
 
-// the start of user-defined interrupts 
-// below this is reserved
-#define IDT_USER_OFFSET 0x20
-
+// the start of PIC interrupts
+#define IDT_PIC_OFFSET 32
 
 void init_idt(void);
-
-void set_isr(uint32_t handler_addr, int position);
