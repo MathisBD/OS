@@ -6,3 +6,4 @@
 #define IDT_PIC_OFFSET 32
 
 void init_idt(void);
+extern void enable_interrupts();

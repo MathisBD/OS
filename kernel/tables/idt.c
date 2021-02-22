@@ -172,8 +172,12 @@ void interrupt_handler(registers * user_regs)
 		pic_eoi(irq);
 		
 		switch(irq) {
+		case 0: // clock (PIT)
+			timer_interrupt();
+			break;
 		case 1: // keyboard
 			keyboard_interrupt();
+			break;
 		}
 		return;
 	}

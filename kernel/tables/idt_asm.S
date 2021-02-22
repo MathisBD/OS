@@ -8,7 +8,11 @@
 load_idtr:
     mov 4(%esp), %edx
     lidt (%edx)
-    sti // enable interrupts
+    ret
+
+.global enable_interrupts
+enable_interrupts:
+    sti 
     ret
 
 isr_common:

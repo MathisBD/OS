@@ -1,7 +1,7 @@
-#include <stdint.h>
 #include <stddef.h>
 #include "vga_driver.h"
 #include "constants.h"
+#include "string_utils.h"
 
 // io ports to communicate with the vga cursor
 #define CURSOR_PORT_1 0x3D4
@@ -135,4 +135,11 @@ void vga_print(const char* str)
         private_putc(str[i]);
     }
     move_cursor(term_row, term_col);
+}
+
+void vga_print_int(uint64_t num, int base)
+{
+    char str[64];
+    int_to_string_base(num, str, 64, 10);
+    vga_print(str);
 }

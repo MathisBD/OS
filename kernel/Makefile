@@ -15,11 +15,13 @@ drivers/vga_driver.o \
 drivers/pic_driver.o \
 drivers/io_asm.o \
 drivers/keyboard_driver.o \
+drivers/pit_driver.o \
 utils/string_utils.o \
 memory/paging.o \
 memory/memory_asm.o \
 memory/bitset.o \
-memory/heap.o
+memory/heap.o \
+scheduler/timer.o 
 
 .PHONY: all clean install install-headers install-kernel
 
