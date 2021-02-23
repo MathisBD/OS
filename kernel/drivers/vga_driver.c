@@ -140,6 +140,6 @@ void vga_print(const char* str)
 void vga_print_int(uint64_t num, int base)
 {
     char str[64];
-    int_to_string_base(num, str, 64, 10);
+    int_to_string_base(num, str, 64, base);
     vga_print(str);
 }

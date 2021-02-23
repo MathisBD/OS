@@ -19,6 +19,20 @@
     .long MB_FLAGS
     .long MB_CHECKSUM
 
+// multiboot header
+//.set MH_MAGIC, 0xE85250D6
+//.set MH_ARCH, 0
+//.set MH_LEN, (mb_end - mb_start)
+//.align 4
+//mb_start:
+//.long MH_MAGIC         // magic 
+//.long MH_ARCH           // architecture
+//.long MH_LEN              // header length
+//.long - (MH_MAGIC + MH_LEN + MH_ARCH) // checksum 
+
+// TAGS
+// 
+//mb_end:
 
 .section .bss
 // stack space

@@ -113,7 +113,6 @@ typedef struct {
 #define PT_HIPROC   0x7fffffff
 
 
-
 // ELF program header
 typedef struct {
     Elf32_Word p_type;

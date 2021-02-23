@@ -28,7 +28,7 @@ scheduler/timer.o
 all: minios.kernel
 
 minios.kernel: $(OBJS) linker.o
-	$(CC) -T linker.o $(CFLAGS) -nostdlib -o $@ $(OBJS) $(LIBS)
+	$(CC) -T linker.o $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 	grub-file --is-x86-multiboot minios.kernel
 
 # we run the C preprocessor on the linker script
@@ -48,8 +48,8 @@ minios.kernel: $(OBJS) linker.o
 install: install-headers install-kernel
 
 install-headers:
-	mkdir -p $(SYSROOT)$(INCLUDEDIR)
-	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/.
+	mkdir -p $(SYSROOT)$(INCLUDEDIR)/kernel
+	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/kernel/.
 
 install-kernel: minios.kernel
 	mkdir -p $(SYSROOT)$(BOOTDIR)
