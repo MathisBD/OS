@@ -10,7 +10,8 @@
 #include "multiboot.h"
 #include "string_utils.h"
 #include "constants.h"
-
+#include "string.h"
+#include "loader.h"
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
@@ -57,9 +58,12 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
         vga_print_int(v_mod_end, 16);
         vga_print("\n");
         
-        for (char* ptr = v_mod_start; ptr < v_mod_end; ptr++) {
-            vga_print_int(*ptr, 16);
-            vga_print(" ");
+        bool res = load_elf((char*)v_mod_start, (char*)v_mod_end);
+        if (res) {
+            vga_print("good\n");
+        }
+        else {
+            vga_print("bad\n");
         }
     }
    

@@ -6,12 +6,13 @@
 #include "constants.h"
 #include "bitset.h"
 #include <stddef.h>
+#include "string.h"
 
 typedef struct {
     uint32_t address;
     uint32_t frame_count;
     // bitset : 1 == the frame is available
-    uint64_t* avail_frames_bitset;
+    uint64_t avail_frames_bitset[MAX_FRAMES / 64]; 
 } mem_block_t;
 
 #define MAX_MEM_BLOCKS 128
@@ -38,28 +39,6 @@ typedef struct {
 // kernel page directory
 // has to be aligned on 4K
 pde_entry_t kernel_pd[PD_SIZE] __attribute__((aligned(4096)));
-
-
-#define ALIGN(addr, align) (\
-    ((addr) & ((align) - 1)) ? \
-    (((addr) & ~((align) - 1)) + (align)) : \
-    (addr) \
-)
-
-uint32_t placement_addr; // virtual address
-void* palloc(uint32_t length)
-{
-    placement_addr = ALIGN(placement_addr, 16);
-    
-    // we can't allocate more than one page with placement alloc
-    if (placement_addr + length >= V_KERNEL_START + PAGE_SIZE) {
-        return 0;
-    }
-
-    uint32_t tmp = placement_addr;
-    placement_addr += length;
-    return (void*)tmp;
-}
 
 void print_mem_blocks(void)
 {
@@ -96,7 +75,10 @@ void add_mem_block(uint64_t addr, uint64_t len)
     // don't use small memory blocks
     // (the first one, i.e. before 1MB, will be merged
     // with the next block)
-    addr = ALIGN(addr, PAGE_SIZE);
+    if (addr & (PAGE_SIZE - 1)) {
+        addr &= ~(PAGE_SIZE - 1);
+        addr += PAGE_SIZE;
+    }
     if (addr >= end) {
         return;
     } 
@@ -114,11 +96,7 @@ void add_mem_block(uint64_t addr, uint64_t len)
     mem_blocks[mem_blocks_count].address = addr;
     mem_blocks[mem_blocks_count].frame_count = (uint32_t)((end - addr) / PAGE_SIZE);
 
-    uint32_t size = 1 + (mem_blocks[mem_blocks_count].frame_count >> 3);
-    mem_blocks[mem_blocks_count].avail_frames_bitset = (uint64_t*)palloc(size);
-
-    extern void* memset(void*, int, size_t);
-    memset(mem_blocks[mem_blocks_count].avail_frames_bitset, 0xFF, size);
+    memset(mem_blocks[mem_blocks_count].avail_frames_bitset, 0xFF, MAX_FRAMES / 64);
     
     if (mem_blocks_count == 0) {
         // the first frame is already used by the kernel
@@ -131,7 +109,7 @@ void add_mem_block(uint64_t addr, uint64_t len)
 
 void get_mmap(multiboot_info_t * mbd)
 {
-    // if the GRUB memory map is valid
+    // check the GRUB memory map is valid
     if (!(mbd->flags & 0x20)) {
         return;
     }
@@ -163,7 +141,6 @@ void get_mmap(multiboot_info_t * mbd)
 void setup_page_dir()
 {
     // initialise page directory
-    extern void* memset(void*, int, size_t);
     memset(kernel_pd, 0, PD_SIZE * sizeof(pde_entry_t));
     // kernel page mapped to 0x00
     uint32_t idx = V_KERNEL_START / PAGE_SIZE;
@@ -252,12 +229,6 @@ void page_fault(page_fault_info_t info)
 
 void init_paging(multiboot_info_t * mbd, unsigned int magic)
 {   
-    // initialise placement address
-    extern int _kernel_rw_end;
-    // I have to cast to uint32_t (and then implicitly promote to uint64_t), 
-    // because casting to uint64_t would sign extend and I definitely don't want that
-    placement_addr = (uint32_t)&_kernel_rw_end;
-
     get_mmap(mbd);
     setup_page_dir();
 }

@@ -21,7 +21,10 @@ memory/paging.o \
 memory/memory_asm.o \
 memory/bitset.o \
 memory/heap.o \
-scheduler/timer.o 
+scheduler/timer.o \
+libk/string/string.o \
+loader/loader.o \
+loader/loader_asm.o
 
 .PHONY: all clean install install-headers install-kernel
 

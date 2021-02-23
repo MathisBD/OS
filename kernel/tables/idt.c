@@ -173,7 +173,7 @@ void interrupt_handler(registers * user_regs)
 		
 		switch(irq) {
 		case 0: // clock (PIT)
-			timer_interrupt();
+			timer_interrupt(user_regs->eax);
 			break;
 		case 1: // keyboard
 			keyboard_interrupt();

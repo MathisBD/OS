@@ -112,7 +112,11 @@ typedef struct {
 #define PT_LOPROC   0x70000000
 #define PT_HIPROC   0x7fffffff
 
-
+// segment flags
+#define PF_X        0x1         // execute
+#define PF_W        0x2         // write
+#define PF_R        0x4         // read
+#define PF_MASKPROC 0xf0000000  // unspecified
 // ELF program header
 typedef struct {
     Elf32_Word p_type;

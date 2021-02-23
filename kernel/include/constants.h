@@ -29,3 +29,5 @@
 #define PAGE_SIZE 0x400000 // 4MB
 // number of pages in a page directory
 #define PD_SIZE 1024
+// maximum number of physical frames
+#define MAX_FRAMES 1024 

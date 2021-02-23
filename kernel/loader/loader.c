@@ -1,5 +1,7 @@
 #include "elf.h"
 #include <stdbool.h>
+#include "string.h"
+#include "vga_driver.h"
 
 // memory layout :
 // ============ TOP (4GB)
@@ -18,9 +20,16 @@
 // TEXT
 // =========== BOTTOM (0GB)
 
-void load_segment(Elf32_Ehdr* e_hdr, Elf32_Phdr* header)
+bool valid_header(Elf32_Ehdr* e_hdr)
 {
-    
+    if (e_hdr->e_ident[EI_MAG0] == 0x7f &&
+        e_hdr->e_ident[EI_MAG1] == 'E' &&
+        e_hdr->e_ident[EI_MAG2] == 'L' &&
+        e_hdr->e_ident[EI_MAG3] == 'F')
+    {
+        return true;
+    }
+    return false;
 }
 
 
@@ -44,12 +53,44 @@ bool load_elf(char* elf_start, char* elf_end)
     for (int i = 0; i < e_hdr->e_phnum; i++) {
         Elf32_Phdr* header = elf_start + e_hdr->e_phoff + i * e_hdr->e_phentsize;
         if (header->p_type == PT_LOAD) {
-            load_segment(e_hdr, header);
+            // copy the segment 
+            memcpy(header->p_vaddr, 
+                elf_start + header->p_offset, 
+                header->p_filesz);
+            memset(header->p_vaddr + header->p_filesz, 
+                0, 
+                header->p_memsz - header->p_filesz);
+            vga_print("found loadable segment : ");
+
+            vga_print("\noffset=");
+            vga_print_int(header->p_offset, 16);
+            vga_print("\nvaddr=");
+            vga_print_int(header->p_vaddr, 16);
+            vga_print("\nfilesz=");
+            vga_print_int(header->p_filesz, 16);
+            vga_print("\nmemsz=");
+            vga_print_int(header->p_memsz, 16);
+            vga_print("\n");
         }
+    }
+
+    for (uint8_t* ptr = 0; ptr < 10; ptr++) {
+        vga_print_int((uint8_t)*ptr, 16);
+        vga_print(" ");
     }
 
     // jump to the entry point
     uint32_t entry_addr = e_hdr->e_entry;
+    vga_print("\nentry point=");
+    vga_print_int(entry_addr, 16);
+    vga_print("\n");
+    
+    vga_print("\nJUMP\n\n");
+
     extern void loader_jump(uint32_t);
     loader_jump(entry_addr);
+
+    vga_print("AFTER");
+
+    return true;
 }

@@ -1,3 +1,5 @@
 #pragma once
 
-void load_elf(char* elf_start);
+#include <stdbool.h>
+
+bool load_elf(char* elf_start, char* elf_end);
