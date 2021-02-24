@@ -12,6 +12,9 @@
 #define BEGIN_INIT 0x11
 #define END_OF_INTERRUPT 0x20
 
+#define IRQ_PIT      0
+#define IRQ_KEYBOARD 1
+
 extern int write_io_port();
 extern int read_io_port();
 
@@ -35,10 +38,12 @@ void init_pic_driver(void)
     write_io_port(PIC_2_DATA, 0x01);
     // initialization finished
 
-    // enable all interrupts (we supply a bitmask :
+    // enable interrupts (we supply a bitmask :
     // 0 means enabled and 1 means disabled)
-    write_io_port(PIC_1_DATA, 0x0);
-    write_io_port(PIC_2_DATA, 0x0);
+    //uint8_t enabled = ~((1 << IRQ_PIT) | (1 << IRQ_KEYBOARD));
+    uint16_t enabled = ~(1 << IRQ_KEYBOARD);
+    write_io_port(PIC_1_DATA, enabled & 0xFF);
+    write_io_port(PIC_2_DATA, (enabled >> 8) & 0xFF);
 }
 
 

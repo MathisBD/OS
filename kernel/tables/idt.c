@@ -28,19 +28,34 @@ typedef struct {
 	uint32_t ebp, edx, ecx, ebx, eax, esi, edi;
 	// pushed by the isrxx
 	uint32_t intr_num, error_code;
-} __attribute__((packed)) registers;
+	// pushed by the cup
+	uint32_t eip, cs, eflags;
+} __attribute__((packed)) registers_t;
 
 #define IDT_SIZE 256
 IDT_entry IDT[IDT_SIZE];
+
+// idt gate type attributes
+#define IDT_PRESENT		0x80
+#define IDT_DPL_0		0x00
+#define IDT_DPL_3		0x60
+#define IDT_INT_GATE	0x0E // interrupt gate
 
 void set_isr(uint32_t handler_addr, int index)
 {
 	IDT[index].offset_lowbits = handler_addr & 0xFFFF;
 	IDT[index].selector = 0x08; // offset in the gdt of the kernel code descriptor
 	IDT[index].zero = 0;
-	IDT[index].type_attr = 0x8e; // interrupt gate
+	IDT[index].type_attr = IDT_PRESENT | IDT_DPL_0 | IDT_INT_GATE; // interrupt gate
 	IDT[index].offset_highbits = (handler_addr & 0xFFFF0000) >> 16;
 }
+
+void set_isr_user(uint32_t handler_addr, int index)
+{
+	set_isr(handler_addr, index);
+	IDT[index].type_attr |= IDT_DPL_3;
+}
+
 
 void init_idt(void)
 {
@@ -97,6 +112,8 @@ void init_idt(void)
 	extern void isr45();
 	extern void isr46();
 	extern void isr47();
+
+	extern void isr128();
 
     extern void load_idtr();
 
@@ -155,6 +172,10 @@ void init_idt(void)
 	set_isr((uint32_t)isr45, 45);
 	set_isr((uint32_t)isr46, 46);
 	set_isr((uint32_t)isr47, 47);
+
+	// interrupt 128 (syscall) is the only one 
+	// that can be called by the user
+	set_isr_user((uint32_t)isr128, 128);
 	
     IDTR_contents idtr;
 	idtr.limit = sizeof(IDT_entry) * IDT_SIZE - 1;
@@ -162,7 +183,7 @@ void init_idt(void)
     load_idtr((uint32_t)&idtr);
 }
 
-void interrupt_handler(registers * user_regs)
+void interrupt_handler(registers_t * user_regs)
 {
 	// PIC IRQs
 	if (IDT_PIC_OFFSET <= user_regs->intr_num && 
@@ -200,14 +221,9 @@ void interrupt_handler(registers * user_regs)
 		break;
 	}
 	default:
-		vga_print("Uncatched interrupt !\n");
-		char str[32];
-		int_to_string((uint64_t)user_regs->intr_num, str, 32);
-		vga_print(str);
-		vga_print("\n");
-
+		vga_print("Uncatched interrupt !\nint num=");
+		vga_print_int(user_regs->intr_num, 10);
 		while (1) {
-
 		}
 		break;
 	}

@@ -199,6 +199,10 @@ void alloc_page(uint32_t idx, uint32_t frame_addr)
     kernel_pd[idx].rw = 1;
     kernel_pd[idx].size = 1;
     kernel_pd[idx].frame_addr = frame_addr >> 22;
+
+    //if (idx < V_KERNEL_START / PAGE_SIZE) {
+        kernel_pd[idx].user = 1;
+    //}
 }
 
 

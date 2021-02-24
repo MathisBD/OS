@@ -19,7 +19,7 @@ void init_timer(float f)
 
 void timer_interrupt(uint32_t tmp)
 {
-    if ((uint32_t)(time + delta_t) > (uint32_t)time) {
+    if ((uint32_t)(1*(time + delta_t)) > (uint32_t)(1*time)) {
         vga_print_int((uint32_t)(time + delta_t), 10);
         vga_print(" ---> ");
         vga_print_int(tmp, 16);

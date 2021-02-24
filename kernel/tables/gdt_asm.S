@@ -21,3 +21,11 @@ load_gdtr:
     ljmp $0x08, $.finish
 .finish:
     ret
+
+// arguments :
+//   1) value to store in the task state register
+.global load_tr 
+load_tr:
+    mov 4(%esp), %eax
+    ltr %ax 
+    ret

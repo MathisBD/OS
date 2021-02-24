@@ -25,12 +25,14 @@ prog.o: $(OBJS) linker.ld
 %.o: %.S
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
-install: install-headers
+install: install-headers install-prog
 
 install-headers:
 	mkdir -p $(SYSROOT)$(INCLUDEDIR)/libc
 	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/libc/.
 
+install-prog: prog.o
+	cp --preserve=timestamps prog.o ../isodir/boot/prog.o
 
 clean:
 	rm -f $(OBJS)

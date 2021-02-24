@@ -130,3 +130,6 @@ isr_no_errcode 44
 isr_no_errcode 45
 isr_no_errcode 46
 isr_no_errcode 47
+
+// syscall
+isr_no_errcode 128

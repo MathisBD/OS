@@ -2,6 +2,9 @@
 #include <stdbool.h>
 #include "string.h"
 #include "vga_driver.h"
+#include "heap.h"
+#include "gdt.h"
+#include "constants.h"
 
 // memory layout :
 // ============ TOP (4GB)
@@ -19,6 +22,8 @@
 // DATA
 // TEXT
 // =========== BOTTOM (0GB)
+
+#define USER_STACK_TOP (V_KERNEL_START - 4)
 
 bool valid_header(Elf32_Ehdr* e_hdr)
 {
@@ -60,7 +65,7 @@ bool load_elf(char* elf_start, char* elf_end)
             memset(header->p_vaddr + header->p_filesz, 
                 0, 
                 header->p_memsz - header->p_filesz);
-            vga_print("found loadable segment : ");
+            /*vga_print("found loadable segment : ");
 
             vga_print("\noffset=");
             vga_print_int(header->p_offset, 16);
@@ -70,7 +75,7 @@ bool load_elf(char* elf_start, char* elf_end)
             vga_print_int(header->p_filesz, 16);
             vga_print("\nmemsz=");
             vga_print_int(header->p_memsz, 16);
-            vga_print("\n");
+            vga_print("\n");*/
         }
     }
 
@@ -79,18 +84,26 @@ bool load_elf(char* elf_start, char* elf_end)
         vga_print(" ");
     }
 
+    // create a kernel stack for handling the interrupts 
+    // of this process
+    uint32_t stack_size = 4096;
+    char* stack_bottom = malloc(stack_size);
+    char* stack_top = stack_bottom + stack_size;
+    set_tss_esp((uint32_t)stack_top);
+
     // jump to the entry point
     uint32_t entry_addr = e_hdr->e_entry;
-    vga_print("\nentry point=");
+    /*vga_print("\nentry point=");
     vga_print_int(entry_addr, 16);
-    vga_print("\n");
+    vga_print("\n");*/
     
     vga_print("\nJUMP\n\n");
 
-    extern void loader_jump(uint32_t);
-    loader_jump(entry_addr);
+    // setup user stack
+    //memset((void*)(USER_STACK_TOP - 4096), 0, 4096);
 
-    vga_print("AFTER");
+    extern void loader_jump_user(uint32_t, uint32_t);
+    loader_jump_user(entry_addr, USER_STACK_TOP);
 
     return true;
 }
