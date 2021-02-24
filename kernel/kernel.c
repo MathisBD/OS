@@ -12,6 +12,7 @@
 #include "constants.h"
 #include "string.h"
 #include "loader.h"
+#include "stdio.h"
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
@@ -43,7 +44,9 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
     init_heap();
     init_timer(pit_freq);
 
-    vga_print("mod count=");
+
+
+    /*vga_print("mod count=");
     vga_print_int(mbd->mods_count, 10);
     vga_print("\n");
 
@@ -65,7 +68,7 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
         else {
             vga_print("bad\n");
         }
-    }
+    }*/
    
     while (1) {
 

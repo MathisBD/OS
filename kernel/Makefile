@@ -1,11 +1,13 @@
 CFLAGS?=-O2 -g
 CPPFLAGS?=
-LDFLAGS?=
 LIBS?=
 
 CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
-CPPFLAGS:=$(CPPFLAGS) -D__is_kernel -Iinclude
-LIBS:=$(LIBS) -nostdlib -lgcc
+CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
+-I$(SYSROOT)$(INCLUDEDIR)/kernel \
+-I$(SYSROOT)$(INCLUDEDIR)/libc
+
+LIBS:=$(LIBS) -nostdlib -lgcc -lk
 
 
 OBJS=kernel.o boot.o \
@@ -22,7 +24,6 @@ memory/memory_asm.o \
 memory/bitset.o \
 memory/heap.o \
 scheduler/timer.o \
-libk/string/string.o \
 loader/loader.o \
 loader/loader_asm.o
 

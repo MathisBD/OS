@@ -2,5 +2,8 @@
 *.d
 *.kernel
 *.iso
+*.a
+*.libc.o
+*.libk.o
 sysroot
 isodir

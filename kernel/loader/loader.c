@@ -1,6 +1,6 @@
 #include "elf.h"
 #include <stdbool.h>
-#include "string.h"
+#include <string.h>
 #include "vga_driver.h"
 #include "heap.h"
 #include "gdt.h"

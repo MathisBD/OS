@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include "gdt.h"
-#include "string.h"
+#include <string.h>
 
 #define GDT_SIZE 6
 

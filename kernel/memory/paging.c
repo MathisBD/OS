@@ -6,7 +6,7 @@
 #include "constants.h"
 #include "bitset.h"
 #include <stddef.h>
-#include "string.h"
+#include <string.h>
 
 typedef struct {
     uint32_t address;
