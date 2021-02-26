@@ -18,10 +18,14 @@ LIBC_CPPFLAGS:=$(CPPFLAGS) -D__is_libc \
 
 LIBK_OBJS= \
 stdio/printf.libk.o \
+stdio/putchar.libk.o \
+stdio/puts.libk.o \
 string/memcmp.libk.o \
 string/memcpy.libk.o \
 string/memset.libk.o \
-string/memmove.libk.o 
+string/memmove.libk.o \
+string/strlen.libk.o \
+panic/panic.libk.o
 
 LIBC_OBJS=
 

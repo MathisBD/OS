@@ -5,6 +5,7 @@
 #include "heap.h"
 #include "gdt.h"
 #include "constants.h"
+#include <stdio.h>
 
 // memory layout :
 // ============ TOP (4GB)
@@ -80,8 +81,7 @@ bool load_elf(char* elf_start, char* elf_end)
     }
 
     for (uint8_t* ptr = 0; ptr < 10; ptr++) {
-        vga_print_int((uint8_t)*ptr, 16);
-        vga_print(" ");
+        printf("%x ", (uint8_t)*ptr);
     }
 
     // create a kernel stack for handling the interrupts 
@@ -97,7 +97,7 @@ bool load_elf(char* elf_start, char* elf_end)
     vga_print_int(entry_addr, 16);
     vga_print("\n");*/
     
-    vga_print("\nJUMP\n\n");
+    printf("\nJUMP\n\n");
 
     // setup user stack
     //memset((void*)(USER_STACK_TOP - 4096), 0, 4096);

@@ -1,6 +1,8 @@
 #include "pit_driver.h"
 #include <stdint.h>
 #include "vga_driver.h"
+#include "port_io.h"
+
 
 // PIT io ports
 #define PIT_DATA_0  0x40 // read/write
@@ -43,11 +45,10 @@ float init_pit(float requested_freq)
     divider &= 0xFFFE;
     
     // send the divider to the PIT
-    extern void write_io_port(uint16_t port, uint8_t byte);
-    write_io_port(PIT_COMMAND, CHANNEL_0 | ACCESS_LOHI | MODE_3 | BINARY);
+    port_int8_out(PIT_COMMAND, CHANNEL_0 | ACCESS_LOHI | MODE_3 | BINARY);
 
-    write_io_port(PIT_DATA_0, (divider & 0x00FF));
-    write_io_port(PIT_DATA_0, ((divider >> 8) & 0x00FF));
+    port_int8_out(PIT_DATA_0, (divider & 0x00FF));
+    port_int8_out(PIT_DATA_0, ((divider >> 8) & 0x00FF));
 
     // calculate the actual frequency
     return MAX_FREQ / (float)divider;

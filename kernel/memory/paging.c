@@ -7,6 +7,8 @@
 #include "bitset.h"
 #include <stddef.h>
 #include <string.h>
+#include <stdio.h>
+
 
 typedef struct {
     uint32_t address;
@@ -208,14 +210,7 @@ void alloc_page(uint32_t idx, uint32_t frame_addr)
 
 void page_fault(page_fault_info_t info)
 {
-    vga_print("Page fault ! ");
-    if (!info.present) {
-        vga_print("(page absent) "); 
-    }
-    char str[64];
-    int_to_string_base(info.address, str, 64, 16);
-    vga_print(str);
-    vga_print("\n");
+    printf("PAGE FAULT (addr=%x)\n", info.address);
 
     // page was absent
     if (!info.present) {
@@ -224,10 +219,7 @@ void page_fault(page_fault_info_t info)
         alloc_page(page_idx, frame_addr);
     }
     else {
-        // TODO : other cases
-        vga_print("Unknown page fault type\n");
-        while (1) {
-        }
+        panic("page_fault : unknown page fault type");
     }
 }
 

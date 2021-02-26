@@ -2,6 +2,8 @@
 #include "vga_driver.h"
 #include "constants.h"
 #include "string_utils.h"
+#include "port_io.h"
+
 
 // io ports to communicate with the vga cursor
 #define CURSOR_PORT_1 0x3D4
@@ -15,8 +17,8 @@
 #define CURSOR_TOP 13
 #define CURSOR_BOTTOM 15
 
-extern int write_io_port();
-extern int read_io_port();
+#define TAB_ALIGN 8
+
 
 // text output buffer
 // entry format : 0xBFCC
@@ -25,8 +27,8 @@ extern int read_io_port();
 // - C : ASCII character
 uint16_t* vga_buffer;
 
-int term_col;
-int term_row;
+uint32_t term_col;
+uint32_t term_row;
 uint8_t default_color;
 
 uint16_t vga_entry(uint8_t color, char c)
@@ -53,30 +55,30 @@ void enable_cursor(void)
 {
     uint8_t b;
 
-    write_io_port(CURSOR_PORT_1, 0x0A);
-    b = read_io_port(CURSOR_PORT_2);
-    write_io_port(CURSOR_PORT_2, (b & 0xC0) | CURSOR_TOP);
+    port_int8_out(CURSOR_PORT_1, 0x0A);
+    b = port_int8_in(CURSOR_PORT_2);
+    port_int8_out(CURSOR_PORT_2, (b & 0xC0) | CURSOR_TOP);
 
-    write_io_port(CURSOR_PORT_1, 0x0B);
-    b = read_io_port(CURSOR_PORT_2);
-    write_io_port(CURSOR_PORT_2, (b & 0xE0) | CURSOR_BOTTOM);
+    port_int8_out(CURSOR_PORT_1, 0x0B);
+    b = port_int8_in(CURSOR_PORT_2);
+    port_int8_out(CURSOR_PORT_2, (b & 0xE0) | CURSOR_BOTTOM);
 }
 
 void disable_cursor(void)
 {
-    write_io_port(CURSOR_PORT_1, 0x0A);
-    write_io_port(CURSOR_PORT_2, 0x20);
+    port_int8_out(CURSOR_PORT_1, 0x0A);
+    port_int8_out(CURSOR_PORT_2, 0x20);
 }
 
 void move_cursor(int row, int col)
 {
     uint16_t pos = row * VGA_COLS + col;
 
-    write_io_port(CURSOR_PORT_1, 0x0F);
-    write_io_port(CURSOR_PORT_2, (uint8_t)(pos & 0xFF));
+    port_int8_out(CURSOR_PORT_1, 0x0F);
+    port_int8_out(CURSOR_PORT_2, (uint8_t)(pos & 0xFF));
 
-    write_io_port(CURSOR_PORT_1, 0x0E);
-    write_io_port(CURSOR_PORT_2, (uint8_t)((pos & 0xFF00) >> 8));
+    port_int8_out(CURSOR_PORT_1, 0x0E);
+    port_int8_out(CURSOR_PORT_2, (uint8_t)((pos & 0xFF00) >> 8));
 }
 
 void init_vga_driver(void)
@@ -94,7 +96,7 @@ void init_vga_driver(void)
     move_cursor(0, 0);
 }
 
-void private_putc(char c) 
+void private_putchar(char c) 
 {
    if (term_row >= VGA_ROWS) {
         term_col = 0;
@@ -104,17 +106,17 @@ void private_putc(char c)
     
     switch(c) {
     case '\n':
-        {
-            term_row++;
-            term_col = 0;
-            break;
-        }
-    default: 
-        {
-            set_vga_buffer(term_row, term_col, default_color, c);
-            term_col++;
-            break;
-        }
+        term_row++;
+        term_col = 0;
+        break;
+    case '\t':
+        term_col &= ~(TAB_ALIGN-1);
+        term_col += TAB_ALIGN;
+        break;
+    default:     
+        set_vga_buffer(term_row, term_col, default_color, c);
+        term_col++;
+        break;
     }
 
     if (term_col >= VGA_COLS) {
@@ -123,23 +125,16 @@ void private_putc(char c)
     }
 }
 
-void vga_putc(char c)
+void vga_putchar(char c)
 {
-    private_putc(c);
+    private_putchar(c);
     move_cursor(term_row, term_col);
 }
 
 void vga_print(const char* str) 
 {
     for (size_t i = 0; str[i] != '\0'; i++) {
-        private_putc(str[i]);
+        private_putchar(str[i]);
     }
     move_cursor(term_row, term_col);
-}
-
-void vga_print_int(uint64_t num, int base)
-{
-    char str[64];
-    int_to_string_base(num, str, 64, base);
-    vga_print(str);
 }

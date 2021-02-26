@@ -3,4 +3,5 @@ set -e
 . ./iso.sh 
 
 # -m is the memory in MB
-qemu-system-i386 -cdrom minios.iso -m 4096 -d int -no-reboot -no-shutdown
+#qemu-system-i386 -cdrom minios.iso -m 4096 -d int -no-reboot -no-shutdown
+qemu-system-i386 -hda minios.iso -m 4096 -d int -no-reboot -no-shutdown

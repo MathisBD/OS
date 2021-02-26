@@ -7,3 +7,6 @@ void timer_interrupt();
 // freq is the frequency at which timer_interrupt()
 // is called, in Hz
 void init_timer(float freq);
+
+// t is in seconds
+void wait(float t);

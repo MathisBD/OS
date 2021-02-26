@@ -17,7 +17,7 @@
 #define P_VGA_ADDRESS 0x000B8000
 #define V_VGA_ADDRESS 0xC00B8000
 
-#define STACK_SIZE 0x4000 // 16KB
+#define STACK_SIZE 0x100000 // 1MB
 
 // the first page is reserved for static data and placement malloc
 #define HEAP_START (V_KERNEL_START + PAGE_SIZE)

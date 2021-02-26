@@ -18,6 +18,7 @@ drivers/pic_driver.o \
 drivers/io_asm.o \
 drivers/keyboard_driver.o \
 drivers/pit_driver.o \
+drivers/ata_driver.o \
 utils/string_utils.o \
 memory/paging.o \
 memory/memory_asm.o \
@@ -31,7 +32,8 @@ loader/loader_asm.o
 
 all: minios.kernel
 
-minios.kernel: $(OBJS) linker.o
+# kind of a hack to add libk.a in the dependencies
+minios.kernel: $(OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
 	$(CC) -T linker.o $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 	grub-file --is-x86-multiboot minios.kernel
 

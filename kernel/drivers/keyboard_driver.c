@@ -3,8 +3,10 @@
 #include "keyboard_driver.h"
 #include "idt.h"
 #include "pic_driver.h"
-#include "vga_driver.h"
 #include "string_utils.h"
+#include "port_io.h"
+#include <stdio.h>
+
 
 // interrupt number for a keyboard interrupt
 #define KEYBOARD_IRQ 1
@@ -198,19 +200,18 @@ void key_pressed(uint8_t keycode)
         else {
             c = kbd_map[keycode];
         }
-        vga_putc(c);
+        putchar(c);
         break;
     }
 }
 
 void keyboard_interrupt(void)
 {
-    extern int read_io_port();
-	int status = read_io_port(KEYBOARD_COMM);
+	uint8_t status = port_int8_in(KEYBOARD_COMM);
     
     // bit 1 of status tells us if the output buffer is empty/full
 	if (status & 0x01) {
-		uint8_t keycode = read_io_port(KEYBOARD_DATA);
+		uint8_t keycode = port_int8_in(KEYBOARD_DATA);
         
         // key released
         if (keycode & 0x80) {

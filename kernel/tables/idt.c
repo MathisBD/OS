@@ -1,8 +1,12 @@
 #include <stdint.h>
 #include "idt.h"
-#include "vga_driver.h"
+#include "keyboard_driver.h"
+#include "pic_driver.h"
+#include "timer.h"
 #include "paging.h"
 #include "string_utils.h"
+#include <stdio.h>
+#include "ata_driver.h"
 
 
 typedef struct {
@@ -199,6 +203,9 @@ void interrupt_handler(registers_t * user_regs)
 		case 1: // keyboard
 			keyboard_interrupt();
 			break;
+		case 14: // primary ATA drive
+			ata_primary_interrupt();
+			break;
 		}
 		return;
 	}
@@ -221,8 +228,7 @@ void interrupt_handler(registers_t * user_regs)
 		break;
 	}
 	default:
-		vga_print("Uncatched interrupt !\nint num=");
-		vga_print_int(user_regs->intr_num, 10);
+		printf("Uncatched interrupt !\nint num=%d\n", user_regs->intr_num);
 		while (1) {
 		}
 		break;

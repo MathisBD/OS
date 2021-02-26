@@ -10,9 +10,12 @@
 #include "multiboot.h"
 #include "string_utils.h"
 #include "constants.h"
-#include "string.h"
 #include "loader.h"
-#include "stdio.h"
+#include <stdio.h>
+#include <string.h>
+#include "ata_driver.h"
+#include "timer.h"
+
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
@@ -43,6 +46,100 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
 
     init_heap();
     init_timer(pit_freq);
+
+    // ==========
+
+    uint32_t buf1[BLOCK_SIZE / 4];
+    memset(buf1, 0, BLOCK_SIZE);
+
+    io_request_t first_req;
+    first_req.type = IO_REQ_READ;
+    first_req.status = IO_REQ_WAITING;
+    first_req.block_num = 0;
+    first_req.data = buf1;
+    first_req.next = 0;
+    first_req.prev = 0;
+
+
+    uint32_t buf2[BLOCK_SIZE / 4];
+    memset(buf2, 0x42, BLOCK_SIZE);
+
+    io_request_t second_req;
+    second_req.type = IO_REQ_WRITE;
+    second_req.status = IO_REQ_WAITING;
+    second_req.block_num = 0;
+    second_req.data = buf2;
+    second_req.next = 0;
+    second_req.prev = 0;
+
+
+    uint32_t buf3[BLOCK_SIZE / 4];
+    memset(buf3, 0, BLOCK_SIZE);
+
+    io_request_t third_req;
+    third_req.type = IO_REQ_READ;
+    third_req.status = IO_REQ_WAITING;
+    third_req.block_num = 0;
+    third_req.data = buf3;
+    third_req.next = 0;
+    third_req.prev = 0;
+
+    ata_pio_request(&first_req);
+    ata_pio_request(&second_req);
+    ata_pio_request(&third_req);
+
+    wait(1.0);
+
+    for (int i = 0; i < 16; i++) {
+        printf("%x ", buf1[i]);
+    }
+    printf("\n\n");
+
+    for (int i = 0; i < 16; i++) {
+        printf("%x ", buf2[i]);
+    }
+    printf("\n\n");
+
+    for (int i = 0; i < 16; i++) {
+        printf("%x ", buf3[i]);
+    }
+    printf("\n\n");
+    /*uint8_t target[1024];
+    memset(target, 0x00, 1024 * sizeof(uint32_t));
+
+    read_sectors_ATA_PIO(target, 0x0, 1);
+    
+    printf("READ\n");
+
+    int i;
+    i = 0;
+    while(i < 64)
+    {
+        printf("%x ", target[i] & 0xFF);
+        printf("%x ", (target[i] >> 8) & 0xFF);
+        i++;
+    }
+
+    printf("\n\n");
+    printf("writing 0...\n\n");
+    char bwrite[512];
+    for(i = 0; i < 512; i++)
+    {
+        bwrite[i] = 0x0;
+    }
+    write_sectors_ATA_PIO(0x0, 2, bwrite);
+
+
+    printf("reading...\n\n");
+    read_sectors_ATA_PIO(target, 0x0, 1);
+    
+    i = 0;
+    while(i < 64)
+    {
+        printf("%x ", target[i] & 0xFF);
+        printf("%x ", (target[i] >> 8) & 0xFF);
+        i++;
+    }*/
 
 
 
