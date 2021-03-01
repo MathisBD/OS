@@ -8,8 +8,7 @@
 
 // request status
 #define IO_REQ_WAITING  1 // not handled yet
-#define IO_REQ_BUSY     2 // is being handled
-#define IO_REQ_FINISHED 3 // has finished being handled
+#define IO_REQ_FINISHED 2 // has finished being handled
 
 // an asynchronous request to read/write a block of data to disk
 typedef struct io_request {
@@ -19,5 +18,4 @@ typedef struct io_request {
     // data points to BLOCK_SIZE bytes
     uint32_t * data;
     struct io_request * next;
-    struct io_request * prev;
 } io_request_t;

@@ -36,14 +36,12 @@ void ata_pio_request(io_request_t* request)
 {
 	if (last_request) {
 		last_request->next = request;
-		request->prev = last_request;
 		request->next = 0;
 		last_request = request;
 	}
 	else {
 		first_request = request;
 		last_request = request;
-		request->prev = 0;
 		request->next = 0;
 		handle_request();
 	}
@@ -52,7 +50,12 @@ void ata_pio_request(io_request_t* request)
 // handle the first request
 void handle_request()
 {	
-	first_request->status = IO_REQ_BUSY;
+	/*while (first_req && first_req->status == IO_REQ_FINISHED) {
+		first_req = first_req->next;
+	}
+	if (!first_req) {
+		return;
+	}*/
 
 	uint8_t sector_count = BLOCK_SIZE / SECTOR_SIZE;
 	uint32_t sector = first_request->block_num;
@@ -97,28 +100,15 @@ void handle_request()
 }
 
 // interrupt handler
+////////// TODO : bugs when this modifies first_request and/or last_request
+// maybe make it mark the first request as finished and not modify the queue structure,
+// instead skip finished requests in handle_request() ??
 void ata_primary_interrupt()
 {
 	printf("ATA interrupt\n");
-
-
-	if (ata_wait(true) >= 0 && first_request->type == IO_REQ_READ) {
+	if (first_request->type == IO_REQ_READ && ata_wait(true) >= 0) {
 		port_block_in(0x1F0, first_request->data, BLOCK_SIZE / sizeof(uint32_t));
 	}
-
 	first_request->status = IO_REQ_FINISHED;
-
-	if (first_request == last_request) {
-		first_request = 0;
-		last_request = 0;
-	}
-	else {
-		// remove the first request
-		io_request_t * old = first_request;
-		first_request = first_request->next;
-		old->next = 0;
-		first_request->prev = 0;
-		// handle the next one
-		handle_request();
-	}
+	handle_request();
 }
