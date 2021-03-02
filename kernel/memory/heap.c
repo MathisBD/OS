@@ -1,7 +1,5 @@
-#include "heap.h"
-#include "constants.h"
-#include "string_utils.h"
-#include "vga_driver.h"
+#include "memory/heap.h"
+#include "memory/constants.h"
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,
@@ -103,34 +101,25 @@ mem_node_t* find_hole(uint32_t size)
 void print_node(mem_node_t* node)
 {
     if (node) {
-        char str[64];
-
-        vga_print("addr=");
-        int_to_string_base((uint32_t)node, str, 64, 16);
-        vga_print(str);
-
-        vga_print("  size=");
-        int_to_string_base(node->size, str, 64, 16);
-        vga_print(str);
-        vga_print("\n");
+        printf("addr=%x\tsize=%x\n", (uint32_t)node, node->size);
     }
     else {
-        vga_print("(none)\n");
+        printf("(none)\n");
     }
 }
 
 void print_lists()
 {
-    vga_print("FREE LIST\n");
+    printf("FREE LIST\n");
     for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {
         print_node(hole);
     }
     
-    vga_print("BLOCK LIST\n");
+    printf("BLOCK LIST\n");
     for (mem_node_t* block = first_block; block != 0; block = block->next) {
         print_node(block);
     }
-    vga_print("\n");
+    printf("\n");
 }
 
 void* malloc(uint32_t size)

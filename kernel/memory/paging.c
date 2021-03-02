@@ -1,10 +1,8 @@
 #include <stdint.h>
-#include "paging.h"
+#include "memory/paging.h"
 #include "multiboot.h"
-#include "string_utils.h"
-#include "vga_driver.h"
-#include "constants.h"
-#include "bitset.h"
+#include "memory/constants.h"
+#include "memory/bitset.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
@@ -42,24 +40,6 @@ typedef struct {
 // has to be aligned on 4K
 pde_entry_t kernel_pd[PD_SIZE] __attribute__((aligned(4096)));
 
-void print_mem_blocks(void)
-{
-    vga_print("Memory blocks\n");
-
-    for (int i = 0; i < mem_blocks_count; i++) {
-        char str[64];
-
-        int_to_string(mem_blocks[i].address, str, 64);
-        vga_print("address : ");
-        vga_print(str);
-        vga_print("   ");
-
-        int_to_string(mem_blocks[i].frame_count, str, 64);
-        vga_print("frame count : ");
-        vga_print(str);
-        vga_print("\n");
-    }
-}
 
 void add_mem_block(uint64_t addr, uint64_t len)
 {
@@ -165,7 +145,7 @@ uint32_t find_free_frame()
             return mem_blocks[i].address + index * PAGE_SIZE;
         }
     }
-    vga_print("NO FREE FRAME\n");
+    printf("NO FREE FRAME\n");
     // TODO : no free frame
 }
 

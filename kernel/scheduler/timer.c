@@ -1,7 +1,6 @@
-#include "timer.h"
+#include "scheduler/timer.h"
 #include <stdint.h>
-#include "string_utils.h"
-#include "vga_driver.h"
+
 
 float freq; // frequency of interrupts, in Hz
 float delta_time; // time between interrupts, in seconds

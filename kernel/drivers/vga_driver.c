@@ -1,8 +1,7 @@
 #include <stddef.h>
-#include "vga_driver.h"
-#include "constants.h"
-#include "string_utils.h"
-#include "port_io.h"
+#include "drivers/vga_driver.h"
+#include "memory/constants.h"
+#include "drivers/port_io.h"
 
 
 // io ports to communicate with the vga cursor

@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "gdt.h"
+#include "tables/gdt.h"
 #include <string.h>
 
 #define GDT_SIZE 6

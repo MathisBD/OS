@@ -1,21 +1,21 @@
-#include "pic_driver.h"
-#include "vga_driver.h"
-#include "keyboard_driver.h"
-#include "pit_driver.h"
-#include "idt.h"
-#include "gdt.h"
-#include "timer.h"
-#include "paging.h"
-#include "heap.h"
+#include "drivers/pic_driver.h"
+#include "drivers/vga_driver.h"
+#include "drivers/keyboard_driver.h"
+#include "drivers/pit_driver.h"
+#include "tables/idt.h"
+#include "tables/gdt.h"
+#include "scheduler/timer.h"
+#include "memory/paging.h"
+#include "memory/heap.h"
 #include "multiboot.h"
-#include "string_utils.h"
-#include "constants.h"
-#include "loader.h"
+#include "utils/string_utils.h"
+#include "memory/constants.h"
+#include "loader/loader.h"
 #include <stdio.h>
 #include <string.h>
-#include "ata_driver.h"
-#include "timer.h"
-
+#include "drivers/ata_driver.h"
+#include "scheduler/timer.h"
+#include "filesystem/ext2/miniext.h"
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
@@ -57,8 +57,8 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
     first_req.status = IO_REQ_WAITING;
     first_req.block_num = 0;
     first_req.data = buf1;
+    first_req.data_bytes = 1024;
     first_req.next = 0;
-    first_req.prev = 0;
 
 
     uint32_t buf2[BLOCK_SIZE / 4];
@@ -69,8 +69,8 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
     second_req.status = IO_REQ_WAITING;
     second_req.block_num = 0;
     second_req.data = buf2;
+    second_req.data_bytes = 1024;
     second_req.next = 0;
-    second_req.prev = 0;
 
 
     uint32_t buf3[BLOCK_SIZE / 4];
@@ -81,14 +81,17 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
     third_req.status = IO_REQ_WAITING;
     third_req.block_num = 0;
     third_req.data = buf3;
+    third_req.data_bytes = 1024;
     third_req.next = 0;
-    third_req.prev = 0;
 
+    printf("first request\n");
     ata_pio_request(&first_req);
-    ata_pio_request(&second_req);
-    ata_pio_request(&third_req);
 
-    wait(1.0);
+    printf("second request\n");
+    ata_pio_request(&second_req);
+
+    printf("third request\n");
+    ata_pio_request(&third_req);
 
     for (int i = 0; i < 16; i++) {
         printf("%x ", buf1[i]);

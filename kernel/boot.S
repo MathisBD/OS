@@ -1,4 +1,4 @@
-#include "constants.h"
+#include "memory/constants.h"
 
 .extern kernel_main
 .extern get_mmap

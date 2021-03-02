@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include "miniext.h"
 
 // request type
 #define IO_REQ_READ 1
@@ -15,7 +14,7 @@ typedef struct io_request {
     int type; // read/write
     int status;
     uint32_t block_num;
-    // data points to BLOCK_SIZE bytes
     uint32_t * data;
+    uint32_t data_bytes; // number of bytes in data buffer
     struct io_request * next;
 } io_request_t;

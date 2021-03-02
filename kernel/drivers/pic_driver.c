@@ -1,7 +1,7 @@
 #include <stdint.h>
-#include "pic_driver.h"
-#include "idt.h"
-#include "port_io.h"
+#include "drivers/pic_driver.h"
+#include "tables/idt.h"
+#include "drivers/port_io.h"
 
 // command/status ports
 #define PIC_1_COMM 0x20
@@ -45,7 +45,7 @@ void init_pic_driver(void)
         (1 << IRQ_KEYBOARD) | 
         (1 << IRQ_PRIMARY_ATA)
     );*/
-    uint16_t enabled = 0x0001;
+    uint16_t enabled = 0x0000;
     port_int8_out(PIC_1_DATA, enabled & 0xFF);
     port_int8_out(PIC_2_DATA, (enabled >> 8) & 0xFF);
 }

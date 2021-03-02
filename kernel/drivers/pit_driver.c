@@ -1,7 +1,7 @@
-#include "pit_driver.h"
+#include "drivers/pit_driver.h"
 #include <stdint.h>
-#include "vga_driver.h"
-#include "port_io.h"
+#include "drivers/vga_driver.h"
+#include "drivers/port_io.h"
 
 
 // PIT io ports

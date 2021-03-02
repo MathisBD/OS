@@ -1,4 +1,4 @@
-#include "string_utils.h"
+#include "utils/string_utils.h"
 
 // reverses in place
 void reverse_str(char * str) {

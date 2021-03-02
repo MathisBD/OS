@@ -1,4 +1,4 @@
-#include "constants.h"
+#include "memory/constants.h"
 
 /* The bootloader will hand us execution at ENTRY */ 
 ENTRY(_start)

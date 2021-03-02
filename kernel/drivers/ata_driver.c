@@ -1,8 +1,10 @@
-#include "ata_driver.h"
-#include "port_io.h"
+#include "drivers/ata_driver.h"
+#include "drivers/port_io.h"
 #include <stdio.h>
 #include <stdbool.h>
-#include "panic.h"
+#include <panic.h>
+#include "scheduler/timer.h"
+
 
 #define SECTOR_SIZE 512
 
@@ -16,8 +18,9 @@
 #define CMD_RDMUL 0xc4
 #define CMD_WRMUL 0xc5
 
-io_request_t* first_request = 0;
-io_request_t* last_request = 0;
+//io_request_t* first_request = 0;
+//io_request_t* last_request = 0;
+io_request_t* curr_request = 0;
 
 
 int ata_wait(bool checkerr)
@@ -32,9 +35,15 @@ int ata_wait(bool checkerr)
 	return 0;
 }
 
+// for now requests are handled sequentially :
+// we wait until we finished the first before starting the next
+// (to handle them asynchonously we would need a lock + 
+// have interrupts be distributed by a kernel process.
+// Otherwise the interrupts may change the request queue while
+// we are in this method, and bad things happen)
 void ata_pio_request(io_request_t* request) 
 {
-	if (last_request) {
+	/*if (last_request) {
 		last_request->next = request;
 		request->next = 0;
 		last_request = request;
@@ -44,21 +53,22 @@ void ata_pio_request(io_request_t* request)
 		last_request = request;
 		request->next = 0;
 		handle_request();
-	}
+	}*/
+
+	// temporary
+	curr_request = request;
+	handle_request(request);
+	wait(0.2);
 }
 
 // handle the first request
-void handle_request()
-{	
-	/*while (first_req && first_req->status == IO_REQ_FINISHED) {
-		first_req = first_req->next;
+void handle_request(io_request_t * request)
+{
+	if (request->data_bytes & (SECTOR_SIZE - 1)) {
+		panic("handle_request : request data size must be a multiple of SECTOR_SIZE\n");
 	}
-	if (!first_req) {
-		return;
-	}*/
-
-	uint8_t sector_count = BLOCK_SIZE / SECTOR_SIZE;
-	uint32_t sector = first_request->block_num;
+	uint8_t sector_count = request->data_bytes / SECTOR_SIZE;
+	uint32_t sector = request->block_num;
 	if (sector_count == 0) {
 		panic("handle_request : no sector");
 	}	
@@ -74,7 +84,7 @@ void handle_request()
 	port_int8_out(0x1F6, 0xE0 | ((sector >> 24) & 0xF));
 
 	// send the r/w command
-	if (first_request->type == IO_REQ_READ) {
+	if (request->type == IO_REQ_READ) {
 		if (sector_count == 1) {
 			port_int8_out(0x1F7, CMD_READ); 
 		}
@@ -82,7 +92,7 @@ void handle_request()
 			port_int8_out(0x1F7, CMD_RDMUL);
 		}	
 	}
-	else if (first_request->type == IO_REQ_WRITE) {
+	else if (request->type == IO_REQ_WRITE) {
 		if (sector_count == 1) {
 			port_int8_out(0x1F7, CMD_WRITE);
 		}
@@ -91,7 +101,7 @@ void handle_request()
 		}
 		ata_wait(false);
 		// divide by 4 because of int <--> byte
-		port_block_out(0x1F0, first_request->data, BLOCK_SIZE / sizeof(uint32_t));
+		port_block_out(0x1F0, request->data, request->data_bytes / sizeof(uint32_t));
 		port_int8_out(0x1F7, 0xE7); // flush
 	}
 	else {
@@ -100,15 +110,13 @@ void handle_request()
 }
 
 // interrupt handler
-////////// TODO : bugs when this modifies first_request and/or last_request
-// maybe make it mark the first request as finished and not modify the queue structure,
-// instead skip finished requests in handle_request() ??
 void ata_primary_interrupt()
 {
 	printf("ATA interrupt\n");
-	if (first_request->type == IO_REQ_READ && ata_wait(true) >= 0) {
-		port_block_in(0x1F0, first_request->data, BLOCK_SIZE / sizeof(uint32_t));
+
+	if (curr_request->type == IO_REQ_READ && ata_wait(true) >= 0) {
+		port_block_in(0x1F0, curr_request->data, curr_request->data_bytes / sizeof(uint32_t));
 	}
-	first_request->status = IO_REQ_FINISHED;
-	handle_request();
+	curr_request->status = IO_REQ_FINISHED;
+	curr_request = 0;
 }

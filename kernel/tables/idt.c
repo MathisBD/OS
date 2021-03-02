@@ -1,12 +1,12 @@
 #include <stdint.h>
-#include "idt.h"
-#include "keyboard_driver.h"
-#include "pic_driver.h"
-#include "timer.h"
-#include "paging.h"
-#include "string_utils.h"
+#include "tables/idt.h"
+#include "drivers/keyboard_driver.h"
+#include "drivers/pic_driver.h"
+#include "scheduler/timer.h"
+#include "memory/paging.h"
+#include "utils/string_utils.h"
 #include <stdio.h>
-#include "ata_driver.h"
+#include "drivers/ata_driver.h"
 
 
 typedef struct {

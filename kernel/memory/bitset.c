@@ -1,4 +1,4 @@
-#include "bitset.h"
+#include "memory/bitset.h"
 
 
 void bitset_set(uint64_t * addr, uint32_t index)

@@ -1,10 +1,9 @@
 #include <stddef.h>
 
-#include "keyboard_driver.h"
-#include "idt.h"
-#include "pic_driver.h"
-#include "string_utils.h"
-#include "port_io.h"
+#include "drivers/keyboard_driver.h"
+#include "tables/idt.h"
+#include "drivers/pic_driver.h"
+#include "drivers/port_io.h"
 #include <stdio.h>
 
 

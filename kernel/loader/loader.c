@@ -1,10 +1,9 @@
-#include "elf.h"
+#include "loader/elf.h"
 #include <stdbool.h>
 #include <string.h>
-#include "vga_driver.h"
-#include "heap.h"
-#include "gdt.h"
-#include "constants.h"
+#include "memory/heap.h"
+#include "tables/gdt.h"
+#include "memory/constants.h"
 #include <stdio.h>
 
 // memory layout :
