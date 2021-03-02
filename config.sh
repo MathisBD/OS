@@ -16,7 +16,7 @@ export LIBDIR=/usr/lib
 # image file structure
 # (the root of the initial miniOS filesystem)
 export IMAGE="hdd_minios.img"
-export IMGDIR="$(pwd)/image"
+export IMGDIR="$(pwd)/imgdir"
 
 
 # compiler and compiler options

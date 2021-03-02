@@ -9,11 +9,10 @@ CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
 
 LIBS:=$(LIBS) -nostdlib -lgcc -lk
 
-
-# the first stage bootloader doesn't go in here
-OBJS=kernel.o boot.o \
-tables/idt.o tables/idt_asm.o\
-tables/gdt.o tables/gdt_asm.o\
+# kernel objects
+KERNEL_OBJS=kernel.o boot.o \
+tables/idt.o tables/idt_asm.o \
+tables/gdt.o tables/gdt_asm.o \
 drivers/vga_driver.o \
 drivers/pic_driver.o \
 drivers/io_asm.o \
@@ -33,14 +32,17 @@ loader/loader_asm.o
 
 all: $(KERNEL) $(FIRST_STAGE)
 
-$(FIRST_STAGE): bootloader/first_stage.S 
-	$(CC) -c $< -o $(<:.S=.o) $(CPPFLAGS)
-	# extract only the .text section so that it is exactly 512 bytes
-	objcopy -O binary -j .text $(<:.S=.o) $(FIRST_STAGE)
+$(FIRST_STAGE): bootloader/first_stage.S
+	$(CC) -c $< -o $(<:.S=.o)
+	# extract the .text section
+	objcopy -O binary -j .text $(<:.S=.o) tmp.elf
+	# remove the first 0x7c00=31744 first bytes
+	dd if=./tmp.elf of=./$(FIRST_STAGE) bs=1 count=512 skip=31744
+	
 
 # kind of a hack to add libk.a in the dependencies
-$(KERNEL): $(OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
-	$(CC) -T linker.o $(CFLAGS) -o $@ $(OBJS) $(LIBS)
+$(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
+	$(CC) -T linker.o $(CFLAGS) -o $@ $(KERNEL_OBJS) $(LIBS)
 
 # we run the C preprocessor on the linker script
 %.o: %.ld
@@ -70,9 +72,8 @@ install-boot: $(FIRST_STAGE) $(KERNEL)
 
 
 clean:
-	rm -f $(OBJS)
-	rm -f linker.o
+	rm -f ./*.o ./*/*.o ./*/*/*.o
+	rm -f ./*.d ./*/*.d ./*/*/*.d
 	rm -f $(KERNEL) $(FIRST_STAGE)
-	rm -f $(OBJS:.o=.d)
 
--include $(OBJS:.o=.d)
+-include $(KERNEL_OBJS:.o=.d)

@@ -2,8 +2,10 @@
 *.d
 *.kernel
 *.iso
+*.elf
 *.a
+*.img
 *.libc.o
 *.libk.o
 sysroot
-isodir
+imgdir
