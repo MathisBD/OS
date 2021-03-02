@@ -10,6 +10,7 @@ CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
 LIBS:=$(LIBS) -nostdlib -lgcc -lk
 
 
+# the first stage bootloader doesn't go in here
 OBJS=kernel.o boot.o \
 tables/idt.o tables/idt_asm.o\
 tables/gdt.o tables/gdt_asm.o\
@@ -30,12 +31,16 @@ loader/loader_asm.o
 
 .PHONY: all clean install install-headers install-kernel
 
-all: minios.kernel
+all: $(KERNEL) $(FIRST_STAGE)
+
+$(FIRST_STAGE): bootloader/first_stage.S 
+	$(CC) -c $< -o $(<:.S=.o) $(CPPFLAGS)
+	# extract only the .text section so that it is exactly 512 bytes
+	objcopy -O binary -j .text $(<:.S=.o) $(FIRST_STAGE)
 
 # kind of a hack to add libk.a in the dependencies
-minios.kernel: $(OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
+$(KERNEL): $(OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
 	$(CC) -T linker.o $(CFLAGS) -o $@ $(OBJS) $(LIBS)
-	grub-file --is-x86-multiboot minios.kernel
 
 # we run the C preprocessor on the linker script
 %.o: %.ld
@@ -51,21 +56,23 @@ minios.kernel: $(OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
 
-install: install-headers install-kernel
+# install to the sysroot
+install: install-headers install-boot
 
 install-headers:
 	mkdir -p $(SYSROOT)$(INCLUDEDIR)/kernel
 	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/kernel/.
 
-install-kernel: minios.kernel
+install-boot: $(FIRST_STAGE) $(KERNEL)
 	mkdir -p $(SYSROOT)$(BOOTDIR)
-	cp minios.kernel $(SYSROOT)$(BOOTDIR)
+	cp $(FIRST_STAGE) $(SYSROOT)$(BOOTDIR)
+	cp $(KERNEL) $(SYSROOT)$(BOOTDIR)
 
 
 clean:
 	rm -f $(OBJS)
 	rm -f linker.o
-	rm -f minios.kernel
+	rm -f $(KERNEL) $(FIRST_STAGE)
 	rm -f $(OBJS:.o=.d)
 
 -include $(OBJS:.o=.d)

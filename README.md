@@ -8,6 +8,7 @@ ATA pio driver example : https://github.com/mit-pdos/xv6-public/blob/master/ide.
 Useful tutorials : 
 http://www.brokenthorn.com/Resources/OSDevIndex.html
 http://www.jamesmolloy.co.uk/tutorial_html/
+http://independent-software.com/operating-system-development-first-and-second-stage-bootloaders.html/ (bootloader)
 
 We use the compiler option --sysroot=sdir so that gcc searches for headers and libraries in sdir/usr/include and sdir/usr/lib instead of /usr/include and /usr/lib. Thus we have a script (header.sh) to copy all headers into sysroot/usr/include.
 The operating system will be 32bits to simplify stuff. The kernel is mapped to 3GB in virtual address space.

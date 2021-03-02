@@ -3,17 +3,26 @@
 # will probably add libc here in the future
 export PROJECTS="libc kernel user"
 
+export KERNEL="minios.elf"
+export FIRST_STAGE="first_stage.elf"
+
 # sysroot file structure
+# (the makefiles install their headers/binaries here)
 export SYSROOT="$(pwd)/sysroot"
 export BOOTDIR=/boot 
 export INCLUDEDIR=/usr/include
 export LIBDIR=/usr/lib
 
+# image file structure
+# (the root of the initial miniOS filesystem)
+export IMAGE="hdd_minios.img"
+export IMGDIR="$(pwd)/image"
+
+
 # compiler and compiler options
 export CC=i686-elf-gcc
 export AR=i686-elf-ar
-export CC="$CC --sysroot=$SYSROOT"
-export CFLAGS="-O0 -g"
+export CFLAGS="--sysroot=$SYSROOT -O0 -g"
 export CPPFLAGS=""
 # the cross compiler was configured with
 # --without-headers but not --with-sysroot
