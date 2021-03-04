@@ -2,6 +2,7 @@
 // expects a string in ds:si
 .func PrintString
 PrintString:
+    cld
     lodsb
     or %al, %al 
     jz PrintString_return
@@ -12,8 +13,43 @@ PrintString:
     int $0x10
     jmp PrintString
 PrintString_return:
-    retw
+    ret
 .endfunc
+
+// expects an adress in ds:si 
+// and a count in cx
+.func PrintMem
+PrintMem:
+    or %cx, %cx 
+    jz PrintMem_return 
+
+    cld
+    lodsb 
+    dec %cx 
+
+    push %ax 
+
+    // high (hex) digit
+    sar $4, %al
+    and $0xF, %al
+    mPrintHexDigit
+
+    // low (hex) digit
+    pop %ax
+    and $0xF, %ax
+    mPrintHexDigit
+
+    // space 
+    mov $0x20, %al
+    mov $0xE, %ah // interrupt function 
+    mov $0, %bh   // page number
+    mov $9, %bl   // attribute (white)
+    int $0x10
+
+    jmp PrintMem
+PrintMem_return:
+    ret 
+.endfunc 
 
 .func Reboot
 Reboot:
@@ -35,31 +71,53 @@ ReadSector:
     xor %cx, %cx
 
 ReadSector_try:
-    push %cx
-
+    push %ax // LBA  
+    push %cx // try number 
+    push %bx // data buffer address 
+    
     // calculate cylinder, track and sector 
     // LBA = (sector-1) + SPT*head + SPT*NH*cylinder
     // this gives the formulas :
-    // cyclinder = (LBA / SectorsPerTrack) / NumHeads
+    // cylinder = (LBA / SectorsPerTrack) / NumHeads
     // sector    = (LBA mod SectorsPerTrack) + 1
     // head      = (LBA / SectorsPerTrack) mod NumHeads
+
+    // divide (dx:ax/bx to ax, dx)
+    xor %dx, %dx
+    mov sectors_per_track, %bx 
+    div %bx 
+    // ax = LBA / SectorsPerTrack
+    // dx = LBA mod SectorsPerTrack 
+    inc %dx 
+    mov %dl, %cl // cl = sector (for int 0x13)
+
+    mov head_num, %bx 
+    xor %dx, %dx 
+    div %bx 
+    // ax = cylinder 
+    // dx = head
+    mov %al, %ch // ch = cylinder (for int 0x13)
+    mov %dl, %dh // dh = head (for int 0x13)
 
     // BIOS interrupt
     // al : number of sectors to read
     // ah : interrupt function 
-    // cx : sector number 
+    // cl : sector number 
+    // ch : cylinder number
     // dh : head number 
     // dl : drive number 
     // es:bx : data buffer
     mov $0x0201, %ax     
     mov boot_drive, %dl // drive to read from
+    pop %bx // restore data buffer address
 
     int $0x13
     jc ReadSector_fail
 
     // Success !
     pop %cx
-    retw 
+    pop %ax 
+    retw
 
 ReadSector_fail:
     pop %cx 
@@ -69,5 +127,6 @@ ReadSector_fail:
 
     // reset disk and try again 
     mResetDisk
+    pop %ax // do this after mResetDisk (it clears ax)
     jmp ReadSector_try
 .endfunc
