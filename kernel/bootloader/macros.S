@@ -101,29 +101,28 @@
 // returns the offset of the inode from 16*TMP_LOAD_SEGMENT
 // in ax
 .macro mLoadInode
-    // block group : (inode - 1) / inodes_per_group
+    // calculte block group = (inode - 1) / inodes_per_group
     // div : dx:ax/bx --> ax, dx
     dec %ax
     xor %dx, %dx 
     mov inodes_per_group, %bx 
     div %bx 
     // ax = block group
-    // dx = offset in block group 
+    // dx = index in block group 
     push %dx
     
-    sal $5, %ax // 2**5 = 32 bytes : size of a table entry 
-    add $SUPERBLOCK_OFFSET, %ax 
+    // calculate sector containing block group table entry
+    sal $5, %ax // 2**5 = 32 bytes : size of a table entry
     xor %dx, %dx 
     mov $512, %bx // 512 : sector size
     div %bx 
-
-    // skip the superblock block 
-    // which spans 1 << (log_block_size + 1) sectors 
-    mov log_block_size, %cl
-    inc %cl 
-    mov $1, %bx 
-    sal %cl, %bx
-    add %bx, %ax 
+    // skip the boot block and superblock
+    add sectors_per_block, %ax 
+    cmp $2, sectors_per_block
+    jne 1f
+    // special case : the block size is 1024, skip a second block 
+    add $2, %ax
+1:  
     // ax = sector containing table entry 
     // dx = offset of entry in sector 
 
@@ -135,7 +134,7 @@
     call ReadSector 
     pop %dx 
 
-    // si : now points to the table entry
+    // si : now points to the group table entry
     mov $(16 * TMP_LOAD_SEGMENT), %si
     add %dx, %si     
     mov 8(%si), %cx
@@ -143,7 +142,7 @@
     // cx : sector of the inode table 
 
     pop %ax // get the inode index in the block group
-    sal $7, %ax // 2**7 = 128 bytes : size of an inode
+    imul $128, %ax // 128 bytes : size of an inode
     // ax = offset of the inode from the start of the inode table
     xor %dx, %dx 
     mov $512, %bx 
@@ -155,6 +154,6 @@
     xor %bx, %bx 
     push %dx 
     call ReadSector 
-    pop %ax 
+    pop %ax
 .endm
 

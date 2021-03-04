@@ -32,7 +32,7 @@ loader/loader_asm.o
 
 all: $(KERNEL) $(FIRST_STAGE)
 
-$(FIRST_STAGE): bootloader/first_stage.S
+$(FIRST_STAGE): bootloader/first_stage.S bootloader/functions.S bootloader/macros.S
 	$(CC) -c $< -o $(<:.S=.o)
 	# extract the .text section
 	objcopy -O binary -j .text $(<:.S=.o) tmp.elf
@@ -74,6 +74,6 @@ install-boot: $(FIRST_STAGE) $(KERNEL)
 clean:
 	rm -f ./*.o ./*/*.o ./*/*/*.o
 	rm -f ./*.d ./*/*.d ./*/*/*.d
-	rm -f $(KERNEL) $(FIRST_STAGE)
+	rm -f ./*.elf ./*/*.elf ./*/*/*.elf
 
 -include $(KERNEL_OBJS:.o=.d)

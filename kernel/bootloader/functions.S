@@ -20,13 +20,15 @@ PrintString_return:
 // and a count in cx
 .func PrintMem
 PrintMem:
-    or %cx, %cx 
-    jz PrintMem_return 
+    mov $0, %dx // number of bytes printed 
+PrintMem_loop:
+    cmp %cx, %dx 
+    jge PrintMem_return 
 
     cld
     lodsb 
-    dec %cx 
-
+    inc %dx
+    
     push %ax 
 
     // high (hex) digit
@@ -40,13 +42,22 @@ PrintMem:
     mPrintHexDigit
 
     // space 
-    mov $0x20, %al
-    mov $0xE, %ah // interrupt function 
-    mov $0, %bh   // page number
-    mov $9, %bl   // attribute (white)
+    mov $0x0E20, %ax
+    mov $9, %bx 
     int $0x10
 
-    jmp PrintMem
+    // newline (every 16 bytes)
+    test $15, %dx 
+    jnz PrintMem_loop
+    // line feed
+    mov $0x0E0A, %ax
+    mov $9, %bx 
+    int $0x10
+    // carriage return 
+    mov $0x0E0D, %ax
+    mov $9, %bx 
+    int $0x10
+    jmp PrintMem_loop
 PrintMem_return:
     ret 
 .endfunc 
@@ -83,16 +94,18 @@ ReadSector_try:
     // head      = (LBA / SectorsPerTrack) mod NumHeads
 
     // divide (dx:ax/bx to ax, dx)
-    xor %dx, %dx
-    mov sectors_per_track, %bx 
+    xor %dx, %dx 
+    mov sectors_per_track, %bl
+    xor %bh, %bh
     div %bx 
     // ax = LBA / SectorsPerTrack
     // dx = LBA mod SectorsPerTrack 
     inc %dx 
     mov %dl, %cl // cl = sector (for int 0x13)
-
-    mov head_num, %bx 
+ 
     xor %dx, %dx 
+    mov num_heads, %bl 
+    xor %bh, %bh 
     div %bx 
     // ax = cylinder 
     // dx = head
@@ -110,14 +123,13 @@ ReadSector_try:
     mov $0x0201, %ax     
     mov boot_drive, %dl // drive to read from
     pop %bx // restore data buffer address
-
     int $0x13
     jc ReadSector_fail
 
     // Success !
     pop %cx
     pop %ax 
-    retw
+    ret
 
 ReadSector_fail:
     pop %cx 

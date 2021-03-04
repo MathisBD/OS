@@ -28,38 +28,36 @@ bootloader_start:
 // BOOT INFO to load the second stage
 // this is filled in when the disk image is created
 // it has to be at offset 0x02 bytes in the bootsector
-s2_inode: .int 0x14
-
+s2_inode: .int 14
+  
 
 // INSTRUCTIONS
-load:
+load:   
     mInitSegments
     mResetDisk  
     mGetDiskGeometry
-    mPrintString loading_msg
-    
+      
     mGetFilesystemInfo
 
-
-    jmp halt 
-
-
-
+  
     mov s2_inode, %ax 
-    mLoadInode 
-    
+    mLoadInode  
+
+    //mov %ax, tmp 
+    //mPrintMem tmp 2
+
     // print inode 
-    mov $32, %cx 
+    mov $128, %cx 
     mov $(16 * TMP_LOAD_SEGMENT), %si
     add %ax, %si 
     call PrintMem   
-  
+    
  
 halt:  
     cli
     hlt
 
-boot_fail:
+boot_fail: 
     mReboot
 
 
@@ -68,18 +66,19 @@ boot_fail:
  
 
 // DATA (after the instructions of course)
-loading_msg: .asciz "Loading kernel...\n\r"
-reboot_msg: .asciz "ERROR - Press any key to reboot\n\r"
-// disk info
-boot_drive: .byte 0
+reboot_msg: .asciz "ERROR-Press a key to reboot\n\r"
+// disk info  
+boot_drive: .byte 0   
 sectors_per_track: .byte 0
 num_heads: .byte 0
 // filesystem info (ext2)
-inodes_per_group: .int 0
-sectors_per_block: .byte 0
+inodes_per_group: .int 0 
+sectors_per_block: .short 0
+
 
 bootloader_end:
 // pad up to 510 bytes (leave space for the boot magic number)
 .fill (510 - (bootloader_end - bootloader_start)), 1, 0
 boot_magic: .int 0xAA55 // for the bios to recognize us
 
+ 
