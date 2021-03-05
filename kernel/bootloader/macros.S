@@ -6,7 +6,7 @@
     mov %ax, %ds 
     mov %ax, %es
     mov %ax, %ss 
-    mov $0x7c00, %sp 
+    mov $STACK_TOP, %sp 
     sti 
 .endm
 
@@ -29,6 +29,14 @@
     and $0x3f, %cl 
     mov %cl, sectors_per_track
 .endm 
+
+.macro mCheckExtensions
+    mov $0x41, %ah 
+    mov $0x55AA, %bx 
+    mov boot_drive, %dl 
+    int $0x13
+    jc boot_fail 
+.endm
 
 // prints the hex digit in the lower 4 bits of al
 .macro mPrintHexDigit
@@ -148,23 +156,13 @@
     pop %ax
 .endm
 
-
-// expects a pointer to the inode in ds:si
+/*
+// expects a pointer to the inode in si
 // expects a location to load to in es:di
-// assumes the inode data occupies at most 12 blocks
+// assumes the inode data occupies exactly 12KB
 .macro mLoadInodeContentsShort
-    // calculate the number of sectors the file data occupies
-    mov 4(%si), %cx // size in bytes of the file 
-    
-    // divide by SECTOR_SIZE, making sure we round up
-    test $(512 - 1), %cx 
-    jz 1f  
-
-    and $(512 - 1), %cx 
-    add $512, %cx 
-1:
-    sar $9, %cx // 2**9 = 512
-    // cx : number of sectors 
+    mov $24, %cx // the file is 12KB, so 24 sectors long
+    // cx = number of sector the file occupies
 
     // load the sectors ! 
     mov %si, %bx     // from now on bx = POINTER to the current block address
@@ -192,7 +190,7 @@
 
     // finished !
 3:
-.endm 
+.endm */
 
 
 

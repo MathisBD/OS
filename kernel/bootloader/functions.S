@@ -30,8 +30,8 @@ Reboot:
     .word 0xFFFF
 .endfunc 
 
-// %ds:si : LBA of the sector to read 
-// %es:%di : address of the buffer the sector is read to 
+// si : LBA of the sector to read 
+// es:di : address of the buffer the sector is read to 
 .func ReadSector
 ReadSector:
     // %cx : current try count (we try 4 times in total)
@@ -96,8 +96,8 @@ ReadSector_fail:
     jmp ReadSector_try
 .endfunc
 
-/*
-// expects an adress in ds:si 
+
+// expects the address of a data buffer in ds:si 
 // and a count in cx
 .func PrintMem
 PrintMem:
@@ -142,4 +142,3 @@ PrintMem_loop:
 PrintMem_return:
     ret
 .endfunc
-*/

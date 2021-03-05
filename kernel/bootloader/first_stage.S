@@ -13,10 +13,11 @@
 .text
 
 // segment the second stage will be loaded in 
-.set S2_LOAD_SEGMENT, 0x1000
+.set S2_LOAD_SEGMENT, 0x800
 // segment used by the first stage bootloader to load temporary
 // sectors from disk (superblock, inode table, etc)
-.set TMP_LOAD_SEGMENT, 0x800
+.set TMP_LOAD_SEGMENT, 0x700
+.set STACK_TOP, 0x7000
 // offset (in bytes) in the hard drive of the superblock
 .set SUPERBLOCK_OFFSET, 1024
 
@@ -28,25 +29,34 @@ s1_code_start:
 // BOOT INFO to load the second stage
 // this is filled in when the disk image is created
 // it has to be at offset 0x02 bytes in the bootsector
-s2_inode: .int 14
+s2_inode: .int 15
   
 
 // INSTRUCTIONS
 load:   
     mInitSegments
+    mCheckExtensions
     mResetDisk  
     mGetDiskGeometry
     mGetFilesystemInfo
-
+    
     mov s2_inode, %ax 
     mLoadInode  
 
-    // print inode 
-    mov $(16 * TMP_LOAD_SEGMENT), %si
-    add %ax, %si 
-    //mov $128, %cx 
-    //call PrintMem   
-    mLoadInodeContentsShort
+    mov $(16 * TMP_LOAD_SEGMENT), %si 
+    add %ax, %si
+    mov 40(%si), %si     
+    imul sectors_per_block, %si 
+    // si = sector to load
+    
+    mov $S2_LOAD_SEGMENT, %di 
+    mov %di, %es 
+    xor %di, %di     
+    call ReadSector
+
+    ljmp $S2_LOAD_SEGMENT, $0
+
+    //mLoadInodeContentsShort
 
 halt:  
     cli
@@ -66,11 +76,21 @@ reboot_msg: .asciz "ERROR-Press a key to reboot\n\r"
 boot_drive: .byte 0   
 sectors_per_track: .byte 0
 num_heads: .byte 0
+// disk address packet (input to bios interrupt 0x13
+// to read disk using 48bit LBA)
+dap_size: .byte 16
+dap_zero: .byte 0
+dap_sector_count: .short 0 // max 127
+dap_buffer_offset: .short 0
+dap_buffer_segment: .short 0 
+dap_lba_low: .int 0
+dap_lba_high: .int 0
 // filesystem info (ext2)
 inodes_per_group: .int 0 
 sectors_per_block: .short 0
 block_size: .int 0
 
+tmp: .short 0
 
 s1_code_end:
 // pad up to 510 bytes (leave space for the boot magic number)

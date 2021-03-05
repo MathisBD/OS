@@ -37,22 +37,22 @@ loader/loader_asm.o
 all: $(KERNEL) $(FIRST_STAGE) $(SECOND_STAGE)
 
 $(FIRST_STAGE): $(BOOT_SRCS)
-	$(CC) -c $< -o $(<:.S=.o)
+	$(CC) -c bootloader/first_stage.S -o bootloader/first_stage.o
 	# extract the .text section
-	objcopy -O binary -j .text $(<:.S=.o) tmp.elf
+	objcopy -O binary -j .text bootloader/first_stage.o tmp.elf
 	# remove the first 0x7c00=62*512 first bytes
 	# the first stage is always exactly 512 bytes long 
 	dd if=./tmp.elf of=./$(FIRST_STAGE) bs=512 count=1 skip=62
 	rm tmp.elf
 	
 $(SECOND_STAGE): $(BOOT_SRCS)
-	$(CC) -c $< -o $(<:.S=.o)
+	$(CC) -c bootloader/second_stage.S -o bootloader/second_stage.o
 	# extract the .text section 
-	objcopy -O binary -j .text $(<:.S=.o) tmp.elf 
-	# remove the first 0x10000=1024*64 first bytes
+	objcopy -O binary -j .text bootloader/second_stage.o tmp.elf 
+	# remove the first 0x8000=1024*32 first bytes
 	# the second stage is always 12KB bytes long
-	dd if=./tmp.elf of=./$(SECOND_STAGE) bs=1024 count=12 skip=64
-	rm tmp.elf 
+	dd if=./tmp.elf of=./$(SECOND_STAGE) bs=1024 count=12 skip=32
+	rm tmp.elf
 
 # kind of a hack to add libk.a in the dependencies
 $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
@@ -79,7 +79,7 @@ install-headers:
 	mkdir -p $(SYSROOT)$(INCLUDEDIR)/kernel
 	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/kernel/.
 
-install-boot: $(FIRST_STAGE) $(KERNEL)
+install-boot: $(FIRST_STAGE) $(SECOND_STAGE) $(KERNEL)
 	mkdir -p $(SYSROOT)$(BOOTDIR)
 	cp $(FIRST_STAGE) $(SYSROOT)$(BOOTDIR)
 	cp $(SECOND_STAGE) $(SYSROOT)$(BOOTDIR)
