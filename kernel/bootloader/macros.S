@@ -55,30 +55,16 @@
     call PrintString 
 .endm
 
-.macro mPrintMem mem count 
-    lea \mem, %si 
-    mov $\count, %cx 
-    call PrintMem 
-.endm 
-
 .macro mReboot
     call Reboot
 .endm
 
-.macro mReadSector lba load_segment
-    mov $\lba, %ax 
-    mov $\load_segment, %bx
-    mov %bx, %es 
-    xor %bx, %bx 
-    call ReadSector
-.endm
-
 .macro mGetFilesystemInfo
     // load the superblock 
-    mov $TMP_LOAD_SEGMENT, %bx 
-    mov %bx, %es 
-    xor %bx, %bx 
-    mov $2, %ax // 2 = SUPERBLOCK_OFFSET / SECTOR_SIZE
+    mov $TMP_LOAD_SEGMENT, %di
+    mov %di, %es 
+    xor %di, %di 
+    mov $2, %si // 2 = SUPERBLOCK_OFFSET / SECTOR_SIZE
     call ReadSector
     
     // si : superblock base
@@ -88,18 +74,21 @@
     mov %ax, inodes_per_group
     
     mov 24(%si), %cx // log_block_size (0 means 1024, 1 means 2048, etc)
+    mov %cl, log_block_size
     // a block spans 1 << (log_block_size + 1) sectors
     inc %cl 
     mov $1, %ax 
     sal %cl, %ax
     mov %ax, sectors_per_block
+
+    imul $512, %ax 
+    mov %ax, block_size
 .endm
 
 // loads an inode specified by the number in ax
 // in segment TMP_LOAD_SEGMENT (though not necessarily at the 
 // start of the segment).
-// returns the offset of the inode from 16*TMP_LOAD_SEGMENT
-// in ax
+// returns the offset of the inode in ax
 .macro mLoadInode
     // calculte block group = (inode - 1) / inodes_per_group
     // div : dx:ax/bx --> ax, dx
@@ -118,7 +107,7 @@
     div %bx 
     // skip the boot block and superblock
     add sectors_per_block, %ax 
-    cmp $2, sectors_per_block
+    cmpw $2, sectors_per_block
     jne 1f
     // special case : the block size is 1024, skip a second block 
     add $2, %ax
@@ -127,9 +116,10 @@
     // dx = offset of entry in sector 
 
     // load the sector
-    mov $TMP_LOAD_SEGMENT, %bx 
-    mov %bx, %es 
-    xor %bx, %bx 
+    mov $TMP_LOAD_SEGMENT, %di 
+    mov %di, %es 
+    xor %di, %di 
+    mov %ax, %si
     push %dx 
     call ReadSector 
     pop %dx 
@@ -151,9 +141,58 @@
     // ax = sector containing inode 
     // dx = offset of inode in sector 
 
-    xor %bx, %bx 
+    xor %di, %di 
+    mov %ax, %si
     push %dx 
     call ReadSector 
     pop %ax
 .endm
+
+
+// expects a pointer to the inode in ds:si
+// expects a location to load to in es:di
+// assumes the inode data occupies at most 12 blocks
+.macro mLoadInodeContentsShort
+    // calculate the number of sectors the file data occupies
+    mov 4(%si), %cx // size in bytes of the file 
+    
+    // divide by SECTOR_SIZE, making sure we round up
+    test $(512 - 1), %cx 
+    jz 1f  
+
+    and $(512 - 1), %cx 
+    add $512, %cx 
+1:
+    sar $9, %cx // 2**9 = 512
+    // cx : number of sectors 
+
+    // load the sectors ! 
+    mov %si, %bx     // from now on bx = POINTER to the current block address
+    mov 40(%bx), %si // offset of the first direct block 
+2:
+    test %cx, %cx 
+    jz 3f
+
+    push %cx 
+    push %bx 
+    call ReadSector
+    pop %bx 
+    pop %cx 
+
+    dec %cx 
+    add $512, %si
+    add $512, %di
+    cmp block_size, %si
+    jl 2b 
+
+    // go to next block 
+    add $4, %bx 
+    mov  40(%bx), %si
+    jmp 2b
+
+    // finished !
+3:
+.endm 
+
+
 

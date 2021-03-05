@@ -3,8 +3,10 @@
 # will probably add libc here in the future
 export PROJECTS="libc kernel user"
 
+# executables
 export KERNEL="minios.elf"
 export FIRST_STAGE="first_stage.elf"
+export SECOND_STAGE="second_stage.elf"
 
 # sysroot file structure
 # (the makefiles install their headers/binaries here)
@@ -17,7 +19,6 @@ export LIBDIR=/usr/lib
 # (the root of the initial miniOS filesystem)
 export IMAGE="hdd_minios.img"
 export IMGDIR="$(pwd)/imgdir"
-
 
 # compiler and compiler options
 export CC=i686-elf-gcc

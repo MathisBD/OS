@@ -22,8 +22,8 @@
 
 .include "bootloader/macros.S"
 
-bootloader_start: 
-    jmp load // must be 
+s1_code_start: 
+    jmp load
 
 // BOOT INFO to load the second stage
 // this is filled in when the disk image is created
@@ -36,23 +36,18 @@ load:
     mInitSegments
     mResetDisk  
     mGetDiskGeometry
-      
     mGetFilesystemInfo
 
-  
     mov s2_inode, %ax 
     mLoadInode  
 
-    //mov %ax, tmp 
-    //mPrintMem tmp 2
-
     // print inode 
-    mov $128, %cx 
     mov $(16 * TMP_LOAD_SEGMENT), %si
     add %ax, %si 
-    call PrintMem   
-    
- 
+    //mov $128, %cx 
+    //call PrintMem   
+    mLoadInodeContentsShort
+
 halt:  
     cli
     hlt
@@ -74,11 +69,12 @@ num_heads: .byte 0
 // filesystem info (ext2)
 inodes_per_group: .int 0 
 sectors_per_block: .short 0
+block_size: .int 0
 
 
-bootloader_end:
+s1_code_end:
 // pad up to 510 bytes (leave space for the boot magic number)
-.fill (510 - (bootloader_end - bootloader_start)), 1, 0
+.fill (510 - (s1_code_end - s1_code_start)), 1, 0
 boot_magic: .int 0xAA55 // for the bios to recognize us
 
  

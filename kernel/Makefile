@@ -9,7 +9,11 @@ CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
 
 LIBS:=$(LIBS) -nostdlib -lgcc -lk
 
-# kernel objects
+BOOT_SRCS=bootloader/first_stage.S \
+bootloader/second_stage.S \
+bootloader/functions.S \
+bootloader/macros.S \
+
 KERNEL_OBJS=kernel.o boot.o \
 tables/idt.o tables/idt_asm.o \
 tables/gdt.o tables/gdt_asm.o \
@@ -30,15 +34,25 @@ loader/loader_asm.o
 
 .PHONY: all clean install install-headers install-kernel
 
-all: $(KERNEL) $(FIRST_STAGE)
+all: $(KERNEL) $(FIRST_STAGE) $(SECOND_STAGE)
 
-$(FIRST_STAGE): bootloader/first_stage.S bootloader/functions.S bootloader/macros.S
+$(FIRST_STAGE): $(BOOT_SRCS)
 	$(CC) -c $< -o $(<:.S=.o)
 	# extract the .text section
 	objcopy -O binary -j .text $(<:.S=.o) tmp.elf
-	# remove the first 0x7c00=31744 first bytes
-	dd if=./tmp.elf of=./$(FIRST_STAGE) bs=1 count=512 skip=31744
+	# remove the first 0x7c00=62*512 first bytes
+	# the first stage is always exactly 512 bytes long 
+	dd if=./tmp.elf of=./$(FIRST_STAGE) bs=512 count=1 skip=62
+	rm tmp.elf
 	
+$(SECOND_STAGE): $(BOOT_SRCS)
+	$(CC) -c $< -o $(<:.S=.o)
+	# extract the .text section 
+	objcopy -O binary -j .text $(<:.S=.o) tmp.elf 
+	# remove the first 0x10000=1024*64 first bytes
+	# the second stage is always 12KB bytes long
+	dd if=./tmp.elf of=./$(SECOND_STAGE) bs=1024 count=12 skip=64
+	rm tmp.elf 
 
 # kind of a hack to add libk.a in the dependencies
 $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
@@ -68,8 +82,8 @@ install-headers:
 install-boot: $(FIRST_STAGE) $(KERNEL)
 	mkdir -p $(SYSROOT)$(BOOTDIR)
 	cp $(FIRST_STAGE) $(SYSROOT)$(BOOTDIR)
+	cp $(SECOND_STAGE) $(SYSROOT)$(BOOTDIR)
 	cp $(KERNEL) $(SYSROOT)$(BOOTDIR)
-
 
 clean:
 	rm -f ./*.o ./*/*.o ./*/*/*.o
