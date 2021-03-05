@@ -1,11 +1,25 @@
 
-.macro mInitSegments
+// this block must be EXACTLY the same 
+// in the first and second stages
+.macro mSharedData
+// disk info  
+boot_drive: .byte 0   
+sectors_per_track: .byte 0
+num_heads: .byte 0
+// filesystem info (ext2)
+inodes_per_group: .int 0 
+sectors_per_block: .short 0
+block_size: .int 0
+// kernel inode 
+kernel_inode: .int 0
+.endm
+
+.macro mResetSegments
     cli
-    mov %dl, boot_drive // %dl contains the drive number
-    mov $0, %ax 
-    mov %ax, %ds 
-    mov %ax, %es
-    mov %ax, %ss 
+    mov $0, %bp 
+    mov %bp, %ds 
+    mov %bp, %es
+    mov %bp, %ss 
     mov $STACK_TOP, %sp 
     sti 
 .endm
@@ -156,41 +170,92 @@
     pop %ax
 .endm
 
-/*
-// expects a pointer to the inode in si
-// expects a location to load to in es:di
+
+// expects a pointer to the inode in bx
 // assumes the inode data occupies exactly 12KB
-.macro mLoadInodeContentsShort
+.macro mLoadSecondStage
+    add $40, %bx
+    // bx = pointer to the block number to load
+
+    mov $S2_LOAD_SEGMENT, %di 
+    mov %di, %es 
+    xor %di, %di
+
+    mov (%bx), %si     
+    imul sectors_per_block, %si 
+    // si = sector to load
+
+    mov sectors_per_block, %dx 
     mov $24, %cx // the file is 12KB, so 24 sectors long
-    // cx = number of sector the file occupies
-
-    // load the sectors ! 
-    mov %si, %bx     // from now on bx = POINTER to the current block address
-    mov 40(%bx), %si // offset of the first direct block 
-2:
+    // cx = number of sectors to load
+    // dx = number of sectors to load in current block
+1:
     test %cx, %cx 
-    jz 3f
+    jz 4f
 
+    mov (%bx), %ax 
+    test %ax, %ax 
+    jnz 2f
+
+    // zero out sector 
     push %cx 
+    push %di 
+
+    // es:di is already set 
+    mov $0, %al     // here we can overwrite ax  
+    mov $512, %cx   // sector size
+    cld
+    rep stosb
+
+    pop %di // stosb changes di
+    pop %cx 
+    jmp 3f
+
+2:  // load sector from memory 
+    push %dx 
+    push %cx      
     push %bx 
     call ReadSector
     pop %bx 
     pop %cx 
+    pop %dx 
 
-    dec %cx 
-    add $512, %si
-    add $512, %di
-    cmp block_size, %si
-    jl 2b 
+3:  // advance to the next sector/block
+    dec %cx
+    dec %dx  
+    inc %si 
+    add $512, %di 
 
-    // go to next block 
-    add $4, %bx 
-    mov  40(%bx), %si
-    jmp 2b
+    test %dx, %dx 
+    jnz 1b 
 
-    // finished !
-3:
-.endm */
+    // advance to next block  
+    add $4, %bx
+    mov (%bx), %si 
+    imul sectors_per_block, %si
+    mov sectors_per_block, %dx 
+    jmp 1b 
+4:  // finished
+.endm 
 
+.macro mJumpToS2 
+    lea s1_shared_data_start, %ax 
+    lea s1_shared_data_end, %bx
+    ljmp $S2_LOAD_SEGMENT, $0
+.endm
 
+// ax = start of first stage shared data 
+// bx = end of first stage shared data 
+.macro mCopyFirstStageData
+    mov %ax, %si 
+    lea s2_shared_data, %di 
+    mov %bx, %cx 
+    sub %ax, %cx 
+    cld
+    rep movsb
+.endm 
 
+.macro mEnableA20
+    call CheckA20
+    
+.endm

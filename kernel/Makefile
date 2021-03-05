@@ -13,6 +13,8 @@ BOOT_SRCS=bootloader/first_stage.S \
 bootloader/second_stage.S \
 bootloader/functions.S \
 bootloader/macros.S \
+bootloader/functions_extra.S \
+bootloader/a20.S
 
 KERNEL_OBJS=kernel.o boot.o \
 tables/idt.o tables/idt_asm.o \

@@ -26,38 +26,33 @@
 s1_code_start: 
     jmp load
 
-// BOOT INFO to load the second stage
+// BOOT INFO to load the second stage and kernel
 // this is filled in when the disk image is created
 // it has to be at offset 0x02 bytes in the bootsector
 s2_inode: .int 15
-  
+kernel_inode_input: .int 14 
 
 // INSTRUCTIONS
 load:   
-    mInitSegments
+    // save boot drive
+    mov %dl, boot_drive
+    mResetSegments
     mCheckExtensions
     mResetDisk  
     mGetDiskGeometry
     mGetFilesystemInfo
-    
+
+    mov kernel_inode_input, %ax 
+    mov %ax, kernel_inode 
+    mov kernel_inode_input+2, %ax 
+    mov %ax, kernel_inode+2
+
     mov s2_inode, %ax 
     mLoadInode  
-
-    mov $(16 * TMP_LOAD_SEGMENT), %si 
-    add %ax, %si
-    mov 40(%si), %si     
-    imul sectors_per_block, %si 
-    // si = sector to load
-    
-    mov $S2_LOAD_SEGMENT, %di 
-    mov %di, %es 
-    xor %di, %di     
-    call ReadSector
-
-    ljmp $S2_LOAD_SEGMENT, $0
-
-    //mLoadInodeContentsShort
-
+    mov $(16 * TMP_LOAD_SEGMENT), %bx
+    add %ax, %bx
+    mLoadSecondStage
+    mJumpToS2
 halt:  
     cli
     hlt
@@ -71,26 +66,12 @@ boot_fail:
  
 
 // DATA (after the instructions of course)
-reboot_msg: .asciz "ERROR-Press a key to reboot\n\r"
-// disk info  
-boot_drive: .byte 0   
-sectors_per_track: .byte 0
-num_heads: .byte 0
-// disk address packet (input to bios interrupt 0x13
-// to read disk using 48bit LBA)
-dap_size: .byte 16
-dap_zero: .byte 0
-dap_sector_count: .short 0 // max 127
-dap_buffer_offset: .short 0
-dap_buffer_segment: .short 0 
-dap_lba_low: .int 0
-dap_lba_high: .int 0
-// filesystem info (ext2)
-inodes_per_group: .int 0 
-sectors_per_block: .short 0
-block_size: .int 0
+reboot_msg: .asciz "ERROR - Press any key to reboot\n\r"
 
-tmp: .short 0
+// data passed to the second stage
+s1_shared_data_start:
+mSharedData
+s1_shared_data_end: 
 
 s1_code_end:
 // pad up to 510 bytes (leave space for the boot magic number)
