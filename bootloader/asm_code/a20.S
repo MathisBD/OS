@@ -33,8 +33,8 @@ CheckA20:
     mov %ds:(%si), %al 
     push %ax 
 
-    mov $0x00, %es:(%di)
-    mov $0xff, %ds:(%si)
+    movb $0x00, %es:(%di)
+    movb $0xff, %ds:(%si)
 
     cmpb $0xff, %es:(%di)
     je CheckA20_disabled
@@ -63,3 +63,34 @@ CheckA20_cleanup:
     pop %ax 
     ret 
 .endfunc
+
+.macro mSetA20Bios
+    mov $0x2401, %ax 
+    int $0x15
+.endm 
+
+.macro mSetA20FastGate 
+    in $0x92, %al 
+    or $2, %al 
+    out %al, $0x92
+.endm 
+
+.macro mEnableA20
+    call CheckA20
+    test %ax, %ax 
+    jnz EnableA20_done
+
+    mSetA20Bios 
+    call CheckA20
+    test %ax, %ax 
+    jnz EnableA20_done
+
+    mSetA20FastGate
+    call CheckA20
+    test %ax, %ax 
+    jnz EnableA20_done
+EnableA20_fail:
+    mPrintString a20_error_msg 
+    mReboot
+EnableA20_done:
+.endm

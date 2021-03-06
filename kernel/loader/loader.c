@@ -42,7 +42,7 @@ bool valid_header(Elf32_Ehdr* e_hdr)
 bool load_elf(char* elf_start, char* elf_end)
 {
     // 1) copy the segments in the process space (0 to 3GB)
-    // 2) jump to the beggining of .text
+    // 2) jump to the begining of .text
 
     Elf32_Ehdr* e_hdr = elf_start;
 

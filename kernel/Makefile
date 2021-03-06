@@ -9,13 +9,6 @@ CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
 
 LIBS:=$(LIBS) -nostdlib -lgcc -lk
 
-BOOT_SRCS=bootloader/first_stage.S \
-bootloader/second_stage.S \
-bootloader/functions.S \
-bootloader/macros.S \
-bootloader/functions_extra.S \
-bootloader/a20.S
-
 KERNEL_OBJS=kernel.o boot.o \
 tables/idt.o tables/idt_asm.o \
 tables/gdt.o tables/gdt_asm.o \
@@ -36,25 +29,7 @@ loader/loader_asm.o
 
 .PHONY: all clean install install-headers install-kernel
 
-all: $(KERNEL) $(FIRST_STAGE) $(SECOND_STAGE)
-
-$(FIRST_STAGE): $(BOOT_SRCS)
-	$(CC) -c bootloader/first_stage.S -o bootloader/first_stage.o
-	# extract the .text section
-	objcopy -O binary -j .text bootloader/first_stage.o tmp.elf
-	# remove the first 0x7c00=62*512 first bytes
-	# the first stage is always exactly 512 bytes long 
-	dd if=./tmp.elf of=./$(FIRST_STAGE) bs=512 count=1 skip=62
-	rm tmp.elf
-	
-$(SECOND_STAGE): $(BOOT_SRCS)
-	$(CC) -c bootloader/second_stage.S -o bootloader/second_stage.o
-	# extract the .text section 
-	objcopy -O binary -j .text bootloader/second_stage.o tmp.elf 
-	# remove the first 0x8000=1024*32 first bytes
-	# the second stage is always 12KB bytes long
-	dd if=./tmp.elf of=./$(SECOND_STAGE) bs=1024 count=12 skip=32
-	rm tmp.elf
+all: $(KERNEL)
 
 # kind of a hack to add libk.a in the dependencies
 $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
@@ -75,21 +50,20 @@ $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
 
 
 # install to the sysroot
-install: install-headers install-boot
+install: install-headers install-kernel
 
 install-headers:
 	mkdir -p $(SYSROOT)$(INCLUDEDIR)/kernel
 	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/kernel/.
 
-install-boot: $(FIRST_STAGE) $(SECOND_STAGE) $(KERNEL)
+install-kernel: $(KERNEL)
 	mkdir -p $(SYSROOT)$(BOOTDIR)
-	cp $(FIRST_STAGE) $(SYSROOT)$(BOOTDIR)
-	cp $(SECOND_STAGE) $(SYSROOT)$(BOOTDIR)
 	cp $(KERNEL) $(SYSROOT)$(BOOTDIR)
 
 clean:
 	rm -f ./*.o ./*/*.o ./*/*/*.o
 	rm -f ./*.d ./*/*.d ./*/*/*.d
 	rm -f ./*.elf ./*/*.elf ./*/*/*.elf
+	rm -f ./*.bin ./*/*.bin ./*/*/*.bin
 
 -include $(KERNEL_OBJS:.o=.d)

@@ -21,7 +21,7 @@
 // offset (in bytes) in the hard drive of the superblock
 .set SUPERBLOCK_OFFSET, 1024
 
-.include "bootloader/macros.S"
+.include "asm_code/macros.S"
 
 s1_code_start: 
     jmp load
@@ -62,7 +62,7 @@ boot_fail:
 
 
 // FUNCTIONS
-.include "bootloader/functions.S"
+.include "asm_code/functions.S"
  
 
 // DATA (after the instructions of course)

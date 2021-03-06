@@ -1,12 +1,13 @@
 #!/bin/sh
 
-# will probably add libc here in the future
-export PROJECTS="libc kernel user"
+# projects are compiled/installed in this order
+# therefore libc must appear before kernel
+export PROJECTS="bootloader libc kernel user"
 
 # executables
-export KERNEL="minios.elf"
-export FIRST_STAGE="first_stage.elf"
-export SECOND_STAGE="second_stage.elf"
+export KERNEL="minios.elf" # elf file 
+export FIRST_STAGE="first_stage.bin" # flat binary
+export SECOND_STAGE="second_stage.bin" # flat binary
 
 # sysroot file structure
 # (the makefiles install their headers/binaries here)

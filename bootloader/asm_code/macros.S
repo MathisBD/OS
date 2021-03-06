@@ -255,7 +255,69 @@ kernel_inode: .int 0
     rep movsb
 .endm 
 
-.macro mEnableA20
-    call CheckA20
-    
+
+.macro mSetupGDT 
+    mov $0, %ax 
+    mov %ax, %es 
+    mov $GDT_START, %di 
+
+    // null descriptor
+    mov $4, %cx 
+    rep stosw 
+
+    // kernel code segment descriptor 
+    mov $0xFFFF, %es:(%di)  // size 
+    mov $0x0000, %es:2(%di) // start 
+    mov $0x0,    %es:4(%di) // start 
+    mov $0x9A,   %es:5(%di) // flags 
+    mov $0xCF,   %es:6(%di) // granularity
+    mov $0x0,    %es:7(%di) // start 
+    add $8, %di 
+
+    // kernel data segment descriptor 
+    mov $0xFFFF, %es:(%di)  // size 
+    mov $0x0000, %es:2(%di) // start 
+    mov $0x0,    %es:4(%di) // start 
+    mov $0x92,   %es:5(%di) // flags 
+    mov $0xCF,   %es:6(%di) // granularity
+    mov $0x0,    %es:7(%di) // start 
+.endm 
+
+.macro mSaveKernelInode
+    mov kernel_inode, %ax
+    mLoadInode 
+
+    // copy the inode to program memory
+    mov $(16*TMP_LOAD_SEGMENT), %si 
+    add %ax, %si 
+    mov $0, %ax 
+    mov %ax, %es 
+    mov %ax, %ds 
+    lea kernel_inode_contents, %di 
+    mov $128, %cx 
+    cld
+    rep movsb
 .endm
+
+.macro mEnterPMode
+    cli 
+    lgdt gdtr_contents
+
+    // set the Protection Enable bit in cr0 
+    mov %cr0, %eax 
+    or $1, %al 
+    mov %eax, %cr0 
+
+    // far jump to selector 0x08 (kernel code)
+    ljmp $0x08, $protected_mode_entry 
+.endm
+
+
+// this is in 32 bit protected mode 
+// setup null entries 
+.macro mSetupIDT 
+    mov $0, %eax
+    mov $IDT_START, %edi 
+    mov $(256 * 8), %ecx // 256 entries, each 8 bytes long 
+    rep stosb 
+.endm 
