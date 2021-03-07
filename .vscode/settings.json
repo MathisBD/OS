@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "string_utils.h": "c"
+        "string_utils.h": "c",
+        "ata_minidriver.h": "c"
     }
 }

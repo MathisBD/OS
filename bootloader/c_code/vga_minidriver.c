@@ -10,13 +10,18 @@ uint8_t vga_color = 0x05;
 uint32_t term_col = 0;
 uint32_t term_row = 0;
 
+char digits[] = {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'A', 'B', 'C', 'D', 'E', 'F'
+};
+
 void set_vga_buffer(int row, int col, uint8_t color, char c)
 {
     const int index = VGA_COLS * row + col;
     vga_buffer[index] = (((uint16_t)color) << 8) | c;
 }
 
-void clear_screen(void)
+void vga_clear_screen(void)
 {
     for (int col = 0; col < VGA_COLS; col++) {
         for (int row = 0; row < VGA_ROWS; row++) {      
@@ -25,12 +30,12 @@ void clear_screen(void)
     }
 }
 
-void print_char(char c)
+void vga_print_char(char c)
 {
     if (term_row >= VGA_ROWS) {
         term_col = 0;
         term_row = 0;
-        clear_screen();
+        vga_clear_screen();
     }
     
     switch(c) {
@@ -50,11 +55,17 @@ void print_char(char c)
     }
 }
 
-void print_string(const char* str)
+void vga_print_string(const char* str)
 {
     int i = 0;
     while (str[i]) {
-        print_char(str[i]);
+        vga_print_char(str[i]);
         i++;
     }
 } 
+
+void vga_print_hex_byte(uint8_t byte)
+{
+    vga_print_char(digits[(byte >> 4) & 0x0F]);
+    vga_print_char(digits[byte & 0x0F]);
+}

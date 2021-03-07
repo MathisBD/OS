@@ -9,6 +9,7 @@ CPPFLAGS:=$(CPPFLAGS) -D__is_bootloader \
 # no libk for the bootloader
 LIBS:=$(LIBS) -nostdlib -lgcc
 
+
 BOOT_SRCS=asm_code/first_stage.S \
 asm_code/second_stage.S \
 asm_code/functions.S \
@@ -16,11 +17,14 @@ asm_code/macros.S \
 asm_code/functions_extra.S \
 asm_code/a20.S
 
-# only for C files, not asm files
+# only for files that will be compiled and linked
+# in the stage 2
 BOOT_S2_OBJS=c_code/s2_main.o \
-c_code/vga_minidriver.o
+c_code/vga_minidriver.o \
+c_code/ata_minidriver.o \
+asm_code/pio.o
 
-.PHONY: all clean install install-bootloader
+.PHONY: all clean install install-bootloader install-headers
 
 all: $(FIRST_STAGE) $(SECOND_STAGE)
 
@@ -50,12 +54,14 @@ $(SECOND_STAGE): $(BOOT_SRCS) $(BOOT_S2_OBJS) s2_linker.ld
 %.o: %.c
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
-install: install-bootloader
+%.o: %.S
+	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
+
+install: install-bootloader install-headers
 
 install-headers:
 	mkdir -p $(SYSROOT)$(INCLUDEDIR)/bootloader
 	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/bootloader/.
-
 
 install-bootloader: $(FIRST_STAGE) $(SECOND_STAGE)
 	mkdir -p $(SYSROOT)$(BOOTDIR)
