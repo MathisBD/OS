@@ -1,7 +1,9 @@
 #include "memory/constants.h"
 
-/* The bootloader will hand us execution at ENTRY */ 
-ENTRY(_start)
+/* The bootloader will hand us execution here */
+/* By convention, for the kernel executable, this is
+   the PHYSICAL address of the entry point */ 
+ENTRY(phys_entry)
 
 SECTIONS
 {

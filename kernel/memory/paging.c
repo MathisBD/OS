@@ -118,7 +118,7 @@ void get_mmap(multiboot_info_t * mbd)
     }
 }    
 
-// transfer ownership of paging structures from boot.S
+// transfer ownership of paging structures
 // to the kernel
 void setup_page_dir()
 {
@@ -203,8 +203,7 @@ void page_fault(page_fault_info_t info)
     }
 }
 
-void init_paging(multiboot_info_t * mbd, unsigned int magic)
+void init_paging()
 {   
-    get_mmap(mbd);
     setup_page_dir();
 }

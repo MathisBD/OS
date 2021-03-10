@@ -49,7 +49,7 @@ idtr_contents:
     .word (256*8 - 1) // size 
     .int IDT_START 
 gdtr_contents: 
-    .word (3*8 - 1)   // size 
+    .word (3*8 - 1)   /int/ size 
     .int GDT_START
 kernel_inode_contents:
     .skip 128
@@ -70,6 +70,8 @@ protected_mode_entry:
     sub $0x8, %esp
     
     // transition to C code
+    push block_size
+    push $kernel_inode_contents
     .extern s2_main 
     call s2_main 
 

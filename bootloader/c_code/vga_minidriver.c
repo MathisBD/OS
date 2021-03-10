@@ -5,8 +5,8 @@
 #define VGA_COLS 80
 #define VGA_ROWS 25
 
-uint16_t* vga_buffer = 0xB8000;
-uint8_t vga_color = 0x05;
+uint16_t* vga_buffer = (uint16_t*)0xB8000;
+uint8_t vga_color = 0x0F;
 uint32_t term_col = 0;
 uint32_t term_row = 0;
 
@@ -68,4 +68,23 @@ void vga_print_hex_byte(uint8_t byte)
 {
     vga_print_char(digits[(byte >> 4) & 0x0F]);
     vga_print_char(digits[byte & 0x0F]);
+}
+
+void vga_print_mem(const void* mem, uint32_t count)
+{
+    for (uint32_t i = 0; i < count; i++) {
+        uint8_t byte = *((uint8_t*)(mem + i));
+        vga_print_hex_byte(byte);
+        
+        if (i % 16 == 15) {
+            vga_print_char('\n');
+        }
+        else if (i % 8 == 7) {
+            vga_print_string("   ");
+        }
+        else {
+            vga_print_char(' ');
+        }
+    }
+    vga_print_char('\n');
 }

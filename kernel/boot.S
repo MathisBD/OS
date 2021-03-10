@@ -1,38 +1,9 @@
 #include "memory/constants.h"
 
 .extern kernel_main
-.extern get_mmap
-.global _start
 
-// GRUB constants
-.set MB_MAGIC, 0x1BADB002
-// load modules on page boundaries + provide memory map
-.set MB_FLAGS, (1 << 0) | (1 << 1) 
-.set MB_CHECKSUM, (0 - (MB_MAGIC + MB_FLAGS))
-
-
-.section .text
-
-// multiboot header
-    .align 4 
-    .long MB_MAGIC
-    .long MB_FLAGS
-    .long MB_CHECKSUM
-
-// multiboot header
-//.set MH_MAGIC, 0xE85250D6
-//.set MH_ARCH, 0
-//.set MH_LEN, (mb_end - mb_start)
-//.align 4
-//mb_start:
-//.long MH_MAGIC         // magic 
-//.long MH_ARCH           // architecture
-//.long MH_LEN              // header length
-//.long - (MH_MAGIC + MH_LEN + MH_ARCH) // checksum 
-
-// TAGS
-// 
-//mb_end:
+.global phys_entry
+.set phys_entry, (entry - V_KERNEL_START)  
 
 .section .bss
 // stack space
@@ -56,7 +27,7 @@ boot_page_dir:
     .fill (PD_SIZE - KERNEL_PAGE_IDX - 1), 0x00000000
 
 .section .text
-_start:
+entry:
     // load the page directory 
     mov $(boot_page_dir - V_KERNEL_START), %ecx 
     mov %ecx, %cr3
@@ -83,19 +54,13 @@ launch_kernel:
 
     // reload cr3 to force the changes to take effect
     mov %cr3, %ecx 
-    mov %ecx, %cr3 // start the kernel
+    mov %ecx, %cr3
 
     // initialize stack
     mov $stack_top, %esp 
     
     cli
-    
-    // GRUB puts some values in %ebx (multiboot header address) and %eax (multiboot magic)
-    push %eax
-    add $V_KERNEL_START, %ebx 
-    push %ebx
     call kernel_main   
-    add $8, %esp  
 
     // this should not happen
     cli

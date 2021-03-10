@@ -266,21 +266,21 @@ kernel_inode: .int 0
     rep stosw 
 
     // kernel code segment descriptor 
-    mov $0xFFFF, %es:(%di)  // size 
-    mov $0x0000, %es:2(%di) // start 
-    mov $0x0,    %es:4(%di) // start 
-    mov $0x9A,   %es:5(%di) // flags 
-    mov $0xCF,   %es:6(%di) // granularity
-    mov $0x0,    %es:7(%di) // start 
+    movw $0xFFFF, %es:(%di)  // size 
+    movw $0x0000, %es:2(%di) // start 
+    movb $0x0,    %es:4(%di) // start 
+    movb $0x9A,   %es:5(%di) // flags 
+    movb $0xCF,   %es:6(%di) // granularity
+    movb $0x0,    %es:7(%di) // start 
     add $8, %di 
 
     // kernel data segment descriptor 
-    mov $0xFFFF, %es:(%di)  // size 
-    mov $0x0000, %es:2(%di) // start 
-    mov $0x0,    %es:4(%di) // start 
-    mov $0x92,   %es:5(%di) // flags 
-    mov $0xCF,   %es:6(%di) // granularity
-    mov $0x0,    %es:7(%di) // start 
+    movw $0xFFFF, %es:(%di)  // size 
+    movw $0x0000, %es:2(%di) // start 
+    movb $0x0,    %es:4(%di) // start 
+    movb $0x92,   %es:5(%di) // flags 
+    movb $0xCF,   %es:6(%di) // granularity
+    movb $0x0,    %es:7(%di) // start 
 .endm 
 
 .macro mSaveKernelInode

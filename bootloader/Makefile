@@ -22,7 +22,9 @@ asm_code/a20.S
 BOOT_S2_OBJS=c_code/s2_main.o \
 c_code/vga_minidriver.o \
 c_code/ata_minidriver.o \
-asm_code/pio.o
+c_code/miniloader.o \
+asm_code/pio.o \
+asm_code/miniloader_asm.o
 
 .PHONY: all clean install install-bootloader install-headers
 

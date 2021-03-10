@@ -20,7 +20,7 @@
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
 
-void kernel_main(multiboot_info_t * mbd, unsigned int magic)
+void kernel_main()
 {
     // =========
     // LOW LEVEL
@@ -36,13 +36,17 @@ void kernel_main(multiboot_info_t * mbd, unsigned int magic)
     init_keyboard_driver();
     float pit_freq = init_pit(PIT_DEFAULT_FREQ);
 
-    init_paging(mbd, magic);
+    init_paging();
 
     enable_interrupts();
 
     // ==========
     // HIGH LEVEL
     // ==========
+
+    while (1) {}
+
+
 
     init_heap();
     init_timer(pit_freq);
