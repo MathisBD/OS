@@ -155,7 +155,7 @@ void load_segments(void* kernel_inode, Elf32_Ehdr* e_hdr)
 }
 
 // returns 0 if all went fine
-int load_kernel(void* kernel_inode)
+int load_kernel(void* kernel_inode, void* boot_info)
 {
     Elf32_Ehdr e_hdr; // on the stack
     read_file(kernel_inode, 0, sizeof(Elf32_Ehdr), &e_hdr);
@@ -172,8 +172,8 @@ int load_kernel(void* kernel_inode)
 
     // by convention, for the kernel executable, the e_entry field 
     // is the PHYSICAL address of the entry point 
-    extern void jump_to_kernel(uint32_t entry);
-    jump_to_kernel(e_hdr.e_entry);
+    extern void jump_to_kernel(uint32_t entry_point, void* boot_info);
+    jump_to_kernel(e_hdr.e_entry, boot_info);
 
     return -1; // should not happen
 }

@@ -13,6 +13,9 @@
 .set TMP_LOAD_SEGMENT, 0x400
 // the second stage is at 0000:8000
 
+// maximum number of entries in the memory map
+// each entry is 24 bytes
+.set MAX_MMAP_ENTRIES, 32
 
 // the first stage passes us some data in memory :
 // ax = start address of the data 
@@ -31,6 +34,7 @@ entry:
     mResetDisk 
     mEnableA20
     mSetupGDT 
+    mGetMmap
     mEnterPMode
 halt:
     cli 
@@ -49,10 +53,16 @@ idtr_contents:
     .word (256*8 - 1) // size 
     .int IDT_START 
 gdtr_contents: 
-    .word (3*8 - 1)   /int/ size 
+    .word (3*8 - 1)   // size 
     .int GDT_START
+// KERNEL INODE
 kernel_inode_contents:
     .skip 128
+// MMAP
+mmap_entry_count:
+    .int 0
+mmap:
+    .skip (24 * MAX_MMAP_ENTRIES)
 
 // 32 bit part of the second stage 
 .code32
@@ -70,8 +80,10 @@ protected_mode_entry:
     sub $0x8, %esp
     
     // transition to C code
-    push block_size
+    push mmap_entry_count
+    push $mmap
     push $kernel_inode_contents
+    push block_size
     .extern s2_main 
     call s2_main 
 

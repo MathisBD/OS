@@ -7,7 +7,7 @@
 #include "scheduler/timer.h"
 #include "memory/paging.h"
 #include "memory/heap.h"
-#include "multiboot.h"
+#include "bootloader_info.h"
 #include "utils/string_utils.h"
 #include "memory/constants.h"
 #include "loader/loader.h"
@@ -19,8 +19,26 @@
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
+char d[] = {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+};
 
-void kernel_main()
+void print_byte(uint8_t byte)
+{
+    putchar(d[(byte >> 4) & 0x0F]);
+    putchar(d[byte & 0x0F]);
+}
+
+void print_mem(void* addr, uint32_t count)
+{
+    uint8_t* ptr = (uint8_t*)addr;
+    for (uint32_t i = 0; i < count; i++) {
+        print_byte(ptr[i]);
+    }
+}
+    
+
+void kernel_main(boot_info_t* boot_info)
 {
     // =========
     // LOW LEVEL
@@ -35,8 +53,18 @@ void kernel_main()
     init_pic_driver();
     init_keyboard_driver();
     float pit_freq = init_pit(PIT_DEFAULT_FREQ);
+    
+    /*for (int i = 0; i < boot_info->mmap_ent_count; i++) {
+        mmap_entry_t* ent = boot_info->mmap_addr + V_KERNEL_START + i * MMAP_ENT_SIZE;
+        printf("base=%llx\tlength=%llx\ttype=%d\n", ent->base, ent->length, ent->type);
+    }*/
 
-    init_paging();
+    init_paging(
+        (mmap_entry_t*)(boot_info->mmap_addr + V_KERNEL_START), 
+        boot_info->mmap_ent_count
+    );
+
+    //print_mem_blocks();
 
     enable_interrupts();
 
@@ -44,16 +72,16 @@ void kernel_main()
     // HIGH LEVEL
     // ==========
 
-    while (1) {}
-
-
-
     init_heap();
     init_timer(pit_freq);
 
     // ==========
 
-    uint32_t buf1[BLOCK_SIZE / 4];
+
+
+    
+
+    /*uint32_t buf1[BLOCK_SIZE / 4];
     memset(buf1, 0, BLOCK_SIZE);
 
     io_request_t first_req;
@@ -110,70 +138,9 @@ void kernel_main()
     for (int i = 0; i < 16; i++) {
         printf("%x ", buf3[i]);
     }
-    printf("\n\n");
-    /*uint8_t target[1024];
-    memset(target, 0x00, 1024 * sizeof(uint32_t));
-
-    read_sectors_ATA_PIO(target, 0x0, 1);
-    
-    printf("READ\n");
-
-    int i;
-    i = 0;
-    while(i < 64)
-    {
-        printf("%x ", target[i] & 0xFF);
-        printf("%x ", (target[i] >> 8) & 0xFF);
-        i++;
-    }
-
-    printf("\n\n");
-    printf("writing 0...\n\n");
-    char bwrite[512];
-    for(i = 0; i < 512; i++)
-    {
-        bwrite[i] = 0x0;
-    }
-    write_sectors_ATA_PIO(0x0, 2, bwrite);
+    printf("\n\n");*/
 
 
-    printf("reading...\n\n");
-    read_sectors_ATA_PIO(target, 0x0, 1);
-    
-    i = 0;
-    while(i < 64)
-    {
-        printf("%x ", target[i] & 0xFF);
-        printf("%x ", (target[i] >> 8) & 0xFF);
-        i++;
-    }*/
-
-
-
-    /*vga_print("mod count=");
-    vga_print_int(mbd->mods_count, 10);
-    vga_print("\n");
-
-    uint32_t v_mods_addr = mbd->mods_addr + V_KERNEL_START;
-    for (uint32_t* ptr = v_mods_addr; ptr < v_mods_addr + 8 * mbd->mods_count; ptr += 2) {
-        uint32_t v_mod_start = *ptr + V_KERNEL_START;
-        uint32_t v_mod_end = *(ptr + 1) + V_KERNEL_START;
-
-        vga_print("mod start=");
-        vga_print_int(v_mod_start, 16);
-        vga_print("  mod end=");
-        vga_print_int(v_mod_end, 16);
-        vga_print("\n");
-        
-        bool res = load_elf((char*)v_mod_start, (char*)v_mod_end);
-        if (res) {
-            vga_print("good\n");
-        }
-        else {
-            vga_print("bad\n");
-        }
-    }*/
-   
     while (1) {
 
     }

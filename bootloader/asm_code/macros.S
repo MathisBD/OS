@@ -313,11 +313,58 @@ kernel_inode: .int 0
 .endm
 
 
-// this is in 32 bit protected mode 
-// setup null entries 
-.macro mSetupIDT 
-    mov $0, %eax
-    mov $IDT_START, %edi 
-    mov $(256 * 8), %ecx // 256 entries, each 8 bytes long 
-    rep stosb 
-.endm 
+// this is in 16bit real mode 
+// (even if we use 32bit registers)
+.macro mGetMmap
+    xor %ax, %ax 
+    mov %ax, %es 
+    mov $mmap, %di 
+
+    // bp : entry count 
+    xor %bp, %bp
+
+    // ebx must not be touched between calls to the interrupt
+    xor %ebx, %ebx 
+    mov $0x534D4150, %edx
+
+    mov $0xE820, %eax // we have to clear the upper bits
+    mov $24, %ecx 
+    movw $1, %es:20(%di) // force a valid ACPI 3.X entry
+    int $0x15
+    // failure on first call means the function is not 
+    // supported by the bios
+    jc boot_fail
+
+    // restore edx 
+    mov $0x0534D4150, %edx 
+    // if successful, eax = magic number
+    cmp %edx, %eax 
+    jne boot_fail
+
+    add $24, %di 
+    inc %bp
+
+    // ebx = 0 => only one entry 
+    test %ebx, %ebx 
+    jz mGetMmap_finish
+
+mGetMmap_loop: 
+    cmp $MAX_MMAP_ENTRIES, %bp
+    jge boot_fail
+
+    mov $0xE820, %eax
+    mov $24, %ecx 
+    movw $1, %es:20(%di) // force a valid ACPI 3.X entry
+    int $0x15
+    jc mGetMmap_finish
+
+    mov $0x0534D4150, %edx 
+    add $24, %di 
+    inc %bp
+
+    test %ebx, %ebx 
+    jnz mGetMmap_loop
+mGetMmap_finish:
+    mov %bp, mmap_entry_count
+.endm
+

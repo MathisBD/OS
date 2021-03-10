@@ -1,11 +1,11 @@
 #include <stdint.h>
 #include "memory/paging.h"
-#include "multiboot.h"
 #include "memory/constants.h"
 #include "memory/bitset.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+#include "bootloader_info.h"
 
 
 typedef struct {
@@ -15,7 +15,7 @@ typedef struct {
     uint64_t avail_frames_bitset[MAX_FRAMES / 64]; 
 } mem_block_t;
 
-#define MAX_MEM_BLOCKS 128
+#define MAX_MEM_BLOCKS 32
 // available memory blocks (in RAM)
 mem_block_t mem_blocks[MAX_MEM_BLOCKS];
 int mem_blocks_count;
@@ -40,6 +40,14 @@ typedef struct {
 // has to be aligned on 4K
 pde_entry_t kernel_pd[PD_SIZE] __attribute__((aligned(4096)));
 
+
+void print_mem_blocks()
+{
+    printf("mem blocks count = %d\n", mem_blocks_count);
+    for (int i = 0; i < mem_blocks_count; i++) {
+        printf("address = %x\tframe_count = %x\n", mem_blocks[i].address, mem_blocks[i].frame_count);
+    }
+}
 
 void add_mem_block(uint64_t addr, uint64_t len)
 {
@@ -68,7 +76,7 @@ void add_mem_block(uint64_t addr, uint64_t len)
         return;
     }
 
-    // the first page (not counting the small page before 1MB)
+    // the first block (not counting the small block before 1MB)
     // is extended to start at address 0
     if (mem_blocks_count == 0) {
         addr = 0;
@@ -84,37 +92,19 @@ void add_mem_block(uint64_t addr, uint64_t len)
         // the first frame is already used by the kernel
         bitset_unset(mem_blocks[0].avail_frames_bitset, 0);
     }
-
     mem_blocks_count++;
 }
 
 
-void get_mmap(multiboot_info_t * mbd)
+void parse_mmap(mmap_entry_t* mmap, uint32_t mmap_ent_count)
 {
-    // check the GRUB memory map is valid
-    if (!(mbd->flags & 0x20)) {
-        return;
-    }
-
-    uint32_t buf_addr = (uint32_t)mbd->mmap_addr + V_KERNEL_START;
-    uint32_t buf_length = (uint32_t)mbd->mmap_length;
-
-    multiboot_memory_map_t * entry = (multiboot_memory_map_t*)buf_addr;
-    mem_blocks_count = 0;
-    while (entry < buf_addr + buf_length) {
+    for (uint32_t i = 0; i < mmap_ent_count; i++) {
         if (mem_blocks_count >= MAX_MEM_BLOCKS) {
             return;
         }
-        if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            uint64_t addr = (uint64_t)entry->addr_lowbits; 
-            addr |= ((uint64_t)entry->addr_highbits) << 32;
-
-            uint64_t len = (uint64_t)entry->len_lowbits;
-            len |= ((uint64_t)entry->len_highbits) << 32;
-
-            add_mem_block(addr, len);
+        if (mmap[i].type == MMAP_ENT_TYPE_AVAILABLE) {
+            add_mem_block(mmap[i].base, mmap[i].length);
         }
-        entry = (multiboot_memory_map_t*)((uint32_t)entry + entry->size + sizeof(entry->size));
     }
 }    
 
@@ -203,7 +193,8 @@ void page_fault(page_fault_info_t info)
     }
 }
 
-void init_paging()
+void init_paging(mmap_entry_t* mmap, uint32_t mmap_ent_count)
 {   
+    parse_mmap(mmap, mmap_ent_count);
     setup_page_dir();
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "multiboot.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "bootloader_info.h"
 
 // info passed to the page fault handler
 typedef struct {
@@ -23,8 +23,7 @@ typedef struct {
 } page_fault_info_t;
 
 
-void init_paging(multiboot_info_t * mbd, unsigned int magic);
+void print_mem_blocks();
 
-void print_mem_blocks(void);
-
+void init_paging(mmap_entry_t* mmap, uint32_t mmap_ent_count);
 void page_fault(page_fault_info_t info);

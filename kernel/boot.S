@@ -13,6 +13,8 @@ stack_bottom:
 stack_top:
 
 .section .data
+boot_info_addr: .int 0
+
 // boot page directory
 .set KERNEL_PAGE_IDX, V_KERNEL_START >> 22
 .align 0x1000 // page directories must be aligned on 4K
@@ -28,6 +30,11 @@ boot_page_dir:
 
 .section .text
 entry:
+    // save the boot info that the bootloader passes us 
+    add $V_KERNEL_START, %eax 
+    // virtual memory isn't enabled yet at this point
+    mov %eax, (boot_info_addr - V_KERNEL_START)
+
     // load the page directory 
     mov $(boot_page_dir - V_KERNEL_START), %ecx 
     mov %ecx, %cr3
@@ -60,6 +67,7 @@ launch_kernel:
     mov $stack_top, %esp 
     
     cli
+    push boot_info_addr
     call kernel_main   
 
     // this should not happen

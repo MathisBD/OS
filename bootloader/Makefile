@@ -15,7 +15,7 @@ asm_code/second_stage.S \
 asm_code/functions.S \
 asm_code/macros.S \
 asm_code/functions_extra.S \
-asm_code/a20.S
+asm_code/a20.S 
 
 # only for files that will be compiled and linked
 # in the stage 2
