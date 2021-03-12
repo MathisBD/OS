@@ -5,18 +5,33 @@
 
 // the inode doesn't exist
 #define ERR_INODE_EXIST (-1)
+// the block group doesn't exist
+#define ERR_BG_EXIST     (-2)
 // the inode has the wrong type
-#define ERR_INODE_TYPE  (-2)
-// etc... (TODO)
+#define ERR_INODE_TYPE  (-3)
+// couldn't read disk
+#define ERR_DISK_READ   (-4)
+// read/write past the end of a file
+#define ERR_FILE_BOUNDS (-5)
 
-// file allocation/resizing
+
+#define INODE_TYPE_REG   1 // regular file
+#define INODE_TYPE_DIR   2 // directory
+
+
+void init_ext2();
+
 int resize_inode(uint32_t inode, uint32_t size);
+// creates an inode for an empty file/directory,
+// and without any parent yet 
 int alloc_inode(uint32_t* inode, uint32_t type);
+// assumes the inode has no parent
 // if the inode is a directory, it must be empty.
 int free_inode(uint32_t inode);
 
 // file info
 int inode_type(uint32_t inode, uint32_t* type);
+// for regular files and directories
 int inode_fsize(uint32_t inode, uint32_t* size);
 
 // read/write

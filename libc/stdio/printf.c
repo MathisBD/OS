@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 #define MAX_BASE 16
@@ -10,34 +11,58 @@ static char digits[] = {
     'a', 'b', 'c', 'd', 'e', 'f'
 };
 
-int print_unsigned(uint64_t i, int base);
+// returns the number of digits written into buf
+// the maximum number of digits written should be 64 (in base 2)
+int sprint_unsigned(uint64_t i, int base, char* buf);
 
-int print_signed(int64_t i, int base)
+int sprint_signed(int64_t i, int base, char* buf)
 {
     if (base < 2 || base > MAX_BASE) {
         return 0;
     }
     if (i < 0) {
-        putchar('-');
-        return 1 + print_unsigned((uint64_t)(-i), base);
+        buf[0] = '-';
+        return 1 + sprint_unsigned((uint64_t)(-i), base, buf + 1);
     }
     else {
-        return print_unsigned((uint64_t)i, base);
+        return sprint_unsigned((uint64_t)i, base, buf);
     }
 }
 
-int print_unsigned(uint64_t i, int base)
+int sprint_unsigned(uint64_t i, int base, char* buf)
 {
     if (base < 2 || base > MAX_BASE) {
         return 0;
     }
     if (i < base) {
-        return putchar(digits[i]);
+        buf[0] = digits[i];
+        return 1;
     }
 
-    int c = print_unsigned(i / base, base);
-    c += putchar(digits[i % base]);
-    return c;
+    int c = sprint_unsigned(i / base, base, buf);
+    buf[c] = digits[i % base];
+    return c + 1;
+}
+
+// 10**9-1 <= max_uint32 = 2**32-1
+#define PARSE_UINT32_MAX_DIGITS 9
+// parses a uint32 in decimal
+// if no uint32 is read, doesn't change num
+// returns the number of characters read
+int parse_uint32(const char* buf, uint32_t* num)
+{
+    uint32_t res = 0;
+    
+    int i = 0;
+    while (i < PARSE_UINT32_MAX_DIGITS &&'0' <= buf[i] && buf[i] <= '9') {
+        res = 10 * res + (buf[i] - '0');
+        i++;
+    }
+
+    if (i > 0) {
+        *num = res;
+    }
+    return i;
 }
 
 int printf(const char* __restrict format, ...)
@@ -47,6 +72,7 @@ int printf(const char* __restrict format, ...)
     
     size_t i = 0;
     size_t written = 0;
+    char num_buf[64]; // used to write numbers into
     while (format[i]) {
         // double percent
         if (!memcmp(format + i, "%%", 2)) {
@@ -56,74 +82,100 @@ int printf(const char* __restrict format, ...)
         // variables
         else if (!memcmp(format + i, "%", 1)) {
             i += 1;
-            // room for parsing format specifiers here
-            // e.g. : %-8d
+
+            // parse a width specifier : e.g. %4x pads with leading spaces
+            bool pad_zeros = false; // if true, pad with zeros instead of spaces
+            if (format[i] == '0') {
+                pad_zeros = true;
+                i += 1;
+            }
+            uint32_t pad_width = 0;
+            i += parse_uint32(format + i, &pad_width);
+
+            // contents to write
+            char* contents = num_buf; // reset this every iteration
+            size_t contents_size = 0;
+
             if (!memcmp(format + i, "c", 1)) {
                 // we can't use a type smaller than int
                 // for va_arg (i.e. char won't do)
                 int c = va_arg(params, int);
-                written += putchar(c);
+                contents[0] = (char)c;
+                contents_size = 1;
                 i += 1;
             }
             else if (!memcmp(format + i, "s", 1)) {
                 const char * str = va_arg(params, const char *);
-                size_t len = strlen(str);
-                for (int k = 0; k < len; k++) {
-                    written += putchar(str[k]);
-                }
+                contents = str;
+                contents_size = strlen(str);
                 i += 1;
             }
             // %d
             else if (!memcmp(format + i, "d", 1)) {
                 int n = va_arg(params, int);
-                written += print_signed(n, 10);
+                contents_size = sprint_signed(n, 10, contents);
                 i += 1;
             }
             else if (!memcmp(format + i, "ld", 2)) {
                 long int n = va_arg(params, long int);
-                written += print_signed(n, 10);
+                contents_size = sprint_signed(n, 10, contents);
                 i += 2;
             }
             else if (!memcmp(format + i, "lld", 3)) {
                 long long int n = va_arg(params, long long int);
-                written += print_signed(n, 10);
+                contents_size = sprint_signed(n, 10, contents);
                 i += 3;
             }
             // %u
             else if (!memcmp(format + i, "u", 1)) {
                 unsigned int n = va_arg(params, unsigned int);
-                written += print_unsigned(n, 10);
+                contents_size = sprint_unsigned(n, 10, contents);
                 i += 1;
             }
             else if (!memcmp(format + i, "lu", 2)) {
                 unsigned long int n = va_arg(params, unsigned long int);
-                written += print_unsigned(n, 10);
+                contents_size = sprint_unsigned(n, 10, contents);
                 i += 2;
             }
             else if (!memcmp(format + i, "llu", 3)) {
                 unsigned long long int n = va_arg(params, unsigned long long int);
-                written += print_unsigned(n, 10);
+                contents_size = sprint_unsigned(n, 10, contents);
                 i += 3;
             }
             // %x
             else if (!memcmp(format + i, "x", 1)) {
                 unsigned int n = va_arg(params, unsigned int);
-                written += print_unsigned(n, 16);
+                contents_size = sprint_unsigned(n, 16, contents);
                 i += 1;
             }
             else if (!memcmp(format + i, "lx", 2)) {
                 unsigned long int n = va_arg(params, unsigned long int);
-                written += print_unsigned(n, 16);
+                contents_size = sprint_unsigned(n, 16, contents);
                 i += 2;
             }
             else if (!memcmp(format + i, "llx", 3)) {
                 unsigned long long int n = va_arg(params, unsigned long long int);
-                written += print_unsigned(n, 16);
+                contents_size = sprint_unsigned(n, 16, contents);
                 i += 3;
             }
             else {
                 // bad variable formatter
                 return EOF; 
+            }
+
+            // actually print
+            if (contents_size < pad_width) {
+                for (int i = 0; i < pad_width - contents_size; i++) {
+                    if (pad_zeros) {
+                        putchar('0');
+                    }
+                    else {
+                        putchar(' ');
+                    }
+                }
+            }
+            for (int i = 0; i < contents_size; i++) {
+                putchar(contents[i]);
             }
         }
         // normal characters

@@ -15,28 +15,11 @@
 #include <string.h>
 #include "drivers/ata_driver.h"
 #include "scheduler/timer.h"
-#include "filesystem/ext2/miniext.h"
+#include "filesystem/ext2.h"
+
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
-char d[] = {
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-};
-
-void print_byte(uint8_t byte)
-{
-    putchar(d[(byte >> 4) & 0x0F]);
-    putchar(d[byte & 0x0F]);
-}
-
-void print_mem(void* addr, uint32_t count)
-{
-    uint8_t* ptr = (uint8_t*)addr;
-    for (uint32_t i = 0; i < count; i++) {
-        print_byte(ptr[i]);
-    }
-}
-    
 
 void kernel_main(boot_info_t* boot_info)
 {
@@ -63,9 +46,6 @@ void kernel_main(boot_info_t* boot_info)
         (mmap_entry_t*)(boot_info->mmap_addr + V_KERNEL_START), 
         boot_info->mmap_ent_count
     );
-
-    //print_mem_blocks();
-
     enable_interrupts();
 
     // ==========
@@ -74,11 +54,9 @@ void kernel_main(boot_info_t* boot_info)
 
     init_heap();
     init_timer(pit_freq);
+    init_ext2();
 
     // ==========
-
-
-
     
 
     /*uint32_t buf1[BLOCK_SIZE / 4];

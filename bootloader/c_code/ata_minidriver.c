@@ -16,7 +16,7 @@
 #define CMD_WRMUL 0xc5
 
 // returns 0 if the operation was successful
-bool ata_wait(bool checkerr)
+int ata_wait(bool checkerr)
 {
 	int r;
 	while(((r = port_int8_in(0x1f7)) & (ATA_BSY | ATA_DRDY)) != ATA_DRDY) {

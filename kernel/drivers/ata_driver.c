@@ -4,25 +4,20 @@
 #include <stdbool.h>
 #include <panic.h>
 #include "scheduler/timer.h"
+#include <string.h>
 
 
 #define SECTOR_SIZE 512
 
-#define ATA_BSY       0x80
-#define ATA_DRDY      0x40
-#define ATA_DF        0x20
-#define ATA_ERR       0x01
+#define ATA_BSY       0x80 // busy
+#define ATA_DRDY      0x40 // data ready
+#define ATA_DF        0x20 
+#define ATA_ERR       0x01 // error
 
 #define CMD_READ  0x20
 #define CMD_WRITE 0x30
-#define CMD_RDMUL 0xc4
-#define CMD_WRMUL 0xc5
 
-//io_request_t* first_request = 0;
-//io_request_t* last_request = 0;
-io_request_t* curr_request = 0;
-
-
+// returns 0 if the operation was successful
 int ata_wait(bool checkerr)
 {
 	int r;
@@ -35,88 +30,114 @@ int ata_wait(bool checkerr)
 	return 0;
 }
 
-// for now requests are handled sequentially :
-// we wait until we finished the first before starting the next
-// (to handle them asynchonously we would need a lock + 
-// have interrupts be distributed by a kernel process.
-// Otherwise the interrupts may change the request queue while
-// we are in this method, and bad things happen)
-void ata_pio_request(io_request_t* request) 
+void send_data(uint32_t sector, uint8_t sector_count)
 {
-	/*if (last_request) {
-		last_request->next = request;
-		request->next = 0;
-		last_request = request;
-	}
-	else {
-		first_request = request;
-		last_request = request;
-		request->next = 0;
-		handle_request();
-	}*/
-
-	// temporary
-	curr_request = request;
-	handle_request(request);
-	wait(0.2);
+	
 }
 
-// handle the first request
-void handle_request(io_request_t * request)
+int rw_sector(uint32_t sector, void* data, bool write)
 {
-	if (request->data_bytes & (SECTOR_SIZE - 1)) {
-		panic("handle_request : request data size must be a multiple of SECTOR_SIZE\n");
+	if (ata_wait(true) != 0) {
+		return -1;
 	}
-	uint8_t sector_count = request->data_bytes / SECTOR_SIZE;
-	uint32_t sector = request->block_num;
-	if (sector_count == 0) {
-		panic("handle_request : no sector");
-	}	
-	if (sector_count >= 8) {
-		panic("handle_request : too many sectors");
-	}
-
-	ata_wait(false);
-	port_int8_out(0x1F2, sector_count);
+	
+	port_int8_out(0x1F2, 1); // sector count
 	port_int8_out(0x1F3, sector & 0xff);
 	port_int8_out(0x1F4, (sector >> 8) & 0xff);
 	port_int8_out(0x1F5, (sector >> 16) & 0xff); 
 	port_int8_out(0x1F6, 0xE0 | ((sector >> 24) & 0xF));
+	port_int8_out(0x1F7, write ? CMD_WRITE : CMD_READ);
 
-	// send the r/w command
-	if (request->type == IO_REQ_READ) {
-		if (sector_count == 1) {
-			port_int8_out(0x1F7, CMD_READ); 
-		}
-		else {
-			port_int8_out(0x1F7, CMD_RDMUL);
-		}	
+	if (ata_wait(true) != 0) {
+		return -1;
 	}
-	else if (request->type == IO_REQ_WRITE) {
-		if (sector_count == 1) {
-			port_int8_out(0x1F7, CMD_WRITE);
-		}
-		else {
-			port_int8_out(0x1F7, CMD_WRMUL);
-		}
-		ata_wait(false);
-		// divide by 4 because of int <--> byte
-		port_block_out(0x1F0, request->data, request->data_bytes / sizeof(uint32_t));
-		port_int8_out(0x1F7, 0xE7); // flush
+	
+	// WRITE
+	if (write) {
+		port_block_out(0x1F0, (uint32_t*)data, SECTOR_SIZE / sizeof(uint32_t));
 	}
+	// READ
 	else {
-		panic("handle_request : invalid request type");
+		port_block_in(0x1F0, (uint32_t*)data, SECTOR_SIZE / sizeof(uint32_t));
 	}
+	return 0;
 }
 
+int ata_rw(uint32_t offset, uint32_t count, void* buf, bool write)
+{
+	uint32_t first_sct = offset / SECTOR_SIZE;
+	uint32_t last_sct = (offset + count - 1) / SECTOR_SIZE;
+
+	uint8_t* tmp_buf = malloc(SECTOR_SIZE);
+
+	uint32_t buf_offs = 0;
+	for (int i = first_sct; i <= last_sct; i++) {
+		uint32_t start = i * SECTOR_SIZE;
+		uint32_t ofs; 
+		uint32_t cnt;
+
+		if (start < offset) {
+			ofs = offset - start;
+			if (offset + count >= start + SECTOR_SIZE) {
+				cnt = (start + SECTOR_SIZE) - offset;
+			}	
+			else {
+				cnt = count;
+			}
+		}
+		else {
+			ofs = 0;
+			if (offset + count >= start + SECTOR_SIZE) {
+				cnt = SECTOR_SIZE;
+			}
+			else {
+				cnt = (offset + count) - start;
+			}
+		}
+
+		// WRITE
+		if (write) {
+			// we have to read the whole sector,
+			// overwrite the part we want,
+			// write back the whole sector
+			if (rw_sector(i, tmp_buf, false) < 0) {
+				free(tmp_buf);
+				return -1;
+			}
+			memcpy(tmp_buf + ofs, buf + buf_offs, cnt);
+			if (rw_sector(i, tmp_buf, true) < 0) {
+				free(tmp_buf);
+				return -1;
+			}
+		}
+		// READ
+		else {
+			if (rw_sector(i, tmp_buf, false) < 0) {
+				free(tmp_buf);
+				return -1;
+			}
+			memcpy(buf + buf_offs, tmp_buf + ofs, cnt);
+		}
+		buf_offs += cnt;
+	}
+	free(tmp_buf);
+	return 0;
+}
+
+int ata_read(uint32_t offset, uint32_t count, void* buf)
+{
+	ata_rw(offset, count, buf, false);
+}
+
+int ata_write(uint32_t offset, uint32_t count, void* buf)
+{
+	ata_rw(offset, count, buf, true);
+}
+
+
 // interrupt handler
+// not used for now
 void ata_primary_interrupt()
 {
-	printf("ATA interrupt\n");
-
-	if (curr_request->type == IO_REQ_READ && ata_wait(true) >= 0) {
-		port_block_in(0x1F0, curr_request->data, curr_request->data_bytes / sizeof(uint32_t));
-	}
-	curr_request->status = IO_REQ_FINISHED;
-	curr_request = 0;
+	//printf("ATA interrupt\n");
 }

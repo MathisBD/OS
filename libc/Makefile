@@ -20,12 +20,14 @@ LIBK_OBJS= \
 stdio/printf.libk.o \
 stdio/putchar.libk.o \
 stdio/puts.libk.o \
+stdio/print_mem.libk.o \
 string/memcmp.libk.o \
 string/memcpy.libk.o \
 string/memset.libk.o \
 string/memmove.libk.o \
 string/strlen.libk.o \
-panic/panic.libk.o
+panic/panic.libk.o \
+stdlib/div.libk.o
 
 LIBC_OBJS=
 

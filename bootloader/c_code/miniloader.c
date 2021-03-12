@@ -86,7 +86,7 @@ int read_file(void* inode, uint32_t offset, uint32_t count, uint8_t* buf)
         // start of the range of bytes the block represents in the file
         uint32_t start = i * block_size;
         uint32_t ofs = (start < offset) ? (offset - start) : 0;
-        uint32_t cnt = (start < offset) ? count : (offset + count) - start;
+        uint32_t cnt = (start < offset) ? count : ((offset + count) - start);
         buf_offs += read_block(block, ofs, cnt, buf + buf_offs);
     }
 

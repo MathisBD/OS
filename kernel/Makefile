@@ -25,7 +25,8 @@ memory/bitset.o \
 memory/heap.o \
 scheduler/timer.o \
 loader/loader.o \
-loader/loader_asm.o
+loader/loader_asm.o \
+filesystem/ext2.o
 
 .PHONY: all clean install install-headers install-kernel
 
