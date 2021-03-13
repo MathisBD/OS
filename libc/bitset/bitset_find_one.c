@@ -1,8 +1,8 @@
 #include <bitset.h>
 
-static uint32_t bit_one(void* addr, uint32_t a, uint32_t b)
+static bool bit_one(void* addr, uint32_t a, uint32_t b)
 {
-    return (((uint64_t*)addr)[a] & (((uint64_t)1) << b));
+    return (((uint64_t*)addr)[a] & (1ULL << b)) ? true : false;
 }
 
 uint32_t bitset_find_one(void * addr, uint32_t size)

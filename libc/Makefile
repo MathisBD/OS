@@ -31,7 +31,8 @@ stdlib/div.libk.o \
 bitset/bitset_set.libk.o \
 bitset/bitset_clear.libk.o \
 bitset/bitset_find_one.libk.o \
-bitset/bitset_find_zero.libk.o
+bitset/bitset_find_zero.libk.o \
+bitset/bitset_test.libk.o
 
 LIBC_OBJS=
 

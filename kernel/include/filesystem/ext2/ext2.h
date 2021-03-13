@@ -27,6 +27,9 @@
 // no more disk space
 // (i.e. no more unallocated inodes/blocks)
 #define ERR_NO_SPACE        (-8)
+// the block doesn't exist
+#define ERR_BLOCK_EXIST     (-9)
+
 
 #define INODE_TYPE_REG   1 // regular file
 #define INODE_TYPE_DIR   2 // directory

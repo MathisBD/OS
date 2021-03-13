@@ -226,8 +226,12 @@ int get_superblock(superblock_t* sb)
     }
     // the root is always inode 2
     sb->root = 2;
-
     free(buf);
+
+    // sanity checks
+    if (sb->blocks_per_bg != 8 * sb->block_size) {
+        return ERR_CORRUPT_STATE;
+    }
     return 0;
 }
 
