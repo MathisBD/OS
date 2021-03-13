@@ -13,10 +13,8 @@ void init_ext2()
 {
     sb = malloc(sizeof(superblock_t));
     if (get_superblock(sb) < 0) {
-        return -1;
+        panic("init_ext2 : could not get the superblock\n");
     }
-
-    print_mem(sb, sizeof(superblock_t));
 }
   
 

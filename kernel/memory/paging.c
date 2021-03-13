@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include "memory/paging.h"
 #include "memory/constants.h"
-#include "memory/bitset.h"
+#include <bitset.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
@@ -90,7 +90,7 @@ void add_mem_block(uint64_t addr, uint64_t len)
     
     if (mem_blocks_count == 0) {
         // the first frame is already used by the kernel
-        bitset_unset(mem_blocks[0].avail_frames_bitset, 0);
+        bitset_clear(mem_blocks[0].avail_frames_bitset, 0);
     }
     mem_blocks_count++;
 }
@@ -130,7 +130,7 @@ void setup_page_dir()
 uint32_t find_free_frame()
 {
     for (int i = 0; i < mem_blocks_count; i++) {
-        uint32_t index = bitset_find(mem_blocks[i].avail_frames_bitset, mem_blocks[i].frame_count);
+        uint32_t index = bitset_find_one(mem_blocks[i].avail_frames_bitset, mem_blocks[i].frame_count);
         if (index < mem_blocks[i].frame_count) {
             return mem_blocks[i].address + index * PAGE_SIZE;
         }
@@ -146,7 +146,7 @@ void claim_frame(uint32_t frame_addr)
             frame_addr <= mem_blocks[i].address + mem_blocks[i].frame_count * PAGE_SIZE) 
         {
             uint32_t index = (frame_addr - mem_blocks[i].address) / PAGE_SIZE;
-            bitset_unset(mem_blocks[i].avail_frames_bitset, index);
+            bitset_clear(mem_blocks[i].avail_frames_bitset, index);
         }
     }
 }

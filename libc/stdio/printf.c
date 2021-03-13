@@ -13,9 +13,9 @@ static char digits[] = {
 
 // returns the number of digits written into buf
 // the maximum number of digits written should be 64 (in base 2)
-int sprint_unsigned(uint64_t i, int base, char* buf);
+static int sprint_unsigned(uint64_t i, int base, char* buf);
 
-int sprint_signed(int64_t i, int base, char* buf)
+static int sprint_signed(int64_t i, int base, char* buf)
 {
     if (base < 2 || base > MAX_BASE) {
         return 0;
@@ -29,7 +29,7 @@ int sprint_signed(int64_t i, int base, char* buf)
     }
 }
 
-int sprint_unsigned(uint64_t i, int base, char* buf)
+static int sprint_unsigned(uint64_t i, int base, char* buf)
 {
     if (base < 2 || base > MAX_BASE) {
         return 0;
@@ -49,7 +49,7 @@ int sprint_unsigned(uint64_t i, int base, char* buf)
 // parses a uint32 in decimal
 // if no uint32 is read, doesn't change num
 // returns the number of characters read
-int parse_uint32(const char* buf, uint32_t* num)
+static int parse_uint32(const char* buf, uint32_t* num)
 {
     uint32_t res = 0;
     

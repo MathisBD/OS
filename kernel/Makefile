@@ -21,7 +21,6 @@ drivers/ata_driver.o \
 utils/string_utils.o \
 memory/paging.o \
 memory/memory_asm.o \
-memory/bitset.o \
 memory/heap.o \
 scheduler/timer.o \
 loader/loader.o \

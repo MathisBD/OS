@@ -61,8 +61,10 @@ typedef struct
 typedef struct 
 {
     // these are block numbers
+    // bit 0 of the inode bitmap corresponds to inode 1
+    // entry 0 of the inode table corresponds to inode 1
     uint32_t block_bitmap;
-    uint32_t inode_bitmap;
+    uint32_t inode_bitmap; 
     uint32_t inode_table;
 
     // these are block counts
@@ -102,3 +104,5 @@ int sync_superblock(superblock_t* sb);
 int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg);
 int sync_inode(uint32_t inode_num, inode_t* inode);
 
+int read_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf);
+int write_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf);
