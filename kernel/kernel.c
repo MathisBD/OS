@@ -15,7 +15,7 @@
 #include <string.h>
 #include "drivers/ata_driver.h"
 #include "scheduler/timer.h"
-#include "filesystem/ext2.h"
+#include "filesystem/ext2/ext2.h"
 
 
 #define PIT_DEFAULT_FREQ 1000 // Hz

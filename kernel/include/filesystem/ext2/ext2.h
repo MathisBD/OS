@@ -1,7 +1,13 @@
 #pragma once 
 #include <stdint.h>
 
-// most functions here return an error code
+
+// This is the file to include from outside the ext2 subsystem.
+// Other ext2 headers should be private to the ext2 subsystem.
+// Ext2 implementations sources should instead include "ext2_internal.h".
+// (dependency graph : ext2.h <- ext2_internal.h <- ext2_*.c)
+// Most functions here return an error code.
+
 
 // the inode doesn't exist
 #define ERR_INODE_EXIST (-1)
@@ -21,14 +27,6 @@
 
 void init_ext2();
 
-int resize_inode(uint32_t inode, uint32_t size);
-// creates an inode for an empty file/directory,
-// and without any parent yet 
-int alloc_inode(uint32_t* inode, uint32_t type);
-// assumes the inode has no parent
-// if the inode is a directory, it must be empty.
-int free_inode(uint32_t inode);
-
 // file info
 int inode_type(uint32_t inode, uint32_t* type);
 // for regular files and directories
@@ -39,6 +37,14 @@ int inode_fsize(uint32_t inode, uint32_t* size);
 int read_inode(uint32_t inode, uint32_t offset, uint32_t count, void* buf);
 int write_inode(uint32_t inode, uint32_t offset, uint32_t count, void* buf);
 
+int resize_inode(uint32_t inode, uint32_t size);
+// creates an inode for an empty file/directory,
+// and without any parent yet 
+int alloc_inode(uint32_t* inode, uint32_t type);
+// assumes the inode has no parent
+// if the inode is a directory, it must be empty.
+int free_inode(uint32_t inode);
+
 // max : size of buffer
 int dir_list(uint32_t dir, uint32_t* buf, uint32_t max);
 int dir_find(uint32_t dir, const char* child_name, uint32_t* child_inode);
@@ -47,5 +53,3 @@ int dir_find(uint32_t dir, const char* child_name, uint32_t* child_inode);
 int dir_add_child(uint32_t dir, uint32_t child, const char* name);
 // does not delete the child
 int dir_rem_child(uint32_t dir, uint32_t child);
-
-

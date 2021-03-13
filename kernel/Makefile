@@ -26,7 +26,10 @@ memory/heap.o \
 scheduler/timer.o \
 loader/loader.o \
 loader/loader_asm.o \
-filesystem/ext2.o
+filesystem/ext2/ext2_gen.o \
+filesystem/ext2/ext2_rw.o \
+filesystem/ext2/ext2_dir.o \
+filesystem/ext2/ext2_alloc.o
 
 .PHONY: all clean install install-headers install-kernel
 
