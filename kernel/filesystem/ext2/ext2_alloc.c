@@ -361,3 +361,209 @@ int free_block(uint32_t block_num)
     r = sync_superblock(sb);
     return r;
 }
+
+uint32_t div_ceil(uint32_t numer, uint32_t denom)
+{
+    uint32_t quot = numer / denom;
+    if (numer % denom > 0) {
+        return quot + 1;
+    }
+    return quot;
+}
+
+
+// offset : block number
+// count  : block count
+int free_blocks_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_t level)
+{
+    if (level > 2) {
+        panic("free_blocks_recurs : level should be in [0..2]");
+    }
+    if (level == 0) {
+        return (offset == 0 && count > 0) ? free_block(block) : 0;
+    }
+
+    uint32_t ch_size = 1;
+    for (int i = 0; i < level-1; i++) {
+        ch_size *= (sb->block_size / sizeof(uint32_t));
+    }
+    if (count == 0 || offset >= ch_size * (sb->block_size / sizeof(uint32_t))) {
+        return 0;
+    }
+    // chunk of the first/last block to free
+    uint32_t first_ch = offset / ch_size;
+    uint32_t last_ch = (offset + count - 1) / ch_size;
+
+    uint32_t* ptrs_block = malloc(sb->block_size);
+    int r = read_block(block, 0, sb->block_size, ptrs_block);
+    if (r < 0) {
+        free(ptrs_block);
+        return r;
+    }
+
+    for (uint32_t i = first_ch; i <= last_ch && i < (sb->block_size / sizeof(uint32_t)); i++) {
+        uint32_t start = i * ch_size;
+        r = free_blocks_recurs(
+            ptrs_block[i],
+            CLIP_OFS(start, offset, count),
+            CLIP_CNT(start, offset, count),
+            level-1
+        );
+        if (r < 0) {
+            free(ptrs_block);
+            return r;
+        }
+    }
+    free(ptrs_block);
+    // here we assume we freed until the end of the file
+    if (offset == 0) {
+        r = free_block(block);
+        return r;
+    }
+    return 0;
+}
+
+
+// remove (free) some of the inode's blocks
+// offset : block number of the first block to remove
+// offset+count-1 : block_number of the last block to remove 
+int remove_blocks(inode_t* inode, uint32_t offset, uint32_t count)
+{
+    int r;
+    // direct blocks
+    for (uint32_t i = offset; i < INODE_DIR_BLOCKS && i < offset + count; i++) {
+        r = free_block(inode->dir_blocks[i]);
+        if (r < 0) {
+            return r;
+        }
+    }
+    // single indirect
+    uint32_t start = INODE_DIR_BLOCKS;
+    r = free_blocks_recurs(
+        inode->single_indir,
+        CLIP_OFS(start, offset, count),
+        CLIP_CNT(start, offset, count),
+        1
+    );
+    if (r < 0) {
+        return r;
+    }
+    // double indirect
+    start += (sb->block_size / sizeof(uint32_t));
+    r = free_blocks_recurs(
+        inode->double_indir,
+        CLIP_OFS(start, offset, count),
+        CLIP_CNT(start, offset, count),
+        2
+    );
+    return r;
+}
+
+
+int add_blocks_recurs(inode_t* inode, uint32_t* blocks, uint32_t start, uint32_t count, uint32_t level)
+{
+    if (level > 2) {
+        panic("add_blocks_recurs : level should be in [0..2]\n");
+    }
+    if (level == 0) {
+
+    }
+}
+
+
+uint32_t min(a, b)
+{
+    return a < b ? a : b;
+}
+
+// offset : block number of the first block to add
+// offset+count-1 : block number of the last block to add
+int add_blocks(inode_t* inode, uint32_t offset, uint32_t count)
+{
+    int r;
+    // direct blocks
+    if (offset < INODE_DIR_BLOCKS) {
+        r = alloc_blocks(
+            inode->dir_blocks + offset,
+            min(INODE_DIR_BLOCKS - offset, count),
+            (offset > 0) ? inode->dir_blocks[offset-1] : 0
+        );
+        if (r < 0) {
+            return r;
+        }
+    }
+    // single indirect blocks
+    uint32_t start = INODE_DIR_BLOCKS;
+    if (offset + count > start) {
+        // allocate the ptrs block
+        if (offset <= start) {
+            r = alloc_blocks(
+                &(inode->single_indir),
+                1,
+                inode->dir_blocks[start-1]
+            );
+            if (r < 0) {
+                return r;
+            }
+        }
+        // read the ptrs block
+        uint32_t* ptrs_block = malloc(sb->block_size);
+        r = read_block(inode->single_indir, 0, sb->block_size, ptrs_block);
+        if (r < 0) {
+            free(ptrs_block);
+            return 0;
+        }
+        // allocate the actual blocks
+        uint32_t ofs = CLIP_OFS(start, offset, count);
+        uint32_t cnt = CLIP_CNT(start, offset, count);
+        r = alloc_blocks(
+            ptrs_block + ofs,
+            cnt,
+            (offset <= start ? inode->single_indir : ptrs_block[ofs-1])
+        );
+        if (r < 0) {
+            free(ptrs_block);
+            return r;
+        }
+        // write back the ptrs block
+        r = write_block(inode->single_indir, 0, sb->block_size, ptrs_block);
+        if (r < 0) {
+            free(ptrs_block);
+            return r;
+        }
+        free(ptrs_block);
+    }
+}
+
+
+int resize_inode(uint32_t inode_num, uint32_t size)
+{
+    inode_t* inode = malloc(sizeof(inode_t));
+    int r = get_inode(inode_num, inode);
+    if (r < 0) {
+        free(inode);
+        return r;
+    }
+
+    uint32_t curr_blocks = div_ceil(inode->fsize, sb->block_size);
+    uint32_t new_blocks = div_ceil(size, sb->block_size);
+    if (new_blocks < curr_blocks) {
+        r = remove_blocks(inode, new_blocks+1, curr_blocks - new_blocks);
+        if (r < 0) {
+            free(inode);
+            return r;
+        }
+    }
+    else if (new_blocks > curr_blocks) {
+        r = add_blocks(inode, curr_blocks+1, new_blocks - curr_blocks);
+        if (r < 0) {
+            free(inode);
+            return r;
+        }
+    }
+
+    inode->fsize = size;
+    r = sync_inode(inode_num, inode);
+    free(inode);
+    return r;
+}

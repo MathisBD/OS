@@ -71,13 +71,11 @@ int write_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf)
 int rw_block_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_t level, void* buf, bool write)
 {
     if (level > 2) {
-        panic("read_multi_blocks : level should be in range [0..2]\n");
+        panic("read_blocks_recurs : level should be in range [0..2]\n");
     }
-
     if (level == 0) {
         return rw_block(block, offset, count, buf, write);
     }
-
     // chunk : set of blocks each pointer in the block represents
     uint32_t ch_size = sb->block_size;
     // use level-1 not level here
@@ -93,14 +91,14 @@ int rw_block_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_t le
     uint32_t last_ch = (offset + count - 1) / ch_size;
 
     uint32_t* ptrs_block = malloc(sb->block_size);
-    int r = rw_block(block, 0, sb->block_size, ptrs_block, false);
+    int r = read_block(block, 0, sb->block_size, ptrs_block);
     if (r < 0) {
         free(ptrs_block);
         return r;
     }
     
     uint32_t buf_offs = 0;
-    for (uint32_t i = first_ch; i <= last_ch; i++) {
+    for (uint32_t i = first_ch; i <= last_ch && i < (sb->block_size / sizeof(uint32_t)); i++) {
         uint32_t start = i * ch_size;
         r = rw_block_recurs(
             ptrs_block[i],
@@ -361,14 +359,12 @@ int rw_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf, boo
         free(inode);
         return r;
     }
-
     if (offset + count >= inode->fsize) {
         free(inode);
         return ERR_FILE_BOUNDS;
     }
 
     uint32_t buf_offs = 0;
-    
     // direct blocks
     for (uint32_t i = 0; i < INODE_DIR_BLOCKS; i++) {
         uint32_t start = i * sb->block_size;

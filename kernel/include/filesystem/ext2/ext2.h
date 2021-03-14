@@ -8,7 +8,6 @@
 // (dependency graph : ext2.h <- ext2_internal.h <- ext2_*.c)
 // Most functions here return an error code.
 
-
 // the inode doesn't exist
 #define ERR_INODE_EXIST     (-1)
 // the block group doesn't exist
@@ -30,9 +29,16 @@
 // the block doesn't exist
 #define ERR_BLOCK_EXIST     (-9)
 
-
 #define INODE_TYPE_REG   1 // regular file
 #define INODE_TYPE_DIR   2 // directory
+
+typedef struct
+{
+    uint32_t inode;
+    uint32_t name_len;
+    char* name; // on the heap
+    dir_entry_t* next; // next entry
+} dir_entry_t;
 
 
 void init_ext2();
@@ -56,10 +62,11 @@ int alloc_inode(uint32_t* inode, uint32_t type);
 // and that it is empty (fsize == 0)
 int free_inode(uint32_t inode);
 
-// max : size of buffer
-int dir_list(uint32_t dir, uint32_t* buf, uint32_t max);
-int dir_find(uint32_t dir, const char* child_name, uint32_t* child_inode);
-
+// allocates the list of entries.
+// entries will point to the first entry in the list.
+// it is the caller's responsibility to free this list.
+// if the directory is empty, *entries is set to 0
+int dir_list(uint32_t dir, dir_entry_t** entries);
 // assumes the child already exists
 int dir_add_child(uint32_t dir, uint32_t child, const char* name);
 // does not delete the child
