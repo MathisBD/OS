@@ -3,6 +3,7 @@
 #include "filesystem/ext2/ext2_internal.h"
 #include "memory/heap.h"
 #include <stdio.h>
+#include <string.h>
 
 
 // We are the file that has to declare this variable.

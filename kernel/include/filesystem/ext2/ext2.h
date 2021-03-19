@@ -32,12 +32,15 @@
 #define INODE_TYPE_REG   1 // regular file
 #define INODE_TYPE_DIR   2 // directory
 
-typedef struct
+typedef struct dir_entry_
 {
     uint32_t inode;
-    uint32_t name_len;
-    char* name; // on the heap
-    dir_entry_t* next; // next entry
+    // doesn't count the null terminator
+    // limited to 255 (8bits)
+    uint8_t name_len;
+    // on the heap, null terminated
+    char* name;     
+    struct dir_entry_* next; // next entry
 } dir_entry_t;
 
 
@@ -66,8 +69,6 @@ int free_inode(uint32_t inode);
 // entries will point to the first entry in the list.
 // it is the caller's responsibility to free this list.
 // if the directory is empty, *entries is set to 0
-int dir_list(uint32_t dir, dir_entry_t** entries);
-// assumes the child already exists
-int dir_add_child(uint32_t dir, uint32_t child, const char* name);
-// does not delete the child
-int dir_rem_child(uint32_t dir, uint32_t child);
+int read_dir(uint32_t dir, dir_entry_t** entries);
+
+int write_dir(uint32_t dir, dir_entry_t* entries);

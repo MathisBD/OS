@@ -245,7 +245,7 @@ int alloc_in_bg(uint32_t* blocks, uint32_t count, uint32_t bg_num, uint32_t* all
     if (bg->unalloc_blocks == 0) {
         return;
     }
-        // read the bitmap
+    // read the bitmap
     void* bitmap = malloc(sb->block_size);
     r = read_block(bg->block_bitmap, 0, sb->block_size, bitmap);
     if (r < 0) {
@@ -290,7 +290,6 @@ int alloc_blocks(uint32_t* blocks, uint32_t count, uint32_t prev_bl)
     if (sb->unalloc_blocks < count) {
         return ERR_NO_SPACE;
     }
-
     // number of blocks we have allocated so far
     uint32_t alloced = 0;
     // near previous block
@@ -371,7 +370,7 @@ uint32_t div_ceil(uint32_t numer, uint32_t denom)
     return quot;
 }
 
-
+/*
 // offset : block number
 // count  : block count
 int free_blocks_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_t level)
@@ -428,7 +427,9 @@ int free_blocks_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_t
 // offset : block number of the first block to remove
 // offset+count-1 : block_number of the last block to remove 
 int remove_blocks(inode_t* inode, uint32_t offset, uint32_t count)
-{
+{   
+
+
     int r;
     // direct blocks
     for (uint32_t i = offset; i < INODE_DIR_BLOCKS && i < offset + count; i++) {
@@ -459,81 +460,16 @@ int remove_blocks(inode_t* inode, uint32_t offset, uint32_t count)
     return r;
 }
 
-
-int add_blocks_recurs(inode_t* inode, uint32_t* blocks, uint32_t start, uint32_t count, uint32_t level)
-{
-    if (level > 2) {
-        panic("add_blocks_recurs : level should be in [0..2]\n");
-    }
-    if (level == 0) {
-
-    }
-}
-
-
-uint32_t min(a, b)
-{
-    return a < b ? a : b;
-}
-
 // offset : block number of the first block to add
 // offset+count-1 : block number of the last block to add
 int add_blocks(inode_t* inode, uint32_t offset, uint32_t count)
 {
-    int r;
-    // direct blocks
-    if (offset < INODE_DIR_BLOCKS) {
-        r = alloc_blocks(
-            inode->dir_blocks + offset,
-            min(INODE_DIR_BLOCKS - offset, count),
-            (offset > 0) ? inode->dir_blocks[offset-1] : 0
-        );
-        if (r < 0) {
-            return r;
-        }
-    }
-    // single indirect blocks
-    uint32_t start = INODE_DIR_BLOCKS;
-    if (offset + count > start) {
-        // allocate the ptrs block
-        if (offset <= start) {
-            r = alloc_blocks(
-                &(inode->single_indir),
-                1,
-                inode->dir_blocks[start-1]
-            );
-            if (r < 0) {
-                return r;
-            }
-        }
-        // read the ptrs block
-        uint32_t* ptrs_block = malloc(sb->block_size);
-        r = read_block(inode->single_indir, 0, sb->block_size, ptrs_block);
-        if (r < 0) {
-            free(ptrs_block);
-            return 0;
-        }
-        // allocate the actual blocks
-        uint32_t ofs = CLIP_OFS(start, offset, count);
-        uint32_t cnt = CLIP_CNT(start, offset, count);
-        r = alloc_blocks(
-            ptrs_block + ofs,
-            cnt,
-            (offset <= start ? inode->single_indir : ptrs_block[ofs-1])
-        );
-        if (r < 0) {
-            free(ptrs_block);
-            return r;
-        }
-        // write back the ptrs block
-        r = write_block(inode->single_indir, 0, sb->block_size, ptrs_block);
-        if (r < 0) {
-            free(ptrs_block);
-            return r;
-        }
-        free(ptrs_block);
-    }
-}
+    panic("not implemented\n");
+
+    uint32_t* blocks = malloc(count * sizeof(uint32_t));
+    alloc_blocks(blocks, count, 0);
+
+}*/
 
 
 int resize_inode(uint32_t inode_num, uint32_t size)
@@ -547,21 +483,101 @@ int resize_inode(uint32_t inode_num, uint32_t size)
 
     uint32_t curr_blocks = div_ceil(inode->fsize, sb->block_size);
     uint32_t new_blocks = div_ceil(size, sb->block_size);
-    if (new_blocks < curr_blocks) {
-        r = remove_blocks(inode, new_blocks+1, curr_blocks - new_blocks);
-        if (r < 0) {
-            free(inode);
-            return r;
-        }
-    }
-    else if (new_blocks > curr_blocks) {
-        r = add_blocks(inode, curr_blocks+1, new_blocks - curr_blocks);
-        if (r < 0) {
-            free(inode);
-            return r;
-        }
-    }
 
+    // free blocks
+    if (new_blocks < curr_blocks) {
+        uint32_t count = curr_blocks - new_blocks;
+        // get the blocks to free
+        uint32_t* bl_nums = malloc(count * sizeof(uint32_t));
+        r = read_bl_nums(inode_num, new_blocks, count, bl_nums);
+        if (r < 0) {
+            free(inode);
+            free(bl_nums);
+            return r;
+        }
+        // free the blocks
+        for (uint32_t i = 0; i < count; i++) {
+            r = free_block(bl_nums[i]);
+            if (r < 0) {
+                free(inode);
+                free(bl_nums);
+                return r;
+            }
+        }
+        free(bl_nums);
+        // free single indirect block
+        uint32_t c = INODE_DIR_BLOCKS;
+        if (curr_blocks > c && new_blocks <= c) {
+            r = free_block(inode->single_indir);
+            if (r < 0) {
+                free(inode);
+                return r;
+            }
+        }
+        // free double indirect block
+        c += sb->block_size / sizeof(uint32_t);
+        if (curr_blocks > c && new_blocks <= c) {
+            r = free_block(inode->double_indir);
+            if (r < 0) {
+                free(inode);
+                return r;
+            }
+        }
+    }
+    // allocate blocks
+    else if (new_blocks > curr_blocks) {
+        uint32_t count = new_blocks - curr_blocks;
+        // get the previous block
+        uint32_t prev_bl;
+        if (curr_blocks > 0) {
+            r = read_bl_nums(inode_num, curr_blocks - 1, 1, &prev_bl);
+            if (r < 0) {
+                free(inode);
+                return r;
+            }
+        }
+        else {
+            // no previous block : just try to allocate blocks
+            // in the same block group as the inode
+            uint32_t bg_num = inode_num / sb->inodes_per_bg;
+            prev_bl = bg_num * sb->blocks_per_bg;
+        }
+        // allocate single indirect block
+        uint32_t c = INODE_DIR_BLOCKS;
+        if (curr_blocks <= c && new_blocks > c) {
+            r = alloc_blocks(&(inode->single_indir), 1, prev_bl);
+            if (r < 0) {
+                free(inode);
+                return r;
+            }
+        }
+        // allocate double indirect block
+        c += sb->block_size / sizeof(uint32_t);
+        if (curr_blocks <= c && new_blocks > c) {
+            r = alloc_blocks(&(inode->double_indir), 1, prev_bl);
+            if (r < 0) {
+                free(inode);
+                return r;
+            }
+        }
+        // allocate the new blocks
+        uint32_t* bl_nums = malloc(count * sizeof(uint32_t));
+        r = alloc_blocks(bl_nums, count, prev_bl);
+        if (r < 0) {
+            free(inode);
+            free(bl_nums);
+            return r;
+        }
+        // add the new blocks to the inode
+        r = write_bl_nums(inode_num, curr_blocks, count, bl_nums);
+        if (r < 0) {
+            free(inode);
+            free(bl_nums);
+            return r;
+        }
+        free(bl_nums);
+    }
+    // write back and free the inode
     inode->fsize = size;
     r = sync_inode(inode_num, inode);
     free(inode);
