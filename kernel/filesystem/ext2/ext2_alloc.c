@@ -415,7 +415,7 @@ int resize_inode(uint32_t inode_num, uint32_t size)
 }
 
 
-int force_sparse_block(uint32_t* block_num, uint32_t bg_num)
+/*int force_sparse_block(uint32_t* block_num, uint32_t bg_num)
 {
     if (*block_num != 0) {
         panic("force_sparse_block : expected block_num==0\n");       
@@ -434,4 +434,4 @@ int force_sparse_block(uint32_t* block_num, uint32_t bg_num)
         return r;
     }
     return 0;
-}
+}*/
