@@ -97,16 +97,40 @@ extern superblock_t* sb;
 
 // reads data from disk
 int get_superblock(superblock_t* sb);
+
 int get_bg_descr(uint32_t bg_num, bg_descr_t* bg);
+
 int get_inode(uint32_t inode_num, inode_t* inode);
+
 // writes data to disk
 int sync_superblock(superblock_t* sb);
+
 int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg);
+
 int sync_inode(uint32_t inode_num, inode_t* inode);
-// offset, count are in bytes
+
+// offset : offset in the block (0 = start of block)
+// it is allowed that offset + count > block_size and/or offset >= block_size
+// returns the number of bytes read (>= 0) or an error (< 0)
 int read_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf);
-int write_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf);
+
+// offset : offset in the block (0 = start of block)
+// it is allowed that offset + count > block_size and/or offset >= block_size
+// returns the number of bytes written (>= 0) or an error (< 0)
+// if after the write the block would contain only zeros,
+// frees the block and sets *block=0 
+// if *block==0 and after the write the block would not be sparse;
+// allocates a block (in block group bg_num) and sets *block to its number
+int write_block(uint32_t* block, uint32_t offset, uint32_t count, uint8_t* buf, uint32_t bg_num);
+
 // example : read_bl_nums(42, 1, 3, buf) reads the blocks numbers
 // of blocks 1, 2, 3 of inode 42 and writes them into buf
 int read_bl_nums(uint32_t inode_num, uint32_t offset, uint32_t count, uint32_t* bl_nums);
+
 int write_bl_nums(uint32_t inode_num, uint32_t offset, uint32_t count, uint32_t* bl_nums);
+
+// bg_num : prefered block group. 
+// if no more space in this bg, allocate in any bg.
+int alloc_block(uint32_t* block, uint32_t bg_num);
+
+int free_block(uint32_t block);

@@ -62,8 +62,7 @@ void kernel_main(boot_info_t* boot_info)
         printf("error=%d\n", r);
     }
 
-    for (dir_entry_t* entr = entries; entr != 0; entr = entr->next
-    ) {
+    for (dir_entry_t* entr = entries; entr != 0; entr = entr->next) {
         printf("entry:ino=%u,name=%s\n", entr->inode, entr->name);
     }
 

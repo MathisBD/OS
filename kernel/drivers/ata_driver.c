@@ -30,10 +30,6 @@ int ata_wait(bool checkerr)
 	return 0;
 }
 
-void send_data(uint32_t sector, uint8_t sector_count)
-{
-	
-}
 
 int rw_sector(uint32_t sector, void* data, bool write)
 {
@@ -63,13 +59,13 @@ int rw_sector(uint32_t sector, void* data, bool write)
 	return 0;
 }
 
-int ata_rw(uint32_t offset, uint32_t count, void* buf, bool write)
+int ata_read(uint32_t offset, uint32_t count, void* buf)
 {
 	uint32_t first_sct = offset / SECTOR_SIZE;
 	uint32_t last_sct = (offset + count - 1) / SECTOR_SIZE;
 
 	uint8_t* tmp_buf = malloc(SECTOR_SIZE);
-
+	
 	uint32_t buf_offs = 0;
 	for (int i = first_sct; i <= last_sct; i++) {
 		uint32_t start = i * SECTOR_SIZE;
@@ -94,44 +90,21 @@ int ata_rw(uint32_t offset, uint32_t count, void* buf, bool write)
 				cnt = (offset + count) - start;
 			}
 		}
-
-		// WRITE
-		if (write) {
-			// we have to read the whole sector,
-			// overwrite the part we want,
-			// write back the whole sector
-			if (rw_sector(i, tmp_buf, false) < 0) {
-				free(tmp_buf);
-				return -1;
-			}
-			memcpy(tmp_buf + ofs, buf + buf_offs, cnt);
-			if (rw_sector(i, tmp_buf, true) < 0) {
-				free(tmp_buf);
-				return -1;
-			}
+		// actually write the sector
+		if (rw_sector(i, tmp_buf, false) < 0) {
+			free(tmp_buf);
+			return -1;
 		}
-		// READ
-		else {
-			if (rw_sector(i, tmp_buf, false) < 0) {
-				free(tmp_buf);
-				return -1;
-			}
-			memcpy(buf + buf_offs, tmp_buf + ofs, cnt);
-		}
+		memcpy(buf + buf_offs, tmp_buf + ofs, cnt);
 		buf_offs += cnt;
 	}
 	free(tmp_buf);
 	return 0;
 }
 
-int ata_read(uint32_t offset, uint32_t count, void* buf)
+int ata_write_sector(uint32_t sector, void* buf)
 {
-	ata_rw(offset, count, buf, false);
-}
-
-int ata_write(uint32_t offset, uint32_t count, void* buf)
-{
-	ata_rw(offset, count, buf, true);
+	return rw_sector(sector, buf, true);
 }
 
 
