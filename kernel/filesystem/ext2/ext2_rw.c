@@ -105,6 +105,7 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
         for (uint32_t i = 0; i < count; i++) {
             if (*((uint8_t*)(buf + i)) != 0) {
                 sparse = false;
+                break;
             }
         }
         // stays sparse : nothing to do
@@ -117,6 +118,9 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
             return r;
         }
         // create the new contents
+        // it doesn't matter what was previously in the block on disk,
+        // we zero it out anyways.
+        // this makes it so we don't have to zero out blocks when freeing them.
         contents = malloc(sb->block_size);
         memset(contents, 0, sb->block_size);
         memcpy(contents + offset, buf, count);
@@ -124,7 +128,7 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
     // non sparse block
     else {
         // read the contents of the block
-        void* contents = malloc(sb->block_size);
+        contents = malloc(sb->block_size);
         r = read_block(*block, 0, sb->block_size, contents);
         if (r < 0) {
             free(contents);
@@ -149,7 +153,7 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
             return r;
         }
     }
-    r = write_block(*block, 0, sb->block_size, contents);   
+    r = write_block(*block, 0, sb->block_size, contents);  
     free(contents);
     if (r < 0) {
         return r;

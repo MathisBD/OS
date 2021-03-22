@@ -83,14 +83,6 @@ typedef struct
     (cnt) : \
     ((((ofs) + (cnt)) > (start)) ? (((ofs) + (cnt)) - (start)) : 0))
 
-// maps inode_idx -> inode_t
-// all inodes in memory are either local to some function 
-// or live in the cache.
-// not all inodes are in memory obviously (not enough memory...)
-/*typedef struct {
-
-} inode_cache_t;*/
-
 
 // THE superblock (defined in ext2_gen.c)
 extern superblock_t* sb;
@@ -104,6 +96,9 @@ int get_inode(uint32_t inode_num, inode_t* inode);
 int sync_superblock(superblock_t* sb);
 int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg);
 int sync_inode(uint32_t inode_num, inode_t* inode);
+
+// file info
+int set_inode_fsize(uint32_t inode_num, uint32_t fsize);
 
 // offset : offset in the block (0 = start of block)
 // it is allowed that offset + count > block_size and/or offset >= block_size
@@ -127,5 +122,7 @@ int write_bl_num(uint32_t inode_num, uint32_t offset, uint32_t bl_num);
 
 // bg_num : prefered block group. 
 // if no more space in this bg, allocate in any bg.
+// alloc_block should only be used when trying to write
+// to a sparse block
 int alloc_block(uint32_t* block, uint32_t bg_num);
 int free_block(uint32_t block);

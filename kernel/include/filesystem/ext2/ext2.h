@@ -47,13 +47,14 @@ typedef struct dir_entry_
 void init_ext2();
 
 // file info
-int inode_type(uint32_t inode, uint32_t* type);
-// for regular files and directories
-int inode_fsize(uint32_t inode, uint32_t* size);
+int get_inode_type(uint32_t inode, uint32_t* type);
+// for both regular files and directories
+int get_inode_fsize(uint32_t inode, uint32_t* size);
 
 // read/write
 // the inode can also be a directory
 int read_inode(uint32_t inode, uint32_t offset, uint32_t count, void* buf);
+// does not automatically grow the inode if writting past the end of the file
 int write_inode(uint32_t inode, uint32_t offset, uint32_t count, void* buf);
 
 int resize_inode(uint32_t inode, uint32_t size);

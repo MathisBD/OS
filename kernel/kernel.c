@@ -56,7 +56,13 @@ void kernel_main(boot_info_t* boot_info)
     init_timer(pit_freq);
     init_ext2();
 
-    dir_entry_t* entries;
+    int r = resize_inode(14, 4*2048);
+    if (r < 0) {
+        printf("error=%d\n", r);
+    }
+    printf("resized\n");
+    
+    /*dir_entry_t* entries;
     int r = read_dir(12, &entries);
     if (r < 0) {
         printf("error=%d\n", r);
@@ -64,7 +70,13 @@ void kernel_main(boot_info_t* boot_info)
 
     for (dir_entry_t* entr = entries; entr != 0; entr = entr->next) {
         printf("entry:ino=%u,name=%s\n", entr->inode, entr->name);
+    }*/
+
+    /*int r = resize_inode(14, 4*2048);
+    if (r < 0) {
+        printf("error=%d\n", r);
     }
+    printf("resized\n");*/
 
     // ==========
     

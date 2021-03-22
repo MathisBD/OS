@@ -4,6 +4,7 @@
 
 #define MMAP_ENT_SIZE 24
 
+// info the bootloader passes to the kernel
 typedef struct {
     uint32_t mmap_ent_count;
     uint32_t mmap_addr;

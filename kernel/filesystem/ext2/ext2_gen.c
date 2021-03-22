@@ -16,41 +16,10 @@ void init_ext2()
     if (get_superblock(sb) < 0) {
         panic("init_ext2 : could not get the superblock\n");
     }
-
-    void* buf = malloc(64);
-
-    // write
-    for (uint8_t i = 0; i < 64; i++) {
-        ((uint8_t*)buf)[i] = i;
-    }
-    int r = write_inode(17, 12*2048-32, 64, buf);
-    if (r < 0) {
-        printf("error=%d\n", r);
-    }
-    free(buf);
-
-    // write again
-    buf = malloc(64);
-    memset(buf, 0, 64);
-    r = write_inode(17, 12*2048, 64, buf);
-    if (r < 0) {
-        printf("error 2=%d\n", r);
-    }
-    free(buf);
-
-    // read
-    buf = malloc(64);
-    memset(buf, 0, 64);
-    r = read_inode(17, 12*2048-32, 64, buf);
-    if (r < 0) {
-        printf("error=%d\n", r);
-    }
-
-    print_mem(buf, 64);
 }
   
 
-int inode_type(uint32_t inode_num, uint32_t* type)
+int get_inode_type(uint32_t inode_num, uint32_t* type)
 {
     inode_t* inode = malloc(sizeof(inode_t)); 
     int r = get_inode(inode_num, inode);
@@ -64,7 +33,7 @@ int inode_type(uint32_t inode_num, uint32_t* type)
 }
 
 
-int inode_fsize(uint32_t inode_num, uint32_t* fsize)
+int get_inode_fsize(uint32_t inode_num, uint32_t* fsize)
 {
     inode_t* inode = malloc(sizeof(inode_t)); 
     int r = get_inode(inode_num, inode);
@@ -75,4 +44,19 @@ int inode_fsize(uint32_t inode_num, uint32_t* fsize)
     *fsize = inode->fsize;
     free(inode);
     return 0;
+}
+
+int set_inode_fsize(uint32_t inode_num, uint32_t fsize)
+{
+    inode_t* inode = malloc(sizeof(inode_t)); 
+    int r = get_inode(inode_num, inode);
+    if (r < 0) {
+        free(inode);
+        return r;
+    }
+    inode->fsize = fsize;
+
+    r = sync_inode(inode_num, inode);
+    free(inode);
+    return r;
 }

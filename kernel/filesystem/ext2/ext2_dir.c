@@ -20,7 +20,7 @@ int read_dir(uint32_t dir_num, dir_entry_t** entries)
 {
     // check it is a directory
     uint32_t type;
-    int r = inode_type(dir_num, &type);
+    int r = get_inode_type(dir_num, &type);
     if (r < 0) {
         return r;
     }
@@ -29,7 +29,7 @@ int read_dir(uint32_t dir_num, dir_entry_t** entries)
     }
     // read the whole contents of the directory
     uint32_t size;
-    r = inode_fsize(dir_num, &size);
+    r = get_inode_fsize(dir_num, &size);
     if (r < 0) {
         return r;
     }
@@ -86,7 +86,7 @@ int write_dir(uint32_t dir_num, dir_entry_t* entries)
 {
     // check it is a directory
     uint32_t type;
-    int r = inode_type(dir_num, &type);
+    int r = get_inode_type(dir_num, &type);
     if (r < 0) {
         return r;
     }
