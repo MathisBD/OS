@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <panic.h>
 
-int read_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf)
+int read_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
 {
     if (count == 0 || offset >= sb->block_size) {
         return 0;
@@ -30,7 +30,63 @@ int read_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf)
     return count;
 }
 
-int write_block(uint32_t* block, uint32_t offset, uint32_t count, uint8_t* buf, uint32_t bg_num)
+int write_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
+{
+    if (count == 0 || offset >= sb->block_size) {
+        return 0;
+    }
+    if (offset + count > sb->block_size) {
+        count = sb->block_size - offset;
+    }
+
+    int r;
+    // we write part of the block
+    if (offset > 0 || count < sb->block_size) {
+        void* contents = malloc(sb->block_size);
+        // read the contents of the block
+        r = read_block(block, 0, sb->block_size, contents);
+        if (r < 0) {
+            free(contents);
+            return r;
+        }
+        // add the stuff we write
+        memcpy(contents+offset, buf, count);
+        // write the contents to the block
+        uint32_t sect_per_bl = sb->block_size / SECTOR_SIZE;
+        uint32_t first_sect = offset / SECTOR_SIZE;
+        uint32_t last_sect = (offset+count-1) / SECTOR_SIZE;
+        for (uint32_t i = first_sect; i < sect_per_bl && i <= last_sect; i++) {
+            r = ata_write_sector(
+                block * sect_per_bl + i, 
+                contents + i * SECTOR_SIZE
+            );
+            if (r < 0) {
+                free(contents);
+                return ERR_DISK_WRITE;
+            }
+        }
+        free(contents);
+        return count;
+    }
+    // we write the whole block
+    else {
+        // simply write the buffer to the block
+        uint32_t sect_per_bl = sb->block_size / SECTOR_SIZE;
+        for (uint32_t i = 0; i < sect_per_bl; i++) {
+            r = ata_write_sector(
+                block * sect_per_bl + i, 
+                buf + i * SECTOR_SIZE
+            );
+            if (r < 0) {
+                return ERR_DISK_WRITE;
+            }
+        }
+        return sb->block_size;
+    }
+}
+
+
+int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* buf, uint32_t bg_num)
 {
     if (count == 0 || offset >= sb->block_size) {
         return 0;
@@ -43,7 +99,7 @@ int write_block(uint32_t* block, uint32_t offset, uint32_t count, uint8_t* buf, 
     // contains block_size bytes : the new contents of the block
     void* contents;
     // special case : sparse block 
-    if (block == 0) {
+    if (*block == 0) {
         // check if the block stays sparse
         bool sparse = true;
         for (uint32_t i = 0; i < count; i++) {
@@ -81,6 +137,7 @@ int write_block(uint32_t* block, uint32_t offset, uint32_t count, uint8_t* buf, 
         for (uint32_t i = 0; i < sb->block_size; i++) {
             if (*((uint8_t*)(contents + i)) != 0) {
                 sparse = false;
+                break;
             }
         }
         // the block becomes sparse
@@ -92,21 +149,11 @@ int write_block(uint32_t* block, uint32_t offset, uint32_t count, uint8_t* buf, 
             return r;
         }
     }
-    // write the contents to the block
-    uint32_t sect_per_bl = sb->block_size / SECTOR_SIZE;
-    uint32_t first_sect = offset / SECTOR_SIZE;
-    uint32_t last_sect = (offset+count-1) / SECTOR_SIZE;
-    for (uint32_t i = first_sect; i < sect_per_bl && i <= last_sect; i++) {
-        int r = ata_write_sector(
-            *block * sect_per_bl + i, 
-            contents + i * SECTOR_SIZE
-        );
-        if (r < 0) {
-            free(contents);
-            return ERR_DISK_WRITE;
-        }
-    }
+    r = write_block(*block, 0, sb->block_size, contents);   
     free(contents);
+    if (r < 0) {
+        return r;
+    }
     return count;
 }
 
@@ -122,11 +169,11 @@ int write_bl_num_recurs(uint32_t* block, uint32_t offset, uint32_t bl_num, uint3
 
     int r;
     if (level == 1) {
-        r = write_block(
+        r = write_block_sparse(
             block,
             offset * sizeof(uint32_t),
             sizeof(uint32_t),
-            bl_num,
+            &bl_num,
             bg_num
         );
         return r;
@@ -163,10 +210,16 @@ int write_bl_num_recurs(uint32_t* block, uint32_t offset, uint32_t bl_num, uint3
         free(ptrs_block);
         return r;
     }
-    // update the ptrs block if we allocated
+    // update the ptrs block if we allocated/deallocated
     // a new block while recursing
     if (ptrs_block[ch] != old_ptr) {
-        r = write_block(block, ch, 1, ptrs_block + ch, bg_num);
+        r = write_block_sparse(
+            block, 
+            ch * sizeof(uint32_t), 
+            sizeof(uint32_t), 
+            ptrs_block + ch, 
+            bg_num
+        );
         if (r < 0) {
             free(ptrs_block);
             return r;
@@ -307,7 +360,7 @@ int write_bl_num(uint32_t inode_num, uint32_t offset, uint32_t bl_num)
     if (start <= offset && offset < end) {
         r = write_bl_num_recurs(
             &(inode->single_indir),
-            CLIP_OFS(start, offset, 1),
+            offset - start,
             bl_num, 
             inode_num / sb->inodes_per_bg,
             1
@@ -321,7 +374,7 @@ int write_bl_num(uint32_t inode_num, uint32_t offset, uint32_t bl_num)
     if (start <= offset && offset < end) {
         r = write_bl_num_recurs(
             &(inode->double_indir),
-            CLIP_OFS(start, offset, 1),
+            offset - start,
             bl_num,
             inode_num / sb->inodes_per_bg, 
             2
@@ -331,7 +384,9 @@ int write_bl_num(uint32_t inode_num, uint32_t offset, uint32_t bl_num)
     }
 write_bl_num_failure:
     free(inode);
-    return ERR_FILE_BOUNDS; ////////////////
+    // the block designated by 'offset' doesn't exist
+    // (it is after the maximum file size)
+    return ERR_BLOCK_EXIST;
 write_bl_num_success:
     // write back the inode 
     r = sync_inode(inode_num, inode);
@@ -339,242 +394,6 @@ write_bl_num_success:
     return r;
 }
 
-
-// size of buf : SB_SIZE
-int rw_raw_superblock(void* buf, bool write)
-{
-    // CAREFUL : the superblock isn't a full 'block' : it is part of 
-    // block 0 (or 1 if block_size = 1024).
-    // we can't use read_block here since it relies on the superblock being initialized
-    
-    if (write) {
-        if (ata_write_sector(SB_OFS / SECTOR_SIZE, buf) < 0) {
-            return ERR_DISK_WRITE;
-        }
-        if (ata_write_sector(SB_OFS / SECTOR_SIZE + 1, buf + SECTOR_SIZE) < 0) {
-            return ERR_DISK_WRITE;
-        }
-    }
-    else {
-        if (ata_read(SB_OFS, SB_SIZE, buf) < 0) {
-            return ERR_DISK_READ;
-        }
-    }
-    return 0;
-}
-
-// size of buf : BG_DESCR_SIZE
-int rw_raw_bg_desr(uint32_t bg_num, void* buf, bool write)
-{
-    if (bg_num >= sb->bg_count) {
-        return ERR_BG_EXIST;
-    }
-
-    // get the bg table block number
-    // the bg table is always in the block following the superblock
-    uint32_t bg_tab_block;
-    if (sb->block_size == 1024) {
-        bg_tab_block = 2;
-    }
-    else {
-        bg_tab_block = 1;
-    }
-
-    uint32_t block = bg_tab_block + (bg_num * BG_DESCR_SIZE) / sb->block_size;
-    uint32_t ofs = (bg_num * BG_DESCR_SIZE) % sb->block_size;
-    if (write) {
-        return write_block(&block, ofs, BG_DESCR_SIZE, buf, 0);
-    }
-    else {
-        return read_block(block, ofs, BG_DESCR_SIZE, buf);
-    }
-}
-
-// size of buf : INODE_SIZE
-int rw_raw_inode(uint32_t inode_num, void* buf, bool write)
-{
-    // remember inodes start at 1 not 0
-    if (inode_num > sb->inode_count) {
-        return ERR_INODE_EXIST;
-    }
-
-    uint32_t inode_idx = (inode_num - 1) % sb->inodes_per_bg;
-    uint32_t bg_num = (inode_num - 1) / sb->inodes_per_bg;
-
-    // get the corresponding block group descriptor
-    bg_descr_t* bg = malloc(sizeof(bg_descr_t));
-    int r = get_bg_descr(bg_num, bg);
-    if (r < 0) {
-        free(bg);
-        return r;
-    }
-
-    // index the inode table
-    uint32_t ofs = (inode_idx * INODE_SIZE) % sb->block_size;
-    uint32_t block = bg->inode_table + (inode_idx * INODE_SIZE) / sb->block_size;
-    free(bg);
-
-    if (write) {
-        return write_block(&block, ofs, INODE_SIZE, buf, 0);
-    }
-    else {
-        return read_block(block, ofs, INODE_SIZE, buf);
-    }
-}
-
-int get_superblock(superblock_t* sb)
-{
-    void* buf = malloc(SB_SIZE);
-    int r = rw_raw_superblock(buf, false);
-    if (r < 0) {
-        free(buf);
-        return r;
-    }
-
-    uint32_t log_bs = 10 + *((uint32_t*)(buf + 24));
-    sb->block_size = 1 << log_bs;
-
-    sb->block_count = *((uint32_t*)(buf + 4));
-    sb->inode_count = *((uint32_t*)(buf + 0));
-    sb->blocks_per_bg = *((uint32_t*)(buf + 32));
-    sb->inodes_per_bg = *((uint32_t*)(buf + 40));
-    
-    sb->unalloc_blocks = *((uint32_t*)(buf + 12));
-    sb->unalloc_inodes = *((uint32_t*)(buf + 16));
-    
-    // round up
-    uint32_t quot = sb->block_count / sb->blocks_per_bg;
-    uint32_t rem = sb->block_count % sb->blocks_per_bg;
-    if (rem == 0) {
-        sb->bg_count = quot;
-    }
-    else {
-        sb->bg_count = quot + 1;
-    }
-    // the root is always inode 2
-    sb->root = 2;
-    free(buf);
-
-    // sanity checks
-    if (sb->blocks_per_bg != 8 * sb->block_size) {
-        return ERR_CORRUPT_STATE;
-    }
-    return 0;
-}
-
-int sync_superblock(superblock_t* sb)
-{
-    void* buf = malloc(SB_SIZE);
-    int r = rw_raw_superblock(buf, false);
-    if (r < 0) {
-        free(buf);
-        return r;
-    }
-
-    // only write the data that makes sense to modify
-    *((uint32_t*)(buf + 12)) = sb->unalloc_inodes;
-    *((uint32_t*)(buf + 16)) = sb->unalloc_blocks;
-
-    r = rw_raw_superblock(buf, true);
-    free(buf);
-    return r;
-}
-
-int get_bg_descr(uint32_t bg_num, bg_descr_t* bg)
-{
-    void* buf = malloc(BG_DESCR_SIZE);
-    int r = rw_raw_bg_desr(bg_num, buf, false);
-    if (r < 0) {
-        free(buf);
-        return r;
-    }
-
-    bg->block_bitmap = *((uint32_t*)(buf + 0));
-    bg->inode_bitmap = *((uint32_t*)(buf + 4));
-    bg->inode_table = *((uint32_t*)(buf + 8));
-
-    bg->unalloc_blocks = *((uint16_t*)(buf + 12));
-    bg->unalloc_inodes = *((uint16_t*)(buf + 14));
-
-    free(buf);
-    return 0;
-}
-
-int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg)
-{
-    void* buf = malloc(BG_DESCR_SIZE);
-    int r = rw_raw_bg_desr(bg_num, buf, false);
-    if (r < 0) {
-        free(buf);
-        return r;
-    }
-
-    // only write the data that makes sense to modify
-    *((uint16_t*)(buf + 12)) = bg->unalloc_blocks;
-    *((uint16_t*)(buf + 14)) = bg->unalloc_inodes;
-
-    r = rw_raw_bg_desr(bg_num, buf, true);
-    free(buf);
-    return r;
-}
-
-int get_inode(uint32_t inode_num, inode_t* inode)
-{
-    void* buf = malloc(INODE_SIZE);
-    int r = rw_raw_inode(inode_num, buf, false);
-    if (r < 0) {
-        free(buf);
-        return r;
-    }
-    
-    inode->fsize = *((uint32_t*)(buf + 4));
-    uint16_t type = *((uint16_t*)(buf + 0)) & 0xF000;
-    switch (type) {
-    case 0x4000: inode->type = INODE_TYPE_DIR; break;
-    case 0x8000: inode->type = INODE_TYPE_REG; break;
-    default: return ERR_INODE_TYPE;
-    }
-
-    for (uint32_t i = 0; i < INODE_DIR_BLOCKS; i++) {
-        inode->dir_blocks[i] = *((uint32_t*)(buf + 40 + 4*i));
-    }
-    inode->single_indir = *((uint32_t*)(buf + 88));
-    inode->double_indir = *((uint32_t*)(buf + 92));
-
-    free(buf);
-    return 0;    
-}   
-
-int sync_inode(uint32_t inode_num, inode_t* inode)
-{
-    void* buf = malloc(INODE_SIZE);
-    int r = rw_raw_inode(inode_num, buf, false);
-    if (r < 0) {
-        free(buf);
-        return r;
-    }
-    
-    // only write the data that makes sense to modify
-    *((uint32_t*)(buf + 4)) = inode->fsize;
-    uint16_t type;
-    switch(inode->type) {
-    case INODE_TYPE_DIR: type = 0x4000; break;
-    case INODE_TYPE_REG: type = 0x8000; break;
-    default: return ERR_INODE_TYPE;
-    }
-    // AND with 0x0FFF to erase the old type, OR to add the new type
-    *((uint16_t*)(buf + 0)) = type | (0x0FFF & *((uint16_t*)(buf + 0)));
-
-    for (uint32_t i = 0; i < INODE_DIR_BLOCKS; i++) {    
-        *((uint32_t*)(buf + 40 + 4*i)) = inode->dir_blocks[i];
-    }
-    *((uint32_t*)(buf + 88)) = inode->single_indir;
-    *((uint32_t*)(buf + 92)) = inode->double_indir;
-
-    r = rw_raw_inode(inode_num, buf, true);
-    free(buf);
-    return r;
-}
 
 int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
 {
@@ -589,12 +408,19 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
         free(bl_nums);
         return r;   
     }
+
+    printf("block_nums=");
+    for (int i = 0; i < bl_count; i++) {
+        printf("%u ", bl_nums[i]);
+    }
+    printf("\n");
+
     // actually write
     uint32_t buf_offs = 0;
     for (uint32_t i = 0; i < bl_count; i++) {
         uint32_t start = (i + first_bl) * sb->block_size;
         uint32_t old_bl_num = bl_nums[i];
-        r = write_block(
+        r = write_block_sparse(
             bl_nums + i,
             CLIP_OFS(start, offset, count),
             CLIP_CNT(start, offset, count),
@@ -605,15 +431,16 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
             free(bl_nums);
             return r;
         }
+        buf_offs += r;
+ 
         // the block's sparseness changed
         if (bl_nums[i] != old_bl_num) {
-            r = write_bl_nums(inode_num, first_bl+i, 1, bl_nums + i);
+            r = write_bl_num(inode_num, first_bl+i, bl_nums[i]);
             if (r < 0) {
                 free(bl_nums);
                 return r;
             }
         }
-        buf_offs += r;
     }
     free(bl_nums);
     return 0;

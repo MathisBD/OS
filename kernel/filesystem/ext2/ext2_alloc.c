@@ -4,6 +4,8 @@
 #include <string.h>
 #include <bitset.h>
 #include <stdbool.h>
+#include <panic.h>
+#include "memory/heap.h"
 
 // the number of blocks we search before and after
 // the previous block when allocating a new block
