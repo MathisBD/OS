@@ -9,42 +9,43 @@
 // Most functions here return an error code.
 
 // the inode doesn't exist
-#define ERR_INODE_EXIST     (-1)
+#define EXT2_ERR_INODE_EXIST     (-1)
 // the block group doesn't exist
-#define ERR_BG_EXIST        (-2)
+#define EXT2_ERR_BG_EXIST        (-2)
 // the inode has the wrong type
-#define ERR_INODE_TYPE      (-3)
+#define EXT2_ERR_INODE_TYPE      (-3)
 // couldn't read disk
-#define ERR_DISK_READ       (-4)
+#define EXT2_ERR_DISK_READ       (-4)
 // couldn't write disk
-#define ERR_DISK_WRITE      (-5)
+#define EXT2_ERR_DISK_WRITE      (-5)
 // read/write past the end of a file
-#define ERR_FILE_BOUNDS     (-6)
+#define EXT2_ERR_FILE_BOUNDS     (-6)
 // inconsistent disk state
 // (e.g. unallocated_blocks > 0 but the block bitmap is full)
-#define ERR_CORRUPT_STATE   (-7)
+#define EXT2_ERR_CORRUPT_STATE   (-7)
 // no more disk space
 // (i.e. no more unallocated inodes/blocks)
-#define ERR_NO_SPACE        (-8)
+#define EXT2_ERR_NO_SPACE        (-8)
 // the block doesn't exist
-#define ERR_BLOCK_EXIST     (-9)
+#define EXT2_ERR_BLOCK_EXIST     (-9)
 
-#define INODE_TYPE_REG   1 // regular file
-#define INODE_TYPE_DIR   2 // directory
+// these numbers are arbitrary
+#define EXT2_INODE_TYPE_REG   1 // regular file
+#define EXT2_INODE_TYPE_DIR   2 // directory
 
-typedef struct dir_entry_
+typedef struct ext2_dir_entry_
 {
     uint32_t inode;
     // doesn't count the null terminator
-    // limited to 255 (8bits)
-    uint8_t name_len;
+    // limited to 16 bits
+    uint16_t name_len;
     // on the heap, null terminated
     char* name;     
-    struct dir_entry_* next; // next entry
-} dir_entry_t;
+    struct ext2_dir_entry_* next; // next entry
+} ext2_dir_entry_t;
 
 
-void init_ext2();
+int init_ext2();
 
 // file info
 int get_inode_type(uint32_t inode, uint32_t* type);
@@ -53,8 +54,8 @@ int get_inode_fsize(uint32_t inode, uint32_t* size);
 
 // read/write
 // the inode can also be a directory
+// can't read/write past the end of the inode
 int read_inode(uint32_t inode, uint32_t offset, uint32_t count, void* buf);
-// does not automatically grow the inode if writting past the end of the file
 int write_inode(uint32_t inode, uint32_t offset, uint32_t count, void* buf);
 
 int resize_inode(uint32_t inode, uint32_t size);
@@ -70,6 +71,6 @@ int free_inode(uint32_t inode);
 // entries will point to the first entry in the list.
 // it is the caller's responsibility to free this list.
 // if the directory is empty, *entries is set to 0
-int read_dir(uint32_t dir, dir_entry_t** entries);
+int read_dir(uint32_t dir, ext2_dir_entry_t** entries);
 
-int write_dir(uint32_t dir, dir_entry_t* entries);
+int write_dir(uint32_t dir, ext2_dir_entry_t* entries);

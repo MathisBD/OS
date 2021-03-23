@@ -18,7 +18,7 @@
 int claim_new_inode(uint32_t* inode_num)
 {
     if (sb->unalloc_inodes == 0) {
-        return ERR_NO_SPACE;
+        return EXT2_ERR_NO_SPACE;
     }
 
     int r;
@@ -38,7 +38,7 @@ int claim_new_inode(uint32_t* inode_num)
     }
     if (bg_num >= sb->bg_count) {
         free(bg);
-        return ERR_CORRUPT_STATE;
+        return EXT2_ERR_CORRUPT_STATE;
     }
 
     // read the bitmap
@@ -55,7 +55,7 @@ int claim_new_inode(uint32_t* inode_num)
     if (idx >= sb->inodes_per_bg) {
         free(bitmap);
         free(bg);
-        return ERR_CORRUPT_STATE;
+        return EXT2_ERR_CORRUPT_STATE;
     }
 
     // actually claim the inode
@@ -213,10 +213,10 @@ int alloc_in_bg(uint32_t* block, uint32_t bg_num)
 int alloc_block(uint32_t* blocks, uint32_t bg_num)
 {
     if (bg_num >= sb->bg_count) {
-        return ERR_BG_EXIST;
+        return EXT2_ERR_BG_EXIST;
     }
     if (sb->unalloc_blocks == 0) {
-        return ERR_NO_SPACE;
+        return EXT2_ERR_NO_SPACE;
     }
     // in preferred block group
     int r = alloc_in_bg(blocks, bg_num);
@@ -230,7 +230,7 @@ int alloc_block(uint32_t* blocks, uint32_t bg_num)
     }
 alloc_block_failure:
     // this should not happen
-    return ERR_CORRUPT_STATE;
+    return EXT2_ERR_CORRUPT_STATE;
 
 alloc_block_success:
     // update the superblock
@@ -314,7 +314,6 @@ int resize_inode(uint32_t inode_num, uint32_t size)
     // free blocks
     if (new_blocks < curr_blocks) {
         uint32_t bl_count = curr_blocks - new_blocks;
-        printf("new_blocks=%u, curr_blocks=%u, bl_count=%u\n", new_blocks, curr_blocks, bl_count);
         uint32_t* bl_nums = malloc(bl_count * sizeof(uint32_t));
         // get the block numbers
         r = read_bl_nums(inode_num, new_blocks, bl_count, bl_nums);
@@ -322,12 +321,6 @@ int resize_inode(uint32_t inode_num, uint32_t size)
             free(bl_nums);
             return r;
         }
-
-        printf("blocks to free=");
-        for (uint32_t i = 0; i < bl_count; i++) {
-            printf("%u ", bl_nums[i]);
-        }
-        printf("\n");
 
         for (uint32_t i = 0; i < bl_count; i++) {
             if (bl_nums[i] != 0) {

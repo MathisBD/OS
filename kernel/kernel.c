@@ -15,10 +15,25 @@
 #include <string.h>
 #include "drivers/ata_driver.h"
 #include "scheduler/timer.h"
+#include "filesystem/fs.h"
 #include "filesystem/ext2/ext2.h"
 #include <bitset.h>
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
+
+void print_dir(dir_entry_t* entry)
+{
+    if (entry != 0) {
+        printf("(name=%s ino=%u)", entry->name, entry->inode);
+        if (entry->next != 0) {
+            printf("-->");
+            print_dir(entry->next);
+        }
+        else {
+            printf("\n");
+        }
+    }
+}
 
 
 void kernel_main(boot_info_t* boot_info)
@@ -54,29 +69,47 @@ void kernel_main(boot_info_t* boot_info)
 
     init_heap();
     init_timer(pit_freq);
-    init_ext2();
+    init_fs();
 
-    int r = resize_inode(14, 4*2048);
+    /*ext2_dir_entry_t* entry;
+    int r = read_dir(12, &entry);
+    if (r < 0) {
+        printf("err=%d\n", r);
+    }
+    r = write_dir(12, entry);
+    if (r < 0) {
+        printf("err=%d\n", r);
+    }
+    printf("done\n");*/
+
+
+    uint32_t dir;
+    int r = find_inode("/boot", &dir);
     if (r < 0) {
         printf("error=%d\n", r);
     }
-    printf("resized\n");
-    
-    /*dir_entry_t* entries;
-    int r = read_dir(12, &entries);
+
+    printf("FOUND dir=%u\n", dir);
+
+    dir_entry_t* entry;
+    r = list_dir(dir, &entry);
+    if (r < 0) {
+        printf("error=%d\n", r);
+    }
+    print_dir(entry);
+
+    r = make_file("/boot/file.txt");
     if (r < 0) {
         printf("error=%d\n", r);
     }
 
-    for (dir_entry_t* entr = entries; entr != 0; entr = entr->next) {
-        printf("entry:ino=%u,name=%s\n", entr->inode, entr->name);
-    }*/
-
-    /*int r = resize_inode(14, 4*2048);
+    printf("MADE FILE\n");
+   
+    r = list_dir(dir, &entry);
     if (r < 0) {
         printf("error=%d\n", r);
     }
-    printf("resized\n");*/
+    print_dir(entry);
 
     // ==========
     

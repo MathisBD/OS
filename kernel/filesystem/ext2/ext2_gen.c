@@ -4,18 +4,18 @@
 #include "memory/heap.h"
 #include <stdio.h>
 #include <string.h>
+#include <panic.h>
 
 
 // We are the file that has to declare this variable.
 superblock_t* sb;
 
 
-void init_ext2()
+int init_ext2()
 {
     sb = malloc(sizeof(superblock_t));
-    if (get_superblock(sb) < 0) {
-        panic("init_ext2 : could not get the superblock\n");
-    }
+    int r = get_superblock(sb);
+    return r;
 }
   
 

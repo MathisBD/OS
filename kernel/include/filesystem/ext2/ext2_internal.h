@@ -97,7 +97,8 @@ int sync_superblock(superblock_t* sb);
 int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg);
 int sync_inode(uint32_t inode_num, inode_t* inode);
 
-// file info
+// doesn't resize the inode, simply
+// changes the fsize field
 int set_inode_fsize(uint32_t inode_num, uint32_t fsize);
 
 // offset : offset in the block (0 = start of block)
