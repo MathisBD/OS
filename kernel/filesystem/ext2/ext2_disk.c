@@ -1,6 +1,7 @@
 #include "filesystem/ext2/ext2_internal.h"
 #include "memory/heap.h"
 #include <stdbool.h>
+#include "drivers/ata_driver.h"
 
 // size of buf : SB_SIZE
 int rw_raw_superblock(void* buf, bool write)
@@ -11,15 +12,15 @@ int rw_raw_superblock(void* buf, bool write)
     
     if (write) {
         if (ata_write_sector(SB_OFS / SECTOR_SIZE, buf) < 0) {
-            return ERR_DISK_WRITE;
+            return EXT2_ERR_DISK_WRITE;
         }
         if (ata_write_sector(SB_OFS / SECTOR_SIZE + 1, buf + SECTOR_SIZE) < 0) {
-            return ERR_DISK_WRITE;
+            return EXT2_ERR_DISK_WRITE;
         }
     }
     else {
         if (ata_read(SB_OFS, SB_SIZE, buf) < 0) {
-            return ERR_DISK_READ;
+            return EXT2_ERR_DISK_READ;
         }
     }
     return 0;
@@ -29,7 +30,7 @@ int rw_raw_superblock(void* buf, bool write)
 int rw_raw_bg_desr(uint32_t bg_num, void* buf, bool write)
 {
     if (bg_num >= sb->bg_count) {
-        return ERR_BG_EXIST;
+        return EXT2_ERR_BG_EXIST;
     }
 
     // get the bg table block number
@@ -45,10 +46,12 @@ int rw_raw_bg_desr(uint32_t bg_num, void* buf, bool write)
     uint32_t block = bg_tab_block + (bg_num * BG_DESCR_SIZE) / sb->block_size;
     uint32_t ofs = (bg_num * BG_DESCR_SIZE) % sb->block_size;
     if (write) {
-        return write_block(block, ofs, BG_DESCR_SIZE, buf);
+        int r = write_block(block, ofs, BG_DESCR_SIZE, buf);
+        return r < 0 ? r : 0;
     }
     else {
-        return read_block(block, ofs, BG_DESCR_SIZE, buf);
+        int r = read_block(block, ofs, BG_DESCR_SIZE, buf);
+        return r < 0 ? r : 0;
     }
 }
 
@@ -57,7 +60,7 @@ int rw_raw_inode(uint32_t inode_num, void* buf, bool write)
 {
     // remember inodes start at 1 not 0
     if (inode_num > sb->inode_count) {
-        return ERR_INODE_EXIST;
+        return EXT2_ERR_INODE_EXIST;
     }
 
     uint32_t inode_idx = (inode_num - 1) % sb->inodes_per_bg;
@@ -77,10 +80,12 @@ int rw_raw_inode(uint32_t inode_num, void* buf, bool write)
     free(bg);
 
     if (write) {
-        return write_block(block, ofs, INODE_SIZE, buf);
+        int r = write_block(block, ofs, INODE_SIZE, buf);
+        return r < 0 ? r : 0;
     }
     else {
-        return read_block(block, ofs, INODE_SIZE, buf);
+        int r = read_block(block, ofs, INODE_SIZE, buf);
+        return r < 0 ? r : 0;
     }
 }
 
@@ -119,7 +124,7 @@ int get_superblock(superblock_t* sb)
 
     // sanity checks
     if (sb->blocks_per_bg != 8 * sb->block_size) {
-        return ERR_CORRUPT_STATE;
+        return EXT2_ERR_CORRUPT_STATE;
     }
     return 0;
 }
@@ -192,9 +197,9 @@ int get_inode(uint32_t inode_num, inode_t* inode)
     inode->fsize = *((uint32_t*)(buf + 4));
     uint16_t type = *((uint16_t*)(buf + 0)) & 0xF000;
     switch (type) {
-    case 0x4000: inode->type = INODE_TYPE_DIR; break;
-    case 0x8000: inode->type = INODE_TYPE_REG; break;
-    default: return ERR_INODE_TYPE;
+    case 0x4000: inode->type = EXT2_INODE_TYPE_DIR; break;
+    case 0x8000: inode->type = EXT2_INODE_TYPE_REG; break;
+    default: return EXT2_ERR_INODE_TYPE;
     }
 
     for (uint32_t i = 0; i < INODE_DIR_BLOCKS; i++) {
@@ -220,9 +225,9 @@ int sync_inode(uint32_t inode_num, inode_t* inode)
     *((uint32_t*)(buf + 4)) = inode->fsize;
     uint16_t type;
     switch(inode->type) {
-    case INODE_TYPE_DIR: type = 0x4000; break;
-    case INODE_TYPE_REG: type = 0x8000; break;
-    default: return ERR_INODE_TYPE;
+    case EXT2_INODE_TYPE_DIR: type = 0x4000; break;
+    case EXT2_INODE_TYPE_REG: type = 0x8000; break;
+    default: return EXT2_ERR_INODE_TYPE;
     }
     // AND with 0x0FFF to erase the old type, OR to add the new type
     *((uint16_t*)(buf + 0)) = type | (0x0FFF & *((uint16_t*)(buf + 0)));

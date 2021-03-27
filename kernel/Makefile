@@ -29,7 +29,8 @@ filesystem/ext2/ext2_gen.o \
 filesystem/ext2/ext2_rw.o \
 filesystem/ext2/ext2_dir.o \
 filesystem/ext2/ext2_alloc.o \
-filesystem/ext2/ext2_disk.o
+filesystem/ext2/ext2_disk.o \
+filesystem/fs.o
 
 .PHONY: all clean install install-headers install-kernel
 

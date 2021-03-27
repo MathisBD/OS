@@ -24,7 +24,7 @@ int read_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
     else {
         int r = ata_read(block * sb->block_size + offset, count, buf);
         if (r < 0) {
-            return ERR_DISK_READ;
+            return EXT2_ERR_DISK_READ;
         }
     }
     return count;
@@ -62,7 +62,7 @@ int write_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
             );
             if (r < 0) {
                 free(contents);
-                return ERR_DISK_WRITE;
+                return EXT2_ERR_DISK_WRITE;
             }
         }
         free(contents);
@@ -78,7 +78,7 @@ int write_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
                 buf + i * SECTOR_SIZE
             );
             if (r < 0) {
-                return ERR_DISK_WRITE;
+                return EXT2_ERR_DISK_WRITE;
             }
         }
         return sb->block_size;
@@ -186,7 +186,7 @@ int write_bl_num_recurs(uint32_t* block, uint32_t offset, uint32_t bl_num, uint3
     // chunk : set of blocks each pointer in the block represents
     uint32_t ch_blocks = 1;
     // use level-1 not level here
-    for (int i = 0; i < level-1; i++) {
+    for (uint32_t i = 0; i < level-1; i++) {
         ch_blocks *= sb->block_size / sizeof(uint32_t);
     }
     if (offset >= ch_blocks * (sb->block_size / sizeof(uint32_t))) {
@@ -255,7 +255,7 @@ int read_bl_nums_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_
     // chunk : set of blocks each pointer in the block represents
     uint32_t ch_blocks = 1;
     // use level-1 not level here
-    for (int i = 0; i < level-1; i++) {
+    for (uint32_t i = 0; i < level-1; i++) {
         ch_blocks *= sb->block_size / sizeof(uint32_t);
     }
     if (offset >= ch_blocks * (sb->block_size / sizeof(uint32_t))) {
@@ -390,7 +390,7 @@ write_bl_num_failure:
     free(inode);
     // the block designated by 'offset' doesn't exist
     // (it is after the maximum file size)
-    return ERR_BLOCK_EXIST;
+    return EXT2_ERR_BLOCK_EXIST;
 write_bl_num_success:
     // write back the inode 
     r = sync_inode(inode_num, inode);
@@ -401,24 +401,22 @@ write_bl_num_success:
 
 int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
 {
+    // check file bounds
+    uint32_t fsize;
+    int r = get_inode_fsize(inode_num, &fsize);
+    if (offset + count > fsize) {
+        return EXT2_ERR_FILE_BOUNDS;
+    }
+    // get the block numbers
     uint32_t first_bl = offset / sb->block_size;
     uint32_t last_bl = (offset + count - 1) / sb->block_size;
     uint32_t bl_count = last_bl - first_bl + 1;
-    
-    // get the block numbers
     uint32_t* bl_nums = malloc(bl_count * sizeof(uint32_t));
     int r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
     if (r < 0) {
         free(bl_nums);
         return r;   
     }
-
-    printf("block_nums=");
-    for (int i = 0; i < bl_count; i++) {
-        printf("%u ", bl_nums[i]);
-    }
-    printf("\n");
-
     // actually write
     uint32_t buf_offs = 0;
     for (uint32_t i = 0; i < bl_count; i++) {
@@ -453,13 +451,18 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
 
 int read_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
 {
+    // check file bounds
+    uint32_t fsize;
+    int r = get_inode_fsize(inode_num, &fsize);
+    if (offset + count > fsize) {
+        return EXT2_ERR_FILE_BOUNDS;
+    }
+    // get the block numbers
     uint32_t first_bl = offset / sb->block_size;
     uint32_t last_bl = (offset + count - 1) / sb->block_size;
     uint32_t bl_count = last_bl - first_bl + 1;
-    
-    // get the block numbers
     uint32_t* bl_nums = malloc(bl_count * sizeof(uint32_t));
-    int r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
+    r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
     if (r < 0) {
         free(bl_nums);
         return r;   
