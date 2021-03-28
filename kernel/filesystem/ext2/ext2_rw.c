@@ -412,7 +412,7 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
     uint32_t last_bl = (offset + count - 1) / sb->block_size;
     uint32_t bl_count = last_bl - first_bl + 1;
     uint32_t* bl_nums = malloc(bl_count * sizeof(uint32_t));
-    int r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
+    r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
     if (r < 0) {
         free(bl_nums);
         return r;   

@@ -1,100 +1,51 @@
 #include "memory/heap.h"
 #include "memory/constants.h"
+#include <linkedlist.h>
+#include <panic.h>
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,
 // so malloced memory is 16-byte aligned
 #define NODE_ALIGN 16
 
-typedef struct mem_node_t {
+typedef struct {
     // size of the following memory block that this node owns
-    uint32_t size; 
-    struct mem_node_t* next;
-    struct mem_node_t* prev;
-    uint32_t padding;
+    uint32_t size;
+    // linked list this node is part of
+    ll_part_t list;
 } __attribute__((packed)) mem_node_t;
 
 // free blocks 
-mem_node_t* first_hole;
+ll_part_t holes_head;
 // allocated blocks
-mem_node_t* first_block;
+ll_part_t blocks_head;
 
-void remove_hole(mem_node_t* node)
-{
-    if (node->prev) {
-        node->prev->next = node->next;
-    }
-    else {
-        first_hole = node->next;
-    }
-
-    if (node->next) {
-        node->next->prev = node->prev;
-    }
-}
-
-void remove_block(mem_node_t* node)
-{
-    if (node->prev) {
-        node->prev->next = node->next;
-    }
-    else {
-        first_block = node->next;
-    }
-
-    if (node->next) {
-        node->next->prev = node->prev;
-    }
-}
-
-void add_block(mem_node_t* node)
-{
-    node->prev = 0;
-    if (first_block) {
-        first_block->prev = node;
-        node->next = first_block;
-    }
-    else {
-        node->next = 0;
-    }
-    first_block = node;
-}
-
-void add_hole(mem_node_t* node)
-{
-    node->prev = 0;
-    if (first_hole) {
-        first_hole->prev = node;
-        node->next = first_hole;
-    }
-    else {
-        node->next = 0;
-    }
-    first_hole = node;
-}
 
 void init_heap()
 {
-    first_hole = (mem_node_t*)HEAP_START;
-    first_hole->size = HEAP_SIZE - sizeof(mem_node_t);
-    first_hole->next = 0;
-    first_hole->prev = 0;
+    ll_init(&holes_head);
+    ll_init(&blocks_head);
 
-    first_block = 0;
+    mem_node_t* first_hole = HEAP_START;
+    first_hole->size = HEAP_SIZE - sizeof(mem_node_t);
+    ll_add(&(first_hole->list), &holes_head);
 }
 
-void compactify_heap()
+/*void compactify_heap()
 {
 
-}
+}*/
 
 mem_node_t* find_hole(uint32_t size)
 {
-    for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {
+    ll_for_each_entry(hole, &holes_head, mem_node_t, list) {
         if (size <= hole->size) {
             return hole;
         }
     }
+
+    panic("find_hole : not enough space for malloc\n");
+
     return 0;
 }
 
@@ -111,12 +62,12 @@ void print_node(mem_node_t* node)
 void print_lists()
 {
     printf("FREE LIST\n");
-    for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {
+    ll_for_each_entry(hole, &holes_head, mem_node_t, list) {
         print_node(hole);
     }
     
     printf("BLOCK LIST\n");
-    for (mem_node_t* block = first_block; block != 0; block = block->next) {
+    ll_for_each_entry(block, &blocks_head, mem_node_t, list) {
         print_node(block);
     }
     printf("\n");
@@ -132,8 +83,9 @@ void* malloc(uint32_t size)
 
     mem_node_t* hole = find_hole(size);
 
-    remove_hole(hole);
-    add_block(hole);
+    // switch from hole to block
+    ll_rem(&(hole->list));
+    ll_add(&(hole->list), &blocks_head);
 
     // address of the potential new node
     uint32_t node_addr = (uint32_t)hole + sizeof(mem_node_t) + size;
@@ -144,7 +96,7 @@ void* malloc(uint32_t size)
         mem_node_t* node = (mem_node_t*)node_addr;
         node->size = end_addr - (node_addr + sizeof(mem_node_t));
         hole->size = size;
-        add_hole(node);
+        ll_add(&(node->list), &holes_head);
     }
     // otherwise don't change the hole size
 
@@ -158,8 +110,11 @@ void* malloc(uint32_t size)
 void free(void* ptr)
 {
     mem_node_t* node = (mem_node_t*)(ptr - sizeof(mem_node_t));
-    remove_block(node);
-    add_hole(node);
+    
+    // switch from block to hole
+    // assumes the node is a block at the moment
+    ll_rem(&(node->list));
+    ll_add(&(node->list), &holes_head);
 }
 
 
