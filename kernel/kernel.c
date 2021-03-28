@@ -82,6 +82,7 @@ void kernel_main(boot_info_t* boot_info)
     // TEST CODE
     // =========
 
+    // - create first thread 
 
 
     while (1);
