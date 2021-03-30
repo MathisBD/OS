@@ -1,6 +1,9 @@
 #include "memory/constants.h"
 
 .extern kernel_main
+.global init_stack_bottom
+.global init_stack_top
+
 
 .global phys_entry
 .set phys_entry, (entry - V_KERNEL_START)  
@@ -8,9 +11,9 @@
 .section .bss
 // stack space
 .align 16
-stack_bottom:
-    .skip STACK_SIZE
-stack_top:
+init_stack_bottom:
+    .skip KSTACK_SIZE
+init_stack_top:
 
 .section .data
 boot_info_addr: .int 0
@@ -64,7 +67,7 @@ launch_kernel:
     mov %ecx, %cr3
 
     // initialize stack
-    mov $stack_top, %esp 
+    mov $init_stack_top, %esp 
     
     cli
     push boot_info_addr

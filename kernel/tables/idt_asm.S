@@ -1,5 +1,5 @@
 
-.extern interrupt_handler
+.extern handle_interrupt
 
 // arguments (stack) :
 //   1) address of an 8 byte memory location containing 
@@ -17,6 +17,8 @@ enable_interrupts:
 
 isr_common:
     // save registers 
+    // this has to respect the layout given by intr_stack_t
+    // in interrupts/regs.h
     push %edi
     push %esi
     push %eax 
@@ -37,11 +39,11 @@ isr_common:
     mov %ax, %gs
 
     // call the C interrupt handler 
-    // push its argument : address of the user_regs struct
-    // (which happens to be on the stack)
+    // push its argument : address of the intr_stack_t struct
+    // (which we just constructed on the stack)
     mov %esp, %ecx
     push %ecx
-    call interrupt_handler
+    call handle_interrupt
     add $4, %esp // remove the address of user_regs struct
 
     // restore registers 

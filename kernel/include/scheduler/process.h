@@ -2,29 +2,41 @@
 #include <linkedlist.h>
 #include <stdint.h>
 
-// each process has its own kernel mode stack
-// in addition to its own user mode stack
-#define PROC_KSTACK_SIZE 8096
-
 typedef uint32_t pid_t;
 
 typedef struct {
-    void* kstack;
-    // registers
+    uint32_t esp;   // current esp 
+    uint32_t esp0;  // esp to use for the tss (i.e. top of the stack)
+    uint32_t eip;   // where to return to when switching back to this process
 } proc_ctx_t;
+
 
 typedef struct {
     pid_t pid;
     // hardware context
+    // each process has its own kernel mode stack
+    // in addition to its own user mode stack
+    void* kstack;
     proc_ctx_t ctx;
     // scheduling info
-    uint32_t status;
-    ll_part_t run_queue;
+    //uint32_t status;
+    //ll_part_t run_queue;
     // relationship info
-    ll_part_t children_head;
-    ll_part_t siblings;
+    //ll_part_t children_head;
+    //ll_part_t siblings;
 } proc_desc_t;
 
+
+// returns an unused pid
+pid_t new_pid();
+
 void find_proc(pid_t pid);
-void create_proc(proc_desc_t** proc, pid_t* pid);
-void del_proc(proc_desc_t* proc);
+
+// pregs : pointer to the registers of src saved in its kernel  mode stack
+// when it issued the fork() system call
+proc_desc_t* fork(proc_desc_t* src, uint32_t flags, void* pregs);
+void free_proc(proc_desc_t* proc);
+
+// creates the init process
+void create_init_proc(proc_desc_t** proc);
+

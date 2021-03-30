@@ -11,7 +11,12 @@ SECTIONS
     /* The kernel will live at 3GB + 1MB = 0xC0000000 + 1MB in virtual memory */
     . = V_AVAILABLE_START;
 
-    /* Multiboot header near the start, otherwise the bootloader won't find it. */
+    .bss ALIGN(4K) : AT(ADDR(.bss) - V_KERNEL_START)
+    {
+        KEEP(*(COMMON))
+        KEEP(*(.bss))
+        . = ALIGN(4K);
+    }
     .text ALIGN(4K) : AT(ADDR(.text) - V_KERNEL_START)
     {
         _kernel_start = .;
@@ -28,12 +33,6 @@ SECTIONS
     .data ALIGN(4K) : AT(ADDR(.data) - V_KERNEL_START)
     {
         KEEP(*(.data))
-        . = ALIGN(4K);
-    }
-    .bss ALIGN(4K) : AT(ADDR(.bss) - V_KERNEL_START)
-    {
-        KEEP(*(COMMON))
-        KEEP(*(.bss))
         . = ALIGN(4K);
     }
     _kernel_rw_end = .;

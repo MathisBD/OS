@@ -19,6 +19,9 @@
 #include "filesystem/ext2/ext2.h"
 #include <bitset.h>
 #include <linkedlist.h>
+#include "scheduler/process.h"
+#include "scheduler/scheduler.h"
+
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
@@ -82,8 +85,25 @@ void kernel_main(boot_info_t* boot_info)
     // TEST CODE
     // =========
 
-    // - create first thread 
+    extern uint32_t get_esp();
 
+    // setup an execution context for process 0 (init)
+    create_init_proc(&curr_proc);
+    proc_desc_t* p0 = curr_proc;
 
+    uint32_t esp = get_esp();
+    printf("pid=%u  stack=%x  saved_esp=%x  esp=%x\n", 
+        get_pid(), curr_proc->kstack, curr_proc->ctx.esp, esp);
+
+    // switch to p1
+    proc_desc_t* p1 = copy_proc(p0, 0);
+    p1->pid = new_pid();
+    
+    switch_proc(p0, p1);
+
+    printf("pid=%u  stack=%x  saved_esp=%x  esp=%x\n", 
+        get_pid(), curr_proc->kstack, curr_proc->ctx.esp, esp);
+
+    
     while (1);
 }

@@ -1,12 +1,7 @@
 #include <stdint.h>
 #include "tables/idt.h"
-#include "drivers/keyboard_driver.h"
-#include "drivers/pic_driver.h"
-#include "scheduler/timer.h"
-#include "memory/paging.h"
 #include "utils/string_utils.h"
 #include <stdio.h>
-#include "drivers/ata_driver.h"
 
 
 typedef struct {
@@ -23,18 +18,6 @@ typedef struct {
 	uint16_t pack;
 } __attribute__((packed)) IDTR_contents;
 
-// registers pushed by the isrs in assembly
-// and passed to the interrupt handler in c
-typedef struct {
-	// user data segment selectors
-	uint32_t gs, fs, es, ds;
-	// user registers
-	uint32_t ebp, edx, ecx, ebx, eax, esi, edi;
-	// pushed by the isrxx
-	uint32_t intr_num, error_code;
-	// pushed by the cup
-	uint32_t eip, cs, eflags;
-} __attribute__((packed)) registers_t;
 
 #define IDT_SIZE 256
 IDT_entry IDT[IDT_SIZE];
@@ -185,52 +168,4 @@ void init_idt(void)
 	idtr.limit = sizeof(IDT_entry) * IDT_SIZE - 1;
 	idtr.start = (uint32_t)&IDT;
     load_idtr((uint32_t)&idtr);
-}
-
-void interrupt_handler(registers_t * user_regs)
-{
-	// PIC IRQs
-	if (IDT_PIC_OFFSET <= user_regs->intr_num && 
-		user_regs->intr_num < IDT_PIC_OFFSET + 16)
-	{
-		int irq = user_regs->intr_num - IDT_PIC_OFFSET;
-		pic_eoi(irq);
-		
-		switch(irq) {
-		case 0: // clock (PIT)
-			timer_interrupt(user_regs->eax);
-			break;
-		case 1: // keyboard
-			keyboard_interrupt();
-			break;
-		case 14: // primary ATA drive
-			ata_primary_interrupt();
-			break;
-		}
-		return;
-	}
-
-	// general interrupts
-	switch(user_regs->intr_num) {
-	case 14: // page fault
-	{
-		page_fault_info_t info;
-		info.present = user_regs->error_code & 0x01;
-		info.read_write = user_regs->error_code & 0x02;
-		info.user_supervisor = user_regs->error_code & 0x04;
-		info.reserved = user_regs->error_code & 0x08;
-		info.instr_fetch = user_regs->error_code & 0x10;
-
-		extern uint32_t get_cr2();
-		info.address = get_cr2();
-
-		page_fault(info);
-		break;
-	}
-	default:
-		printf("Uncatched interrupt !\nint num=%d\n", user_regs->intr_num);
-		while (1) {
-		}
-		break;
-	}
 }

@@ -6,7 +6,7 @@
 
 
 
-// convert from ext2 to fs error
+// convert from an ext2 error to an fs error
 int cvrt_err(int ext2_err) 
 {
     switch (ext2_err) {

@@ -23,6 +23,10 @@ memory/paging.o \
 memory/memory_asm.o \
 memory/heap.o \
 scheduler/timer.o \
+scheduler/scheduler.o \
+scheduler/scheduler_asm.o \
+scheduler/process.o \
+scheduler/process_asm.o \
 loader/loader.o \
 loader/loader_asm.o \
 filesystem/ext2/ext2_gen.o \
