@@ -1,9 +1,9 @@
 #include "filesystem/fs_internal.h"
 #include "filesystem/ext2/ext2.h"
 #include <string.h>
-#include "memory/heap.h"
+#include "memory/kheap.h"
 #include <stdio.h>
-
+#include <panic.h>
 
 
 // convert from an ext2 error to an fs error
@@ -27,6 +27,7 @@ uint32_t cvrt_inode_type(uint32_t ext2_type)
     case EXT2_INODE_TYPE_REG: return FS_INODE_TYPE_FILE;
     default: panic("cvrt_inode_type: unknown ext2 inode type\n");
     }
+    return 0;
 }
 
 // it is allowed that entry==0
@@ -37,8 +38,8 @@ int free_ext2_entr(ext2_dir_entry_t* entry)
         if (r < 0) {
             return r;
         }
-        free(entry->name);
-        free(entry);
+        kfree(entry->name);
+        kfree(entry);
     }
     return 0;
 }
@@ -98,9 +99,9 @@ int dir_add_child(uint32_t dir, const char* child_name, uint32_t child)
         return FS_ERR_INTERN_FAIL;
     }
     // create a new directory entry
-    ext2_dir_entry_t* new_entr = malloc(sizeof(ext2_dir_entry_t));
+    ext2_dir_entry_t* new_entr = kmalloc(sizeof(ext2_dir_entry_t));
     uint32_t len = strlen(child_name);
-    new_entr->name = malloc(len + 1);
+    new_entr->name = kmalloc(len + 1);
     memcpy(new_entr->name, child_name, len);
     new_entr->name[len] = 0;
     new_entr->name_len = (uint8_t)len;
@@ -168,9 +169,9 @@ dir_entry_t* convert_dir_entry(ext2_dir_entry_t* ext2_entry)
     if (ext2_entry == 0) {
         return 0;
     }
-    dir_entry_t* entry = malloc(sizeof(dir_entry_t));
+    dir_entry_t* entry = kmalloc(sizeof(dir_entry_t));
     entry->inode = ext2_entry->inode;
-    entry->name = malloc(1 + (uint32_t)ext2_entry->name_len);
+    entry->name = kmalloc(1 + (uint32_t)ext2_entry->name_len);
     memcpy(entry->name, ext2_entry->name, ext2_entry->name_len);
     entry->name[ext2_entry->name_len] = 0;
     entry->next = convert_dir_entry(ext2_entry->next);
@@ -263,12 +264,12 @@ int find_inode(const char* path, uint32_t* inode)
         // find the child's name
         start = start + len + 1; // skip the '/'
         len = find_char(path + start, '/');
-        char* child_name = malloc(len + 1);
+        char* child_name = kmalloc(len + 1);
         memcpy(child_name, path + start, len);
         child_name[len] = 0;
         // find the child's inode
         int r = dir_find_child(*inode, child_name, inode);
-        free(child_name);
+        kfree(child_name);
         if (r < 0) {
             return cvrt_err(r);
         }
@@ -288,11 +289,11 @@ int make_inode(const char* path, uint32_t type, uint32_t* inode, uint32_t* paren
         *parent = ROOT_INODE;
     }
     else {
-        char* par_path = malloc(sep + 1);
+        char* par_path = kmalloc(sep + 1);
         memcpy(par_path, path, sep);
         par_path[sep] = 0;
         int r = find_inode(par_path, parent);
-        free(par_path);
+        kfree(par_path);
         if (r < 0) {
             return r;
         }
@@ -358,11 +359,11 @@ int rem_inode(const char* path, uint32_t type)
         parent = ROOT_INODE;
     }
     else {
-        char* par_path = malloc(sep + 1);
+        char* par_path = kmalloc(sep + 1);
         memcpy(par_path, path, sep);
         par_path[sep] = 0;
         int r = find_inode(par_path, &parent);
-        free(par_path);
+        kfree(par_path);
         if (r < 0) {
             return r;
         }

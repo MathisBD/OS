@@ -1,4 +1,4 @@
-#include "memory/heap.h"
+#include "memory/kheap.h"
 #include "memory/constants.h"
 #include <linkedlist.h>
 #include <panic.h>
@@ -21,7 +21,7 @@ ll_part_t holes_head;
 ll_part_t blocks_head;
 
 
-void init_heap()
+void init_kheap()
 {
     ll_init(&holes_head);
     ll_init(&blocks_head);
@@ -73,7 +73,7 @@ void print_lists()
     printf("\n");
 }
 
-void* malloc(uint32_t size)
+void* kmalloc(uint32_t size)
 {
     // align size
     if (size & (NODE_ALIGN - 1)) {
@@ -107,7 +107,7 @@ void* malloc(uint32_t size)
     // compactify
 }
 
-void free(void* ptr)
+void kfree(void* ptr)
 {
     mem_node_t* node = (mem_node_t*)(ptr - sizeof(mem_node_t));
     

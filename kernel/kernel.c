@@ -6,7 +6,7 @@
 #include "tables/gdt.h"
 #include "scheduler/timer.h"
 #include "memory/paging.h"
-#include "memory/heap.h"
+#include "memory/kheap.h"
 #include "bootloader_info.h"
 #include "utils/string_utils.h"
 #include "memory/constants.h"
@@ -21,29 +21,19 @@
 #include <linkedlist.h>
 #include "scheduler/process.h"
 #include "scheduler/scheduler.h"
+#include <syscall.h>
 
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
-/*void print_dir(dir_entry_t* entry)
-{
-    if (entry != 0) {
-        printf("(name=%s ino=%u)", entry->name, entry->inode);
-        if (entry->next != 0) {
-            printf("-->");
-            print_dir(entry->next);
-        }
-        else {
-            printf("\n");
-        }
-    }
-}*/
 
-struct entry {
-    int a;
-    ll_part_t list;
-    uint64_t b;
-};
+
+
+void fn(void* arg)
+{
+    printf("arg=%d\n", *((int*)arg));
+    while (1);
+}
 
 
 void kernel_main(boot_info_t* boot_info)
@@ -77,7 +67,7 @@ void kernel_main(boot_info_t* boot_info)
     // HIGH LEVEL
     // ==========
 
-    init_heap();
+    init_kheap();
     init_timer(pit_freq);
     init_fs();
 
@@ -85,25 +75,12 @@ void kernel_main(boot_info_t* boot_info)
     // TEST CODE
     // =========
 
-    extern uint32_t get_esp();
-
     // setup an execution context for process 0 (init)
     create_init_proc(&curr_proc);
-    proc_desc_t* p0 = curr_proc;
 
-    uint32_t esp = get_esp();
-    printf("pid=%u  stack=%x  saved_esp=%x  esp=%x\n", 
-        get_pid(), curr_proc->kstack, curr_proc->ctx.esp, esp);
+    // create a thread
+    int arg = 42;
+    pid_t tid = new_thread(fn, &arg, 0, NEW_THREAD_FLAGS_KERNEL);
 
-    // switch to p1
-    proc_desc_t* p1 = copy_proc(p0, 0);
-    p1->pid = new_pid();
-    
-    switch_proc(p0, p1);
-
-    printf("pid=%u  stack=%x  saved_esp=%x  esp=%x\n", 
-        get_pid(), curr_proc->kstack, curr_proc->ctx.esp, esp);
-
-    
     while (1);
 }

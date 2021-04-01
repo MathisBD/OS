@@ -2,7 +2,7 @@
 .global switch_asm 
 // when forking a process, set ctx.eip to this 
 // address for the new process
-.global switch_asm_fork 
+.global switch_asm_new_thread 
 
 
 // field offsets in the proc_ctx_t struct
@@ -65,19 +65,15 @@ switch_asm_regular:
     // use the return adress on the stack, setup by gcc
     ret 
 
-// here is where next starts executing if it was
-// previously forked (i.e. hasn't run yet)
-switch_asm_fork:
-    // at this point, the stack doesn't match what we would
-    // expect in a function call (i.e. the parameters prev, next, last
-    // are not on the stack) : it was artificially set up 
-    // according to intr_stack_t
-
+// here is where next starts executing if it was created
+// with a 'new_thread' syscall and hasn't been executed yet
+switch_asm_new_thread:
     // do some scheduling stuff... 
     // (we will not return from switch_asm)
     // if we need, last is still in %eax 
 
-    // return from the fork interrupt (as the new process)
+    // return from the mock interrupt that
+    // the system call handler set up
     pop %gs 
     pop %fs 
     pop %es 
@@ -91,6 +87,6 @@ switch_asm_fork:
     pop %edi 
 
     add $8, %esp // pop the interrupt number and error code
-    iret // pops the stuff the cpu pushed 
+    iret 
 
 

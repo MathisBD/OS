@@ -32,7 +32,9 @@ bitset/bitset_set.libk.o \
 bitset/bitset_clear.libk.o \
 bitset/bitset_find_one.libk.o \
 bitset/bitset_find_zero.libk.o \
-bitset/bitset_test.libk.o
+bitset/bitset_test.libk.o \
+syscall/exit.libk.o \
+syscall/new_thread.libk.o
 
 LIBC_OBJS=
 

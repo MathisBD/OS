@@ -1,6 +1,4 @@
 
-.extern handle_interrupt
-
 // arguments (stack) :
 //   1) address of an 8 byte memory location containing 
 //      the new contents of idtr
@@ -43,8 +41,10 @@ isr_common:
     // (which we just constructed on the stack)
     mov %esp, %ecx
     push %ecx
+
+    .extern handle_interrupt
     call handle_interrupt
-    add $4, %esp // remove the address of user_regs struct
+    add $4, %esp // remove the address of intr_stack_t struct
 
     // restore registers 
     pop %gs 

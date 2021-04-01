@@ -1,5 +1,5 @@
 #include "filesystem/ext2/ext2_internal.h"
-#include "memory/heap.h"
+#include "memory/kheap.h"
 #include <stdbool.h>
 #include "drivers/ata_driver.h"
 
@@ -67,17 +67,17 @@ int rw_raw_inode(uint32_t inode_num, void* buf, bool write)
     uint32_t bg_num = (inode_num - 1) / sb->inodes_per_bg;
 
     // get the corresponding block group descriptor
-    bg_descr_t* bg = malloc(sizeof(bg_descr_t));
+    bg_descr_t* bg = kmalloc(sizeof(bg_descr_t));
     int r = get_bg_descr(bg_num, bg);
     if (r < 0) {
-        free(bg);
+        kfree(bg);
         return r;
     }
 
     // index the inode table
     uint32_t ofs = (inode_idx * INODE_SIZE) % sb->block_size;
     uint32_t block = bg->inode_table + (inode_idx * INODE_SIZE) / sb->block_size;
-    free(bg);
+    kfree(bg);
 
     if (write) {
         int r = write_block(block, ofs, INODE_SIZE, buf);
@@ -91,10 +91,10 @@ int rw_raw_inode(uint32_t inode_num, void* buf, bool write)
 
 int get_superblock(superblock_t* sb)
 {
-    void* buf = malloc(SB_SIZE);
+    void* buf = kmalloc(SB_SIZE);
     int r = rw_raw_superblock(buf, false);
     if (r < 0) {
-        free(buf);
+        kfree(buf);
         return r;
     }
 
@@ -120,7 +120,7 @@ int get_superblock(superblock_t* sb)
     }
     // the root is always inode 2
     sb->root = 2;
-    free(buf);
+    kfree(buf);
 
     // sanity checks
     if (sb->blocks_per_bg != 8 * sb->block_size) {
@@ -131,10 +131,10 @@ int get_superblock(superblock_t* sb)
 
 int sync_superblock(superblock_t* sb)
 {
-    void* buf = malloc(SB_SIZE);
+    void* buf = kmalloc(SB_SIZE);
     int r = rw_raw_superblock(buf, false);
     if (r < 0) {
-        free(buf);
+        kfree(buf);
         return r;
     }
 
@@ -143,16 +143,16 @@ int sync_superblock(superblock_t* sb)
     *((uint32_t*)(buf + 16)) = sb->unalloc_blocks;
 
     r = rw_raw_superblock(buf, true);
-    free(buf);
+    kfree(buf);
     return r;
 }
 
 int get_bg_descr(uint32_t bg_num, bg_descr_t* bg)
 {
-    void* buf = malloc(BG_DESCR_SIZE);
+    void* buf = kmalloc(BG_DESCR_SIZE);
     int r = rw_raw_bg_desr(bg_num, buf, false);
     if (r < 0) {
-        free(buf);
+        kfree(buf);
         return r;
     }
 
@@ -163,16 +163,16 @@ int get_bg_descr(uint32_t bg_num, bg_descr_t* bg)
     bg->unalloc_blocks = *((uint16_t*)(buf + 12));
     bg->unalloc_inodes = *((uint16_t*)(buf + 14));
 
-    free(buf);
+    kfree(buf);
     return 0;
 }
 
 int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg)
 {
-    void* buf = malloc(BG_DESCR_SIZE);
+    void* buf = kmalloc(BG_DESCR_SIZE);
     int r = rw_raw_bg_desr(bg_num, buf, false);
     if (r < 0) {
-        free(buf);
+        kfree(buf);
         return r;
     }
 
@@ -181,16 +181,16 @@ int sync_bg_descr(uint32_t bg_num, bg_descr_t* bg)
     *((uint16_t*)(buf + 14)) = bg->unalloc_inodes;
 
     r = rw_raw_bg_desr(bg_num, buf, true);
-    free(buf);
+    kfree(buf);
     return r;
 }
 
 int get_inode(uint32_t inode_num, inode_t* inode)
 {
-    void* buf = malloc(INODE_SIZE);
+    void* buf = kmalloc(INODE_SIZE);
     int r = rw_raw_inode(inode_num, buf, false);
     if (r < 0) {
-        free(buf);
+        kfree(buf);
         return r;
     }
     
@@ -208,16 +208,16 @@ int get_inode(uint32_t inode_num, inode_t* inode)
     inode->single_indir = *((uint32_t*)(buf + 88));
     inode->double_indir = *((uint32_t*)(buf + 92));
 
-    free(buf);
+    kfree(buf);
     return 0;    
 }   
 
 int sync_inode(uint32_t inode_num, inode_t* inode)
 {
-    void* buf = malloc(INODE_SIZE);
+    void* buf = kmalloc(INODE_SIZE);
     int r = rw_raw_inode(inode_num, buf, false);
     if (r < 0) {
-        free(buf);
+        kfree(buf);
         return r;
     }
     
@@ -239,6 +239,6 @@ int sync_inode(uint32_t inode_num, inode_t* inode)
     *((uint32_t*)(buf + 92)) = inode->double_indir;
 
     r = rw_raw_inode(inode_num, buf, true);
-    free(buf);
+    kfree(buf);
     return r;
 }

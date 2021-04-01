@@ -160,7 +160,7 @@ void init_idt(void)
 	set_isr((uint32_t)isr46, 46);
 	set_isr((uint32_t)isr47, 47);
 
-	// interrupt 128 (syscall) is the only one 
+	// interrupt 128=0x80 (syscall) is the only one 
 	// that can be called by the user
 	set_isr_user((uint32_t)isr128, 128);
 	

@@ -5,6 +5,7 @@
 #include <panic.h>
 #include "scheduler/timer.h"
 #include <string.h>
+#include "memory/kheap.h"
 
 
 #define SECTOR_SIZE 512
@@ -64,7 +65,7 @@ int ata_read(uint32_t offset, uint32_t count, void* buf)
 	uint32_t first_sct = offset / SECTOR_SIZE;
 	uint32_t last_sct = (offset + count - 1) / SECTOR_SIZE;
 
-	uint8_t* tmp_buf = malloc(SECTOR_SIZE);
+	uint8_t* tmp_buf = kmalloc(SECTOR_SIZE);
 	
 	uint32_t buf_offs = 0;
 	for (int i = first_sct; i <= last_sct; i++) {
@@ -92,13 +93,13 @@ int ata_read(uint32_t offset, uint32_t count, void* buf)
 		}
 		// actually write the sector
 		if (rw_sector(i, tmp_buf, false) < 0) {
-			free(tmp_buf);
+			kfree(tmp_buf);
 			return -1;
 		}
 		memcpy(buf + buf_offs, tmp_buf + ofs, cnt);
 		buf_offs += cnt;
 	}
-	free(tmp_buf);
+	kfree(tmp_buf);
 	return 0;
 }
 

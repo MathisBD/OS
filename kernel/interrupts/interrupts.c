@@ -5,8 +5,7 @@
 #include "scheduler/timer.h"
 #include "memory/paging.h"
 #include "tables/idt.h"
-#include "scheduler/process.h"
-#include "scheduler/scheduler.h"
+#include "scheduler/do_syscall.h"
 
 
 void handle_interrupt(intr_stack_t* pregs)
@@ -49,9 +48,9 @@ void handle_interrupt(intr_stack_t* pregs)
 		page_fault(info);
 		break;
 	}
-    case 128: // system call
+    case 0x80: // system call
     {
-        syscall_interrupt(pregs);
+        dispatch_syscall(pregs);
         break;
     }
 	default:
@@ -62,13 +61,12 @@ void handle_interrupt(intr_stack_t* pregs)
 }
 
 
-void syscall_interrupt(intr_stack_t* pregs) 
+void dispatch_syscall(intr_stack_t* pregs) 
 {
     switch (pregs->eax) {
-    case SYSCALL_FORK:
+    case SC_NEW_THREAD:
     {
-		uint32_t flags = 0;
-		fork(curr_proc, flags, pregs);
+		do_new_thread(pregs);
 		break;
     }
     default:

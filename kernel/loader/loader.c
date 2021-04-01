@@ -1,7 +1,6 @@
 #include "loader/elf.h"
 #include <stdbool.h>
 #include <string.h>
-#include "memory/heap.h"
 #include "tables/gdt.h"
 #include "memory/constants.h"
 #include <stdio.h>
@@ -85,7 +84,7 @@ bool load_elf(char* elf_start, char* elf_end)
 
     // create a kernel stack for handling the interrupts 
     // of this process
-    uint32_t stack_size = 4096;
+    /*uint32_t stack_size = 4096;
     char* stack_bottom = malloc(stack_size);
     char* stack_top = stack_bottom + stack_size;
     set_tss_esp((uint32_t)stack_top);
@@ -94,7 +93,7 @@ bool load_elf(char* elf_start, char* elf_end)
     uint32_t entry_addr = e_hdr->e_entry;
     /*vga_print("\nentry point=");
     vga_print_int(entry_addr, 16);
-    vga_print("\n");*/
+    vga_print("\n");
     
     printf("\nJUMP\n\n");
 
@@ -102,7 +101,7 @@ bool load_elf(char* elf_start, char* elf_end)
     //memset((void*)(USER_STACK_TOP - 4096), 0, 4096);
 
     extern void loader_jump_user(uint32_t, uint32_t);
-    loader_jump_user(entry_addr, USER_STACK_TOP);
+    loader_jump_user(entry_addr, USER_STACK_TOP);*/
 
     return true;
 }

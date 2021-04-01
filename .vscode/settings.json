@@ -3,6 +3,8 @@
         "string_utils.h": "c",
         "ata_minidriver.h": "c",
         "stdio.h": "c",
-        "bitset.h": "c"
+        "bitset.h": "c",
+        "process.h": "c",
+        "ext2.h": "c"
     }
 }

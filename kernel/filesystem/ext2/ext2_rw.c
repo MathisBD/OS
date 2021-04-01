@@ -2,7 +2,7 @@
 
 #include "filesystem/ext2/ext2_internal.h"
 #include <stdbool.h>
-#include "memory/heap.h"
+#include "memory/kheap.h"
 #include <string.h>
 #include "drivers/ata_driver.h"
 #include <stdio.h>
@@ -42,11 +42,11 @@ int write_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
     int r;
     // we write part of the block
     if (offset > 0 || count < sb->block_size) {
-        void* contents = malloc(sb->block_size);
+        void* contents = kmalloc(sb->block_size);
         // read the contents of the block
         r = read_block(block, 0, sb->block_size, contents);
         if (r < 0) {
-            free(contents);
+            kfree(contents);
             return r;
         }
         // add the stuff we write
@@ -61,11 +61,11 @@ int write_block(uint32_t block, uint32_t offset, uint32_t count, void* buf)
                 contents + i * SECTOR_SIZE
             );
             if (r < 0) {
-                free(contents);
+                kfree(contents);
                 return EXT2_ERR_DISK_WRITE;
             }
         }
-        free(contents);
+        kfree(contents);
         return count;
     }
     // we write the whole block
@@ -120,18 +120,18 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
         // create the new contents
         // it doesn't matter what was previously in the block on disk,
         // we zero it out anyways.
-        // this makes it so we don't have to zero out blocks when freeing them.
-        contents = malloc(sb->block_size);
+        // this makes it so we don't have to zero out blocks when kfreeing them.
+        contents = kmalloc(sb->block_size);
         memset(contents, 0, sb->block_size);
         memcpy(contents + offset, buf, count);
     }
     // non sparse block
     else {
         // read the contents of the block
-        contents = malloc(sb->block_size);
+        contents = kmalloc(sb->block_size);
         r = read_block(*block, 0, sb->block_size, contents);
         if (r < 0) {
-            free(contents);
+            kfree(contents);
             return r;
         }
         // add the stuff we write
@@ -146,7 +146,7 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
         }
         // the block becomes sparse
         if (sparse) {
-            free(contents);
+            kfree(contents);
             r = free_block(*block);
             *block = 0;
             // don't write the new contents
@@ -154,7 +154,7 @@ int write_block_sparse(uint32_t* block, uint32_t offset, uint32_t count, void* b
         }
     }
     r = write_block(*block, 0, sb->block_size, contents);  
-    free(contents);
+    kfree(contents);
     if (r < 0) {
         return r;
     }
@@ -193,10 +193,10 @@ int write_bl_num_recurs(uint32_t* block, uint32_t offset, uint32_t bl_num, uint3
         return 0;
     }
     // read the ptrs block
-    uint32_t* ptrs_block = malloc(sb->block_size);
+    uint32_t* ptrs_block = kmalloc(sb->block_size);
     r = read_block(*block, 0, sb->block_size, ptrs_block);
     if (r < 0) {
-        free(ptrs_block);
+        kfree(ptrs_block);
         return r;
     }
     // recurse
@@ -211,7 +211,7 @@ int write_bl_num_recurs(uint32_t* block, uint32_t offset, uint32_t bl_num, uint3
         level-1
     );
     if (r < 0) {
-        free(ptrs_block);
+        kfree(ptrs_block);
         return r;
     }
     // update the ptrs block if we allocated/deallocated
@@ -225,11 +225,11 @@ int write_bl_num_recurs(uint32_t* block, uint32_t offset, uint32_t bl_num, uint3
             bg_num
         );
         if (r < 0) {
-            free(ptrs_block);
+            kfree(ptrs_block);
             return r;
         }
     }
-    free(ptrs_block);
+    kfree(ptrs_block);
     return 0;
 }
 
@@ -262,10 +262,10 @@ int read_bl_nums_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_
         return 0;
     }
     // read the ptrs block
-    uint32_t* ptrs_block = malloc(sb->block_size);
+    uint32_t* ptrs_block = kmalloc(sb->block_size);
     r = read_block(block, 0, sb->block_size, ptrs_block);
     if (r < 0) {
-        free(ptrs_block);
+        kfree(ptrs_block);
         return r;
     }
     // recurse
@@ -281,11 +281,11 @@ int read_bl_nums_recurs(uint32_t block, uint32_t offset, uint32_t count, uint32_
             level-1
         );
         if (r < 0) {
-            free(ptrs_block);
+            kfree(ptrs_block);
             return r;
         }
     }
-    free(ptrs_block);
+    kfree(ptrs_block);
     return 0;
 }
 
@@ -293,10 +293,10 @@ int read_bl_nums(uint32_t inode_num, uint32_t offset, uint32_t count, uint32_t* 
 {
     // get the inode
     int r;
-    inode_t* inode = malloc(sizeof(inode_t));
+    inode_t* inode = kmalloc(sizeof(inode_t));
     r = get_inode(inode_num, inode);
     if (r < 0) {
-        free(inode);
+        kfree(inode);
         return r;
     }
 
@@ -338,7 +338,7 @@ int read_bl_nums(uint32_t inode_num, uint32_t offset, uint32_t count, uint32_t* 
         }
         ofs += r;
     }
-    free(inode);
+    kfree(inode);
     return 0;
 }
 
@@ -346,10 +346,10 @@ int write_bl_num(uint32_t inode_num, uint32_t offset, uint32_t bl_num)
 {
     // get the inode
     int r;
-    inode_t* inode = malloc(sizeof(inode_t));
+    inode_t* inode = kmalloc(sizeof(inode_t));
     r = get_inode(inode_num, inode);
     if (r < 0) {
-        free(inode);
+        kfree(inode);
         return r;
     }
 
@@ -387,14 +387,14 @@ int write_bl_num(uint32_t inode_num, uint32_t offset, uint32_t bl_num)
         goto write_bl_num_success;
     }
 write_bl_num_failure:
-    free(inode);
+    kfree(inode);
     // the block designated by 'offset' doesn't exist
     // (it is after the maximum file size)
     return EXT2_ERR_BLOCK_EXIST;
 write_bl_num_success:
     // write back the inode 
     r = sync_inode(inode_num, inode);
-    free(inode);
+    kfree(inode);
     return r;
 }
 
@@ -411,10 +411,10 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
     uint32_t first_bl = offset / sb->block_size;
     uint32_t last_bl = (offset + count - 1) / sb->block_size;
     uint32_t bl_count = last_bl - first_bl + 1;
-    uint32_t* bl_nums = malloc(bl_count * sizeof(uint32_t));
+    uint32_t* bl_nums = kmalloc(bl_count * sizeof(uint32_t));
     r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
     if (r < 0) {
-        free(bl_nums);
+        kfree(bl_nums);
         return r;   
     }
     // actually write
@@ -430,7 +430,7 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
             inode_num / sb->inodes_per_bg
         );
         if (r < 0) {
-            free(bl_nums);
+            kfree(bl_nums);
             return r;
         }
         buf_offs += r;
@@ -439,12 +439,12 @@ int write_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
         if (bl_nums[i] != old_bl_num) {
             r = write_bl_num(inode_num, first_bl+i, bl_nums[i]);
             if (r < 0) {
-                free(bl_nums);
+                kfree(bl_nums);
                 return r;
             }
         }
     }
-    free(bl_nums);
+    kfree(bl_nums);
     return 0;
 }
 
@@ -461,10 +461,10 @@ int read_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
     uint32_t first_bl = offset / sb->block_size;
     uint32_t last_bl = (offset + count - 1) / sb->block_size;
     uint32_t bl_count = last_bl - first_bl + 1;
-    uint32_t* bl_nums = malloc(bl_count * sizeof(uint32_t));
+    uint32_t* bl_nums = kmalloc(bl_count * sizeof(uint32_t));
     r = read_bl_nums(inode_num, first_bl, bl_count, bl_nums);
     if (r < 0) {
-        free(bl_nums);
+        kfree(bl_nums);
         return r;   
     }
     // actually read
@@ -478,11 +478,11 @@ int read_inode(uint32_t inode_num, uint32_t offset, uint32_t count, void* buf)
             buf + buf_offs
         );
         if (r < 0) {
-            free(bl_nums);
+            kfree(bl_nums);
             return r;
         }
         buf_offs += r;
     }
-    free(bl_nums);
+    kfree(bl_nums);
     return 0;
 }

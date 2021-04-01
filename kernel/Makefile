@@ -26,7 +26,7 @@ scheduler/timer.o \
 scheduler/scheduler.o \
 scheduler/scheduler_asm.o \
 scheduler/process.o \
-scheduler/process_asm.o \
+scheduler/do_syscall.o \
 loader/loader.o \
 loader/loader_asm.o \
 filesystem/ext2/ext2_gen.o \
@@ -34,7 +34,8 @@ filesystem/ext2/ext2_rw.o \
 filesystem/ext2/ext2_dir.o \
 filesystem/ext2/ext2_alloc.o \
 filesystem/ext2/ext2_disk.o \
-filesystem/fs.o
+filesystem/fs.o \
+interrupts/interrupts.o
 
 .PHONY: all clean install install-headers install-kernel
 
