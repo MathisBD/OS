@@ -29,27 +29,27 @@ switch_asm:
     push %ebx
 
     // when returning to prev, jump there
-    mov $switch_asm_regular, EIP_OFS(%eax, %ecx, 1)
+    mov $switch_asm_regular, EIP_OFS(%eax, %ecx)
 
     // change stacks from A to B
-    mov %esp, ESP_OFS(%eax, %ecx, 1)
-    mov ESP_OFS(%edx, %ecx, 1), %esp
+    mov %esp, ESP_OFS(%eax, %ecx)
+    mov ESP_OFS(%edx, %ecx), %esp
 
     // we are now executing process B 
     .extern curr_proc 
     mov %edx, curr_proc
 
     // update the TSS esp 
-    mov ESP0_OFS(%edx, %ecx, 1), %ebx 
+    /*mov ESP0_OFS(%edx, %ecx), %ebx 
     push %ebx 
     .extern set_tss_esp // defined in gdt.h
     call set_tss_esp
-    pop %ebx
+    pop %ebx*/
 
     // most of the time, next->ctx.eip is switch_asm_regular
     // except : when next hasn't run at all yet
-    mov EIP_OFS(%edx, %ecx, 1), %ebx 
-    jmp *%ebp 
+    mov EIP_OFS(%edx, %ecx), %ebx 
+    jmp *%ebx 
 
 // here is where prev returns
 // AND where next starts its execution if it was
@@ -88,5 +88,4 @@ switch_asm_new_thread:
 
     add $8, %esp // pop the interrupt number and error code
     iret 
-
 

@@ -5,7 +5,8 @@
 #include "tables/gdt.h"
 #include <panic.h>
 #include "scheduler/do_syscall.h"
-
+#include "scheduler/scheduler.h"
+#include "scheduler/process.h"
 
 // kernel/user thread
 // kernel threads run only in kernel mode 
@@ -21,6 +22,7 @@ void do_new_thread(intr_stack_t* pregs)
     uint32_t flags = pregs->edi;
 
     proc_desc_t* thread = kmalloc(sizeof(proc_desc_t));
+    thread->pid = new_pid();
     // store the child pid in the parent eax
     pregs->eax = thread->pid;
     // setup the new stack : it has to mimic the stack
@@ -60,4 +62,7 @@ void do_new_thread(intr_stack_t* pregs)
     // the new process is first switched in
     extern void switch_asm_new_thread;
     thread->ctx.eip = &switch_asm_new_thread;
+
+    // scheduler stuff
+    sched_new_thread(thread);
 }

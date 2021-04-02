@@ -8,6 +8,7 @@ new_thread:
     .extern kmalloc
     push $8 
     call kmalloc
+    add $4, %esp
 #endif
 #ifdef __is_libc
     // use libc malloc instead
@@ -17,11 +18,12 @@ new_thread:
     mov %ecx, (%eax)   
     // arg 
     mov 8(%esp), %ecx 
-    mov %ecx, 4(%esp) 
+    mov %ecx, 4(%eax) 
 
+    push %eax 
     mov $SC_NEW_THREAD, SC_ARG_0
     mov $thread_wrapper, SC_ARG_1 // wrapper function
-    mov %eax, SC_ARG_2 // bundle arg 
+    pop SC_ARG_2 // bundle arg 
     mov 12(%esp), SC_ARG_3 // stack 
     mov 16(%esp), SC_ARG_4 // flags
     int $SC_INTR
@@ -38,4 +40,6 @@ thread_wrapper:
     call *%ebx
     // exit from the process
     // with the error code the function just gave us 
+    push %eax 
     call exit
+

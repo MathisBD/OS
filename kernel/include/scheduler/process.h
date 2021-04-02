@@ -22,7 +22,7 @@ typedef struct {
     proc_ctx_t ctx;
     // scheduling info
     //uint32_t status;
-    //ll_part_t run_queue;
+    ll_part_t run_queue;
     // relationship info
     //ll_part_t children_head;
     //ll_part_t siblings;

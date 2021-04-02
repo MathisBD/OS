@@ -31,8 +31,8 @@
 
 void fn(void* arg)
 {
-    printf("arg=%d\n", *((int*)arg));
-    while (1);
+    printf("THREAD: arg=%d\n", *((int*)arg));
+    schedule();
 }
 
 
@@ -70,17 +70,19 @@ void kernel_main(boot_info_t* boot_info)
     init_kheap();
     init_timer(pit_freq);
     init_fs();
+    init_scheduler();
 
     // =========
     // TEST CODE
     // =========
 
-    // setup an execution context for process 0 (init)
-    create_init_proc(&curr_proc);
-
     // create a thread
     int arg = 42;
     pid_t tid = new_thread(fn, &arg, 0, NEW_THREAD_FLAGS_KERNEL);
+
+    schedule();
+
+    printf("init regained control\n");
 
     while (1);
 }
