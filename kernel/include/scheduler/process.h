@@ -21,8 +21,10 @@ typedef struct {
     void* kstack;
     proc_ctx_t ctx;
     // scheduling info
-    //uint32_t status;
-    ll_part_t run_queue;
+    uint32_t status;
+    uint32_t priority;
+    ll_part_t run_queue; // list of same priority running processes
+    float time_left; // cpu usage time left, in milliseconds
     // relationship info
     //ll_part_t children_head;
     //ll_part_t siblings;

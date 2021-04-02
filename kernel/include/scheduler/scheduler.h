@@ -1,7 +1,11 @@
 #pragma once
 #include "scheduler/process.h"
 
-
+// 0 : highest priority
+// PROC_PRIO_CNT-1 : lowest priority
+#define PROC_PRIO_CNT 50
+// in milliseconds
+#define DEFAULT_PROC_TIME 100
 #define STATUS_RUN  1
 
 extern proc_desc_t* curr_proc;

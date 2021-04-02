@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
+// creates a bitset with size bits on the heap,
+// all bits initialized to 0
+void* bitset_create(uint32_t size);
 void bitset_set(void* addr, uint32_t index);
 void bitset_clear(void* addr, uint32_t index);
 // returns true if the bit at index is set (equal to one)

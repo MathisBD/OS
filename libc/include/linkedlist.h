@@ -36,12 +36,21 @@ typedef struct __ll_part {
 }
 
 // n,p : pointers to list parts
-// adds n after p
+// adds n AFTER p
 #define ll_add(n, p) { \
 (n)->next = (p)->next; \
 (p)->next->prev = (n); \
 (p)->next = (n); \
 (n)->prev = (p); \
+}
+
+// n,p : pointers to list parts
+// adds n BEFORE p
+#define ll_add_before(n, p) { \
+(n)->next = (p); \
+(n)->prev = (p)->prev; \
+(p)->prev->next = n; \
+(p)->prev = n; \
 }
 
 // p : pointer to a list part 

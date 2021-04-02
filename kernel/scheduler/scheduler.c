@@ -1,28 +1,37 @@
 #include "scheduler/scheduler.h"
+#include <bitset.h>
 
 
 proc_desc_t* curr_proc;
-// processes that are running
-ll_part_t run_head;
+
+// processes that are running, sorted by priority
+ll_part_t run_queues[PROC_PRIO_CNT];
+// for each priority, is there a process running ?
+void* running_bitset;
 
 void init_scheduler()
 {
-    ll_init(&run_head);    
+    for (uint32_t prio = 0; prio < PROC_PRIO_CNT; prio++) {
+        ll_init(run_queues + prio);    
+    }
+    running_bitset = bitset_create(PROC_PRIO_CNT);
     create_init_proc(&curr_proc);
     sched_init_proc(curr_proc);
+}
+
+uint32_t curr_prio()
+{
+    return bitset_find_one(running_bitset, PROC_PRIO_CNT);
 }
 
 
 void schedule()
 {
-    printf("SCHEDULE:curr_proc=%u\n", curr_proc->pid);
-    ll_for_each_entry(proc, &run_head, proc_desc_t, run_queue) {
-        if (proc != curr_proc) {
-            printf("switching to pid=%u\n", proc->pid);
-            switch_proc(curr_proc, proc);
-        }
-    }
-
+    uint32_t prio = curr_prio();
+    proc_desc_t* next = run_queues[prio].next;
+    ll_rem(&(next->run_queue));
+    ll_add_before(&(next->run_queue), run_queues + prio);
+    switch_proc(curr_proc, next);
 }
 
 void switch_proc(proc_desc_t* prev, proc_desc_t* next)
@@ -38,19 +47,28 @@ void switch_proc(proc_desc_t* prev, proc_desc_t* next)
 
     // when execution of process prev resumes,
     // the code here will be executed
-    printf("resumed switch_proc\n");
 }
 
-void sched_init_proc(proc_desc_t* proc) 
+void sched_init_proc(proc_desc_t* p)
 {
-    ll_add(&(proc->run_queue), &run_head);
+    p->status = STATUS_RUN;
+    p->time_left = DEFAULT_PROC_TIME;
+    ll_add(&(p->run_queue), run_queues + p->priority);
+    bitset_set(running_bitset, p->priority);
 }
 
-// called when the thread has just been created
-// by syscall 'new_thread'
-void sched_new_thread(proc_desc_t* thread)
-{
-    ll_add(&(thread->run_queue), &run_head);
+// called when the thread/process has just been created
+void sched_new_proc(proc_desc_t* p)
+{ 
+    uint32_t prio = curr_prio();
+    p->status = STATUS_RUN;
+    p->time_left = DEFAULT_PROC_TIME;
+    ll_add(&(p->run_queue), run_queues + p->priority);
+    bitset_set(running_bitset, p->priority);
+    // preempt the currently running process
+    if (p->priority < prio) {
+        schedule();
+    }
 }
 
 pid_t get_pid()

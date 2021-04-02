@@ -63,6 +63,9 @@ void do_new_thread(intr_stack_t* pregs)
     extern void switch_asm_new_thread;
     thread->ctx.eip = &switch_asm_new_thread;
 
+
     // scheduler stuff
-    sched_new_thread(thread);
+    // copy the parent priority
+    thread->priority = curr_proc->priority;
+    sched_new_proc(thread);
 }

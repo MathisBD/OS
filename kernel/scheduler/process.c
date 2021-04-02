@@ -33,4 +33,5 @@ void create_init_proc(proc_desc_t** proc)
     (*proc)->ctx.esp0 = (*proc)->kstack + KSTACK_SIZE;
     
     (*proc)->pid = 0;
+    (*proc)->priority = 8;
 }
