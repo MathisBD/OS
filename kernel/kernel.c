@@ -27,13 +27,18 @@
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
 
+#define DELAY() {for (int i = 0; i < 100000000; i++);}
 
 
 void fn(void* arg)
 {
-    printf("THREAD: arg=%d\n", *((int*)arg));
-    schedule();
+    printf("thread A\n");
+    DELAY(); 
+    printf("thread B\n");
+    DELAY();
+    printf("thread C\n");
 }
+
 
 
 void kernel_main(boot_info_t* boot_info)
@@ -80,9 +85,11 @@ void kernel_main(boot_info_t* boot_info)
     int arg = 42;
     pid_t tid = new_thread(fn, &arg, 0, NEW_THREAD_FLAGS_KERNEL);
 
-    schedule();
-
-    printf("init regained control\n");
+    printf("main A\n");
+    DELAY(); 
+    printf("main B\n");
+    DELAY();
+    printf("main C\n");
 
     while (1);
 }

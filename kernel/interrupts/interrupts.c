@@ -6,9 +6,31 @@
 #include "memory/paging.h"
 #include "tables/idt.h"
 #include "scheduler/do_syscall.h"
+#include "scheduler/scheduler.h"
 
 
-void handle_interrupt(intr_stack_t* pregs)
+void dispatch_syscall(intr_stack_t* pregs) 
+{
+    switch (pregs->eax) {
+    case SC_NEW_THREAD:
+    {
+		do_new_thread(pregs);
+		return;
+    }
+	case SC_EXIT:
+	{
+		printf("exit system call not implemented\n");
+		while(1);
+		return;
+	}
+    default:
+        printf("Unknown system call !\nsyscall number=%d\n", pregs->eax);
+        while(1);
+        return;
+    }
+}
+
+void dispatch_interrupt(intr_stack_t* pregs)
 {
 	// PIC IRQs
 	if (IDT_PIC_OFFSET <= pregs->intr_num && 
@@ -20,15 +42,17 @@ void handle_interrupt(intr_stack_t* pregs)
 		switch(irq) {
 		case 0: // clock (PIT)
 			timer_interrupt(pregs->eax);
-			break;
+			return;
 		case 1: // keyboard
 			keyboard_interrupt();
-			break;
+			return;
 		case 14: // primary ATA drive
 			ata_primary_interrupt();
-			break;
+			return;
+		default:
+			printf("unknown pic irq : %u\n", irq);
+			while(1);
 		}
-		return;
 	}
 
 	// general interrupts
@@ -46,32 +70,24 @@ void handle_interrupt(intr_stack_t* pregs)
 		info.address = get_cr2();
 
 		page_fault(info);
-		break;
+		return;
 	}
     case 0x80: // system call
     {
         dispatch_syscall(pregs);
-        break;
+        return;
     }
 	default:
 		printf("Uncatched interrupt !\nint num=%d\n", pregs->intr_num);
-		while (1);
-		break;
+		while(1);
 	}
 }
 
 
-void dispatch_syscall(intr_stack_t* pregs) 
+void handle_interrupt(intr_stack_t* pregs)
 {
-    switch (pregs->eax) {
-    case SC_NEW_THREAD:
-    {
-		do_new_thread(pregs);
-		break;
-    }
-    default:
-        printf("Unknown system call !\nsyscall number=%d\n", pregs->eax);
-        while(1);
-        break;
-    }
+	dispatch_interrupt(pregs);
+	/*if (curr_proc->need_resched) {
+		schedule();
+	}*/
 }

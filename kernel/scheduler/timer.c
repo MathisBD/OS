@@ -1,27 +1,24 @@
 #include "scheduler/timer.h"
 #include <stdint.h>
+#include "scheduler/scheduler.h"
 
 
 float freq; // frequency of interrupts, in Hz
-float delta_time; // time between interrupts, in seconds
-
-float time; // in seconds
+float delta_time; // time between interrupts, in milliseconds
+float time; // in milliseconds
 
 
 void init_timer(float f)
 {
     freq = f;
-    delta_time = 1.0 / f;
-
+    delta_time = 1000.0 / f;
     time = 0.0;
 }
 
-void timer_interrupt(uint32_t tmp)
+void timer_interrupt()
 {
-    if ((uint32_t)(1*(time + delta_time)) > (uint32_t)(1*time)) {
-        //printf("%d ---> %x\n", (uint32_t)(time + delta_time), tmp);
-    }
     time += delta_time;
+    //scheduler_tick(delta_time);
 }
 
 void wait(float t)

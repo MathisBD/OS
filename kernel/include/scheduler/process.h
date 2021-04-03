@@ -25,6 +25,7 @@ typedef struct {
     uint32_t priority;
     ll_part_t run_queue; // list of same priority running processes
     float time_left; // cpu usage time left, in milliseconds
+    bool need_resched; // if true, invoke schedule() right before entering user mode again
     // relationship info
     //ll_part_t children_head;
     //ll_part_t siblings;
