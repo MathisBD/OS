@@ -1,4 +1,4 @@
-#include "scheduler/process.h"
+/*#include "scheduler/process.h"
 #include "memory/kheap.h"
 #include "memory/constants.h"
 #include <string.h>
@@ -34,4 +34,4 @@ void create_init_proc(proc_desc_t** proc)
     
     (*proc)->pid = 0;
     (*proc)->priority = 8;
-}
+}*/

@@ -1,4 +1,4 @@
-#include "scheduler/scheduler.h"
+/*#include "scheduler/scheduler.h"
 #include <bitset.h>
 
 bool scheduler_ready = false;
@@ -99,4 +99,4 @@ void sched_new_proc(proc_desc_t* p, proc_desc_t* creator)
 pid_t get_pid()
 {
     return curr_proc->pid;
-}
+}*/

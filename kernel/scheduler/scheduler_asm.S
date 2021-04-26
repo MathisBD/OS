@@ -1,4 +1,4 @@
-
+/*
 .global switch_asm 
 // when forking a process, set ctx.eip to this 
 // address for the new process
@@ -40,11 +40,11 @@ switch_asm:
     mov %edx, curr_proc
 
     // update the TSS esp 
-    /*mov ESP0_OFS(%edx, %ecx), %ebx 
-    push %ebx 
-    .extern set_tss_esp // defined in gdt.h
-    call set_tss_esp
-    pop %ebx*/
+    //mov ESP0_OFS(%edx, %ecx), %ebx 
+    //push %ebx 
+    //.extern set_tss_esp // defined in gdt.h
+    //call set_tss_esp
+    //pop %ebx
 
     // most of the time, next->ctx.eip is switch_asm_regular
     // except : when next hasn't run at all yet
@@ -87,5 +87,4 @@ switch_asm_new_thread:
     pop %edi 
 
     add $8, %esp // pop the interrupt number and error code
-    iret 
-
+    iret */

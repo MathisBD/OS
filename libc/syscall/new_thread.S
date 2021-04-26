@@ -1,4 +1,4 @@
-#include "__syscall_internal.h"
+/*#include "__syscall_internal.h"
 
 
 .global new_thread 
@@ -41,5 +41,5 @@ thread_wrapper:
     // exit from the process
     // with the error code the function just gave us 
     push %eax 
-    call exit
+    call exit*/
 

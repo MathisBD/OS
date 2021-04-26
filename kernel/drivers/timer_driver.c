@@ -1,4 +1,4 @@
-#include "scheduler/timer.h"
+#include "drivers/timer_driver.h"
 #include <stdint.h>
 #include "scheduler/scheduler.h"
 

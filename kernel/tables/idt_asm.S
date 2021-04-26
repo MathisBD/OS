@@ -8,11 +8,6 @@ load_idtr:
     lidt (%edx)
     ret
 
-.global enable_interrupts
-enable_interrupts:
-    sti 
-    ret
-
 isr_common:
     // save registers 
     // this has to respect the layout given by intr_stack_t
@@ -61,6 +56,7 @@ isr_common:
 
     add $8, %esp // pop the interrupt number and error code
     iret // pops the stuff the cpu pushed 
+
 
 .macro isr_no_errcode n
 .global isr\n
@@ -134,4 +130,9 @@ isr_no_errcode 46
 isr_no_errcode 47
 
 // syscall
-isr_no_errcode 128
+.global isr128
+isr128:
+    push $0 // dummy error code 
+    push $128 // interrupt number
+    jmp isr_common
+.endm

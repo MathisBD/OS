@@ -2,6 +2,7 @@
 #include "memory/constants.h"
 #include <linkedlist.h>
 #include <panic.h>
+#include <stdio.h>
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,

@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+#include <panic.h>
 #include "bootloader_info.h"
 
 

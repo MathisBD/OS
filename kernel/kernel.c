@@ -4,7 +4,7 @@
 #include "drivers/pit_driver.h"
 #include "tables/idt.h"
 #include "tables/gdt.h"
-#include "scheduler/timer.h"
+#include "drivers/timer_driver.h"
 #include "memory/paging.h"
 #include "memory/kheap.h"
 #include "bootloader_info.h"
@@ -14,15 +14,13 @@
 #include <stdio.h>
 #include <string.h>
 #include "drivers/ata_driver.h"
-#include "scheduler/timer.h"
 #include "filesystem/fs.h"
 #include "filesystem/ext2/ext2.h"
 #include <bitset.h>
 #include <linkedlist.h>
-#include "scheduler/process.h"
-#include "scheduler/scheduler.h"
-#include <syscall.h>
-
+#include "threads/thread.h"
+#include "threads/scheduler.h"
+#include "interrupts/interrupts.h"
 
 #define PIT_DEFAULT_FREQ 1000 // Hz
 
@@ -30,7 +28,7 @@
 #define DELAY() {for (int i = 0; i < 100000000; i++);}
 
 
-void fn(void* arg)
+void fn(int arg)
 {
     printf("thread A\n");
     DELAY(); 
@@ -75,6 +73,7 @@ void kernel_main(boot_info_t* boot_info)
     init_kheap();
     init_timer(pit_freq);
     init_fs();
+    init_threads();
     init_scheduler();
 
     // =========
@@ -83,7 +82,7 @@ void kernel_main(boot_info_t* boot_info)
 
     // create a thread
     int arg = 42;
-    pid_t tid = new_thread(fn, &arg, 0, NEW_THREAD_FLAGS_KERNEL);
+    tid_t tid = thread_create(fn, arg);
 
     printf("main A\n");
     DELAY(); 

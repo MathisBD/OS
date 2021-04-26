@@ -1,4 +1,4 @@
-
+/*
 // system calls takes their arguments in registers, 
 // in the following order :
 // eax, ebx, ecx, edx, edi, esi
@@ -17,4 +17,4 @@
 #define SC_ARG_2    %ecx
 #define SC_ARG_3    %edx
 #define SC_ARG_4    %edi
-#define SC_ARG_5    %esi
+#define SC_ARG_5    %esi*/

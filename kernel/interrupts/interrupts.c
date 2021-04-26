@@ -2,17 +2,15 @@
 #include "drivers/pic_driver.h"
 #include "drivers/keyboard_driver.h"
 #include "drivers/ata_driver.h"
-#include "scheduler/timer.h"
+#include "drivers/timer_driver.h"
 #include "memory/paging.h"
 #include "tables/idt.h"
-#include "scheduler/do_syscall.h"
-#include "scheduler/scheduler.h"
 
 
 void dispatch_syscall(intr_stack_t* pregs) 
 {
     switch (pregs->eax) {
-    case SC_NEW_THREAD:
+    /*case SC_NEW_THREAD:
     {
 		do_new_thread(pregs);
 		return;
@@ -22,7 +20,7 @@ void dispatch_syscall(intr_stack_t* pregs)
 		printf("exit system call not implemented\n");
 		while(1);
 		return;
-	}
+	}*/
     default:
         printf("Unknown system call !\nsyscall number=%d\n", pregs->eax);
         while(1);

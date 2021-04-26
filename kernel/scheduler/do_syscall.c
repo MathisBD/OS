@@ -1,4 +1,4 @@
-#include "scheduler/process.h"
+/*#include "scheduler/process.h"
 #include "interrupts/regs.h"
 #include "memory/constants.h"
 #include "memory/kheap.h"
@@ -68,4 +68,4 @@ void do_new_thread(intr_stack_t* pregs)
     // copy the parent priority
     thread->priority = curr_proc->priority;
     sched_new_proc(thread);
-}
+}*/

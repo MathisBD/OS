@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 #include <linkedlist.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -37,5 +37,4 @@ pid_t new_pid();
 void find_proc(pid_t pid);
 void free_proc(proc_desc_t* proc);
 // creates the init process
-void create_init_proc(proc_desc_t** proc);
-
+void create_init_proc(proc_desc_t** proc);*/

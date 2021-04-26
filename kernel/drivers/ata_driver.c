@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <panic.h>
-#include "scheduler/timer.h"
 #include <string.h>
 #include "memory/kheap.h"
 
