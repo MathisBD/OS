@@ -30,11 +30,9 @@
 
 void fn(int arg)
 {
-    printf("thread A\n");
-    DELAY(); 
-    printf("thread B\n");
-    DELAY();
-    printf("thread C\n");
+    printf("thread A : arg = %d\n", arg);
+    thread_yield();
+    printf("thread B : arg = %d\n", arg);
 }
 
 
@@ -64,6 +62,7 @@ void kernel_main(boot_info_t* boot_info)
         (mmap_entry_t*)(boot_info->mmap_addr + V_KERNEL_START), 
         boot_info->mmap_ent_count
     );
+
     enable_interrupts();
 
     // ==========
@@ -74,7 +73,6 @@ void kernel_main(boot_info_t* boot_info)
     init_timer(pit_freq);
     init_fs();
     init_threads();
-    init_scheduler();
 
     // =========
     // TEST CODE
@@ -84,11 +82,15 @@ void kernel_main(boot_info_t* boot_info)
     int arg = 42;
     tid_t tid = thread_create(fn, arg);
 
+
     printf("main A\n");
-    DELAY(); 
+    thread_yield();
     printf("main B\n");
-    DELAY();
+    thread_yield();
     printf("main C\n");
+    thread_yield();
+    thread_yield();
+    printf("main D\n");
 
     while (1);
 }

@@ -11,12 +11,6 @@ thread_switch_asm:
     mov %esp, %ebp
     push %ebx
 
-    .extern sthread_switch
-    push 12(%ebp)   // next
-    push 8(%ebp)    // prev
-    call sthread_switch
-    add $8, %esp
-
     // get the arguments
     mov 8(%ebp), %esi  // prev
     mov 12(%ebp), %edi // next
@@ -31,10 +25,10 @@ thread_switch_asm:
     // restore ebx and ebp
     pop %ebx 
     pop %ebp
+
     // This will jump to the address on the stack.
     // If this is the first time the thread is running,
     // this will be a stub.
     // Otherwise the calling function will restore all 
     // the registers pushed by gcc.
     ret
-

@@ -13,6 +13,6 @@
 #define SC_EXIT             3*/
 
 
-extern void enable_interrupts();
-extern void disable_interrupts();
+void enable_interrupts();
+void disable_interrupts();
 void handle_interrupt(intr_stack_t* pregs);

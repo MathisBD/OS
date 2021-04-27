@@ -5,7 +5,7 @@
 #include "drivers/timer_driver.h"
 #include "memory/paging.h"
 #include "tables/idt.h"
-
+#include <stdio.h>
 
 void dispatch_syscall(intr_stack_t* pregs) 
 {

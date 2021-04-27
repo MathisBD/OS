@@ -1,7 +1,6 @@
 #pragma once 
 #include "threads/thread.h"
-
-void init_scheduler();
+#include <stdbool.h>
 
 // returns the currently running thread
 thread_t* curr_thread();
@@ -17,6 +16,8 @@ void sinit_threads(thread_t* thread);
 // called once the thread has finished been created 
 void sthread_create(thread_t* thread); 
 // called right BEFORE switching stacks from prev to next
-// interrupts should be disabled when calling this function
-void sthread_switch(thread_t* prev, thread_t* next);
+// interrupts should be disabled when calling this function.
+// if finish_prev is true, prev will never run again and go 
+// to FINISH state.
+void sthread_switch(thread_t* prev, thread_t* next, bool finish_prev);
 
