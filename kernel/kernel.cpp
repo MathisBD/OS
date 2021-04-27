@@ -36,7 +36,17 @@ void fn(int arg)
 }
 
 
+template<class T>
+class list 
+{
+public:
+    T elem;
+    list<T> prev;
+    list<T> next;
+};
 
+extern "C" {
+    
 void kernel_main(boot_info_t* boot_info)
 {
     // =========
@@ -93,4 +103,6 @@ void kernel_main(boot_info_t* boot_info)
     printf("main D\n");
 
     while (1);
+}
+
 }

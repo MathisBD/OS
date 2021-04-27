@@ -22,7 +22,8 @@ export IMAGE="hdd_minios.img"
 export IMGDIR="$(pwd)/imgdir"
 
 # compiler and compiler options
-export CC=i686-elf-gcc
+# export CC=i686-elf-gcc
+export CC=i686-elf-g++
 export AR=i686-elf-ar
 export CFLAGS="--sysroot=$SYSROOT -O0 -g"
 export CPPFLAGS=""

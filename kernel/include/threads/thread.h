@@ -22,7 +22,10 @@ typedef struct {
     uint32_t state; // run status
     // the scheduling list this thread is in
     // e.g. ready_list
-    ll_part_t sched_list; 
+    ll_part_t sched_llpart; 
+    // the list of threads waiting for this thread to finish 
+    ll_part_t join_llpart;
+    ll_part_t join_llhead;
     //// thread data
     int exit_code;
 } thread_t;
@@ -35,5 +38,6 @@ void thread_yield();
 // the thread never returns from this call
 // (it stops running)
 void thread_exit(int exit_code);
-void thread_join(tid_t tid);
+// returns the exit code of the thread
+int thread_join(tid_t tid);
 

@@ -50,6 +50,9 @@ $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
 	# grep to remove comments (in particular #include lines)
 	$(CC) -x c -E $(CPPFLAGS) $< | grep -v '^#' >$@
 
+%.o: %.cpp 
+	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS) -fno-rtti
+
 %.o: %.c
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 

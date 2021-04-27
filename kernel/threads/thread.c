@@ -10,17 +10,31 @@
 // code inspired by Operating Systems : Principles and Practice, 
 // chapter 4
 
+#define MAX_THREAD_COUNT 1000
+
+thread_t** thread_array;
+
 // TODO : reuse free tids ? with a bitmap or something ?
 tid_t next_tid = 0;
 tid_t new_tid()
 {
+    if (next_tid >= MAX_THREAD_COUNT) {
+        panic("max thread count reached\n");
+    }
     tid_t tmp = next_tid;
     next_tid++;
     return tmp;
 }
 
+thread_t* get_thread(tid_t tid)
+{
+    return thread_array[tid];
+}
+
 void init_threads()
 {
+    thread_array = kmalloc(MAX_THREAD_COUNT * sizeof(thread_t*));
+
     // create a thread context for the kernel
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->tid = new_tid();
@@ -36,9 +50,9 @@ extern void thread_switch_asm(
     thread_t* prev, 
     thread_t* next,
     uint32_t esp_ofs);
-void thread_switch(thread_t* prev, thread_t* next, bool finish_prev)
+void thread_switch(thread_t* prev, thread_t* next, uint32_t switch_mode)
 {
-    sthread_switch(prev, next, finish_prev);
+    sthread_switch(prev, next, switch_mode);
     uint32_t esp_ofs = offsetof(thread_t, esp);
     thread_switch_asm(prev, next, esp_ofs);
 }
@@ -85,7 +99,7 @@ void thread_yield()
     // check there is actually another thread to run
     if (next != 0) {
         thread_t* curr = curr_thread();
-        thread_switch(curr, next, false);
+        thread_switch(curr, next, SWITCH_READY);
     }
     enable_interrupts();
 }
@@ -101,10 +115,35 @@ void thread_exit(int exit_code)
     thread_t* next = next_thread();
     // check there is actually another thread to run
     if (next != 0) {
-        thread_switch(curr, next, true);
+        thread_switch(curr, next, SWITCH_FINISH);
     }
     else {
-        panic("can't exit from the only thread alive\n");
+        panic("no more READY thread !\n");
     }
     enable_interrupts();
+}
+
+int thread_join(tid_t tid)
+{
+    /*disable_interrupts();
+    thread_t* thread = get_thread(tid);
+    // no need to wait
+    if (thread->state == THREAD_FINISHED) {
+        int code = thread->exit_code;
+        delete_thread(thread);
+        enable_interrupts();
+        return code;
+    }
+    // enter waiting state
+    thread_t* curr = curr_thread();
+    ll_add(&(curr->join_llpart), &(thread->join_llhead));
+
+    thread_t* next = next_thread();
+    if (next != 0) {
+        thread_switch(curr, next, SWITCH_WAIT);
+    }
+    else {
+        panic("no more READY thread !\n");
+    }
+    enable_interrupts();*/
 }

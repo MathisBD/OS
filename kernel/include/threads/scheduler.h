@@ -2,6 +2,13 @@
 #include "threads/thread.h"
 #include <stdbool.h>
 
+// what state to put prev in when performing
+// a thread switch ?
+#define SWITCH_READY    1
+#define SWITCH_FINISH   2
+#define SWITCH_WAIT     3
+
+
 // returns the currently running thread
 thread_t* curr_thread();
 // returns the thread to run right after the current thread
@@ -19,5 +26,5 @@ void sthread_create(thread_t* thread);
 // interrupts should be disabled when calling this function.
 // if finish_prev is true, prev will never run again and go 
 // to FINISH state.
-void sthread_switch(thread_t* prev, thread_t* next, bool finish_prev);
+void sthread_switch(thread_t* prev, thread_t* next, uint32_t switch_mode);
 
