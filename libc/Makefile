@@ -35,7 +35,14 @@ bitset/bitset_find_one.libk.o \
 bitset/bitset_find_zero.libk.o \
 bitset/bitset_test.libk.o \
 syscall/exit.libk.o \
-syscall/new_thread.libk.o
+syscall/new_thread.libk.o \
+list/list_create.libk.o \
+list/list_delete.libk.o \
+list/list_empty.libk.o \
+list/list_add_front.libk.o \
+list/list_add_back.libk.o \
+list/list_pop_front.libk.o \
+list/list_pop_back.libk.o
 
 LIBC_OBJS=
 

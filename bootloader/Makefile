@@ -33,25 +33,25 @@ all: $(FIRST_STAGE) $(SECOND_STAGE)
 $(FIRST_STAGE): $(BOOT_SRCS)
 	$(CC) -c asm_code/first_stage.S -o asm_code/first_stage.o
 	# extract the .text section
-	objcopy -O binary -j .text asm_code/first_stage.o tmp.bin
+	objcopy -O binary -j .text asm_code/first_stage.o tmp1.bin
 	# remove the first 0x7c00=62*512 first bytes
 	# the first stage is always exactly 512 bytes long 
-	dd if=./tmp.bin of=./$(FIRST_STAGE) bs=512 count=1 skip=62
-	rm tmp.bin
+	dd if=./tmp1.bin of=./$(FIRST_STAGE) bs=512 count=1 skip=62
+	#rm tmp1.bin
 	
 $(SECOND_STAGE): $(BOOT_SRCS) $(BOOT_S2_OBJS) s2_linker.ld
 	# compile assembly files 
 	$(CC) -c asm_code/second_stage.S -o asm_code/second_stage.o
 	# link 
-	$(CC) -T s2_linker.ld $(CFLAGS) -o tmp.o \
+	$(CC) -T s2_linker.ld $(CFLAGS) -o tmp2.o \
 	$(BOOT_S2_OBJS) asm_code/second_stage.o $(LIBS)
 	# extract the .text section
-	objcopy -O binary -j .text tmp.o tmp.bin
+	objcopy -O binary -j .text tmp2.o tmp2.bin
 	# remove the first 0x8000=1024*32 first bytes
 	# the second stage is always 12KB bytes long
-	dd if=./tmp.bin of=./$(SECOND_STAGE) bs=1024 count=12 skip=32
+	dd if=./tmp2.bin of=./$(SECOND_STAGE) bs=1024 count=12 skip=32
 	truncate -s 12K $(SECOND_STAGE)
-	rm tmp.bin
+	# rm tmp2.bin
 
 %.o: %.c
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)

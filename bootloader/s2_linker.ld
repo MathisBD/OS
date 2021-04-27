@@ -9,9 +9,9 @@ SECTIONS
     .text : AT(0x8000)
     {
         asm_code/second_stage.o(.text)
-        *(.rodata)
-        *(.text)
-        *(.data)
-        *(.bss)
+        *(.rodata*)
+        *(.text*)
+        *(.data*)
+        *(.bss*)
     }
 }

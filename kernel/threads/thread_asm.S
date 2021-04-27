@@ -32,3 +32,6 @@ thread_switch_asm:
     // Otherwise the calling function will restore all 
     // the registers pushed by gcc.
     ret
+
+format: .asciz "%x\n"
+

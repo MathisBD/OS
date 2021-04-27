@@ -53,11 +53,15 @@ entry:
     mov %ecx, %cr0
 
     // jump to higher half with an absolute jump
-    lea launch_kernel, %ecx 
-    jmp *%ecx
+    lea launch_kernel, %ecx
+    jmp *%ecx //////////////// PAGE FAULT ????????
 
 .section .text
 launch_kernel:
+ 
+    movw $0x0B42, 0xB8000
+LAB: jmp LAB
+
     // unmap the first page 
     movl $0, boot_page_dir
     invlpg 0

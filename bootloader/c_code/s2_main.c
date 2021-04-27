@@ -25,7 +25,7 @@ void s2_main(
     boot_info.mmap_ent_count = mmap_entry_count;
 
     vga_clear_screen();
-    //vga_print_string("Hello from second stage\n");
+    vga_print_string("Hello from second stage\n");
 
     load_kernel(kernel_inode, &boot_info);
 

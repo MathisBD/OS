@@ -19,5 +19,6 @@ int print_mem(const void* _buf, size_t count)
             printf(" ");
         }
     }
+    return 0;
 }
 #endif

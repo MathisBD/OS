@@ -1,6 +1,6 @@
 #include "drivers/timer_driver.h"
 #include <stdint.h>
-#include "scheduler/scheduler.h"
+#include "threads/thread.h"
 
 
 float freq; // frequency of interrupts, in Hz
@@ -18,7 +18,7 @@ void init_timer(float f)
 void timer_interrupt()
 {
     time += delta_time;
-    //scheduler_tick(delta_time);
+    timer_tick(delta_time);
 }
 
 void wait(float t)

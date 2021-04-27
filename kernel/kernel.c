@@ -17,12 +17,11 @@
 #include "filesystem/fs.h"
 #include "filesystem/ext2/ext2.h"
 #include <bitset.h>
-#include <linkedlist.h>
 #include "threads/thread.h"
 #include "threads/scheduler.h"
 #include "interrupts/interrupts.h"
 
-#define PIT_DEFAULT_FREQ 1000 // Hz
+#define PIT_DEFAULT_FREQ 100 // Hz
 
 
 #define DELAY() {for (int i = 0; i < 100000000; i++);}
@@ -30,25 +29,16 @@
 
 void fn(int arg)
 {
-    printf("thread A : arg = %d\n", arg);
-    thread_yield();
-    printf("thread B : arg = %d\n", arg);
+    printf("thread : arg = %d\n", arg);
+    DELAY();
+    thread_exit(arg);
 }
 
 
-template<class T>
-class list 
-{
-public:
-    T elem;
-    list<T> prev;
-    list<T> next;
-};
-
-extern "C" {
-    
 void kernel_main(boot_info_t* boot_info)
 {
+    printf("KERNEL\n");
+
     // =========
     // LOW LEVEL
     // =========
@@ -88,21 +78,17 @@ void kernel_main(boot_info_t* boot_info)
     // TEST CODE
     // =========
 
-    // create a thread
-    int arg = 42;
-    tid_t tid = thread_create(fn, arg);
+    tid_t tids[5];
+    for (int i = 0; i < 5; i++) {
+        tids[i] = thread_create(fn, i);
+        printf("created i = %d\n", i);
+    }
+    for (int i = 0; i < 5; i++) {
+        int code = thread_join(tids[i]);
+        printf("code for %d = %d\n", i, code);
+    }
 
 
-    printf("main A\n");
-    thread_yield();
-    printf("main B\n");
-    thread_yield();
-    printf("main C\n");
-    thread_yield();
-    thread_yield();
-    printf("main D\n");
 
     while (1);
-}
-
 }

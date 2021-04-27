@@ -50,14 +50,11 @@ $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
 	# grep to remove comments (in particular #include lines)
 	$(CC) -x c -E $(CPPFLAGS) $< | grep -v '^#' >$@
 
-%.o: %.cpp 
-	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS) -fno-rtti
-
-%.o: %.c
+%.o: %.c 
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
-# we run the C preprocessor on assembly files
-# (implicit since gcc does it on .S files)
+# we run the C++ preprocessor on assembly files
+# (implicit since g++ does it on .S files)
 %.o: %.S
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 

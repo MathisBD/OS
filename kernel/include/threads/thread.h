@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include <linkedlist.h>
+#include <list.h>
 
 // implements KERNEL threads
 
@@ -20,18 +20,15 @@ typedef struct {
     uint32_t* esp;
     //// scheduling info
     uint32_t state; // run status
-    // the scheduling list this thread is in
-    // e.g. ready_list
-    ll_part_t sched_llpart; 
     // the list of threads waiting for this thread to finish 
-    ll_part_t join_llpart;
-    ll_part_t join_llhead;
+    list_t* join_list;
     //// thread data
     int exit_code;
 } thread_t;
 
 
 void init_threads();
+void timer_tick(float seconds);
 
 tid_t thread_create(void(*func)(int), int arg);
 void thread_yield();

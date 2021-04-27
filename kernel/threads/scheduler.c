@@ -1,22 +1,23 @@
 #include "threads/scheduler.h"
-#include <linkedlist.h>
+#include <list.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <panic.h>
 
 // the only process in THREAD_RUNNING state
 thread_t* running;
 // all processes in THREAD_READY state
-ll_part_t ready_list;
+list_t* ready_list;
 // all processes in THREAD_FINISHED state
-ll_part_t finished_list;
+list_t* finished_list;
 
 // called by init_threads
 // thread : data of the first thread
 void sinit_threads(thread_t* thread)
 {
-    ll_init(&ready_list);
-    ll_init(&finished_list);
-    
+    ready_list = list_create();
+    finished_list = list_create();
+
     thread->state = THREAD_RUNNING;
     running = thread;    
 }
@@ -28,38 +29,51 @@ thread_t* curr_thread()
 
 thread_t* next_thread()
 {
-    if (ll_empty(&ready_list)) {
+    if (list_empty(ready_list)) {
         return 0;
     }
-    return ll_entry(ready_list.next, thread_t, sched_list);
+    return ready_list->first->contents;
 }
-
 
 void sthread_create(thread_t* thread)
 {
     thread->state = THREAD_READY;
-    ll_add_before(&(thread->sched_list), &ready_list);
+    list_add_back(ready_list, (void*)thread);
 }
 
-void sthread_switch(thread_t* prev, thread_t* next, bool finish_prev)
+void sthread_switch(uint32_t switch_mode)
 {
-    printf("switching from %u to %u\n", prev->tid, next->tid);
+    thread_t* prev = running;
+    thread_t* next = list_pop_front(ready_list);
     // prev was in RUNNING state
-    if (finish_prev) {
-        // prev will enter FINISHED state
+    if (switch_mode == SWITCH_FINISH) {
         prev->state = THREAD_FINISHED;
-        // add wherever we want in the finished list
-        ll_add(&(prev->sched_list), &finished_list);
+        // add to the finished list
+        list_add_back(finished_list, (void*)prev);
     }
-    else {
-        // prev will enter READY state
+    else if (switch_mode == SWITCH_READY) {
         prev->state = THREAD_READY;
         // add to the end of the ready list
-        ll_add_before(&(prev->sched_list), &ready_list);
+        list_add_back(ready_list, (void*)prev);
     }
+    else if (switch_mode == SWITCH_WAIT) {
+        prev->state = THREAD_WAITING;
+    }
+    else {
+        panic("unknown switch mode\n");
+    }
+
     // next was in READY state
     // and will enter RUNNING state
-    ll_rem(&(next->sched_list));
     next->state = THREAD_RUNNING;
     running = next;
+}
+
+swake_up(thread_t* thread)
+{
+    if (thread->state != THREAD_WAITING) {
+        panic("can't wake up a thread that isn't waiting");
+    }
+    thread->state = THREAD_READY;
+    list_add_back(ready_list, thread);
 }

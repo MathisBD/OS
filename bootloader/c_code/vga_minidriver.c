@@ -55,7 +55,7 @@ void vga_print_char(char c)
     }
 }
 
-void vga_print_string(const char* str)
+void vga_print_string(char* str)
 {
     int i = 0;
     while (str[i]) {

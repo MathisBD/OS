@@ -26,5 +26,7 @@ void sthread_create(thread_t* thread);
 // interrupts should be disabled when calling this function.
 // if finish_prev is true, prev will never run again and go 
 // to FINISH state.
-void sthread_switch(thread_t* prev, thread_t* next, uint32_t switch_mode);
+void sthread_switch(uint32_t switch_mode);
 
+// assumes interrutps are disabled
+void swake_up(thread_t* thread);
