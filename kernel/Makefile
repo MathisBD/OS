@@ -2,12 +2,12 @@ CFLAGS?=-g
 CPPFLAGS?=
 LIBS?=
 
-CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -O0
+CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -O0 #-fsanitize=undefined
 CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
 -I$(SYSROOT)$(INCLUDEDIR)/kernel \
 -I$(SYSROOT)$(INCLUDEDIR)/libc
 
-LIBS:=$(LIBS) -nostdlib -lgcc -lk
+LIBS:=$(LIBS) -nostdlib -lk -lgcc
 
 KERNEL_OBJS=kernel.o boot.o \
 tables/idt.o tables/idt_asm.o \

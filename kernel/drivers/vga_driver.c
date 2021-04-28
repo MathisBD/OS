@@ -105,6 +105,7 @@ void private_putchar(char c)
     
     switch(c) {
     case '\n':
+    case '\r':
         term_row++;
         term_col = 0;
         break;

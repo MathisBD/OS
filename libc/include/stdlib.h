@@ -6,4 +6,4 @@ typedef struct {
 } div_t;
 
 div_t div(int number, int denom);
-
+char* itoa(int value, char* str, int base);

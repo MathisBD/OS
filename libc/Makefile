@@ -28,6 +28,7 @@ string/memmove.libk.o \
 string/strlen.libk.o \
 panic/panic.libk.o \
 stdlib/div.libk.o \
+stdlib/itoa.libk.o \
 bitset/bitset_create.libk.o \
 bitset/bitset_set.libk.o \
 bitset/bitset_clear.libk.o \
@@ -42,7 +43,8 @@ list/list_empty.libk.o \
 list/list_add_front.libk.o \
 list/list_add_back.libk.o \
 list/list_pop_front.libk.o \
-list/list_pop_back.libk.o
+list/list_pop_back.libk.o \
+ubsan/ubsan.libk.o
 
 LIBC_OBJS=
 
@@ -55,7 +57,7 @@ all: $(BINARIES)
 
 # LIBC
 libc.a: $(LIBC_OBJS) 
-	$(AR) rcs $@ $(LIBC_OBJS)
+	$(AR) rcs $@ $(LIBC_OBJS) 
 
 %.libc.o: %.c 
 	$(CC) -MD -c $< -o $@ -std=gnu99 $(LIBC_CFLAGS) $(LIBC_CPPFLAGS)

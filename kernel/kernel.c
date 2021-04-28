@@ -20,6 +20,7 @@
 #include "threads/thread.h"
 #include "threads/scheduler.h"
 #include "interrupts/interrupts.h"
+#include <stdlib.h>
 
 #define PIT_DEFAULT_FREQ 100 // Hz
 
@@ -76,6 +77,7 @@ void kernel_main(boot_info_t* boot_info)
     // TEST CODE
     // =========
 
+
     tid_t tids[5];
     for (int i = 0; i < 5; i++) {
         tids[i] = thread_create(fn, i);
@@ -85,7 +87,6 @@ void kernel_main(boot_info_t* boot_info)
         int code = thread_join(tids[i]);
         printf("code for %d = %d\n", i, code);
     }
-
 
 
     while (1);
