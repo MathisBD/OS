@@ -16,8 +16,6 @@ init_stack_bottom:
 init_stack_top:
 
 .section .data
-boot_info_addr: .int 0
-
 // boot page directory
 .set KERNEL_PAGE_IDX, V_KERNEL_START >> 22
 .align 0x1000 // page directories must be aligned on 4K
@@ -27,9 +25,11 @@ boot_page_dir:
     // 1 : read/write 
     // 7 : PS (4MB pages)
     .int 0x00000083 // first 4MB
-    .fill (KERNEL_PAGE_IDX - 1), 4, 0x00000000
+    .fill (KERNEL_PAGE_IDX - 1), 4, 0x42424242 //0x00000000
     .int 0x00000083 // kernel 4MB page
-    .fill (PD_SIZE - KERNEL_PAGE_IDX - 1), 0x00000000
+    .fill (PD_SIZE - KERNEL_PAGE_IDX - 1), 0x42424242 //0x00000000
+
+boot_info_addr: .int 0
 
 .section .text
 entry:
@@ -58,10 +58,6 @@ entry:
 
 .section .text
 launch_kernel:
- 
-    movw $0x0B42, 0xB8000
-LAB: jmp LAB
-
     // unmap the first page 
     movl $0, boot_page_dir
     invlpg 0

@@ -1,8 +1,8 @@
-CFLAGS?=-O2 -g
+CFLAGS?=-g
 CPPFLAGS?=
 LIBS?=
 
-CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
+CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -O0
 CPPFLAGS:=$(CPPFLAGS) -D__is_bootloader \
 -I$(SYSROOT)$(INCLUDEDIR)/bootloader
 

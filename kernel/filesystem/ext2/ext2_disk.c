@@ -1,6 +1,7 @@
 #include "filesystem/ext2/ext2_internal.h"
 #include "memory/kheap.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include "drivers/ata_driver.h"
 
 // size of buf : SB_SIZE
@@ -108,7 +109,7 @@ int get_superblock(superblock_t* sb)
     
     sb->unalloc_blocks = *((uint32_t*)(buf + 12));
     sb->unalloc_inodes = *((uint32_t*)(buf + 16));
-    
+
     // round up
     uint32_t quot = sb->block_count / sb->blocks_per_bg;
     uint32_t rem = sb->block_count % sb->blocks_per_bg;
@@ -121,7 +122,6 @@ int get_superblock(superblock_t* sb)
     // the root is always inode 2
     sb->root = 2;
     kfree(buf);
-
     // sanity checks
     if (sb->blocks_per_bg != 8 * sb->block_size) {
         return EXT2_ERR_CORRUPT_STATE;

@@ -3,11 +3,11 @@
 # and once into .libk.o (used to create libk.a)
 # each time with different options of course
 
-CFLAGS?=-O2 -g
+CFLAGS?=-g
 CPPFLAGS?=
 LIBS?=
 
-LIBK_CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
+LIBK_CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -O0
 LIBK_CPPFLAGS:=$(CPPFLAGS) -D__is_libk \
 -I$(SYSROOT)$(INCLUDEDIR)/libc \
 -I$(SYSROOT)$(INCLUDEDIR)/kernel

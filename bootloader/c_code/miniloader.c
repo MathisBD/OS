@@ -2,6 +2,7 @@
 #include "minielf.h"
 #include <stdbool.h>
 #include "vga_minidriver.h"
+#include "ata_minidriver.h"
 
 // addresses we can load temporary stuff at
 // we (the second stage) are at 0x8000
@@ -23,13 +24,14 @@ void simple_memcpy(uint8_t* dest, uint8_t* src, uint32_t count)
     }
 }
 
+
 // offset : offset in the block (0 = start of block)
 // returns the number of bytes read
 uint32_t read_block(uint32_t block, uint32_t offset, uint32_t count, uint8_t* buf)
 {
     // special case : sparse block 
     if (block == 0) {
-        int i = 0;
+        uint32_t i = 0;
         while (i < count && offset + i < block_size) {
             buf[i] = 0;
             i++;
@@ -147,7 +149,7 @@ void load_segments(void* kernel_inode, Elf32_Ehdr* e_hdr)
             );
             // rest of the segment is filled with zero
             uint8_t* ptr = header.p_paddr;
-            for (int i = header.p_filesz; i < header.p_memsz; i++) {
+            for (uint32_t i = header.p_filesz; i < header.p_memsz; i++) {
                 *(ptr + i) = 0;
             }
         }

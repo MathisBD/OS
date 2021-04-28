@@ -5,6 +5,7 @@
 #include <bitset.h>
 #include <stdbool.h>
 #include <panic.h>
+#include <stdio.h>
 #include "memory/kheap.h"
 
 // the number of blocks we search before and after
@@ -333,7 +334,7 @@ int resize_inode(uint32_t inode_num, uint32_t size)
                 // remove it from the inode's blocks
                 // (this should free intermediate blocks if
                 // they become sparse)
-                printf("b%u ", new_blocks+i);
+                //printf("b%u ", new_blocks+i);
                 r = write_bl_num(inode_num, new_blocks+i, 0);
                 if (r < 0) {
                     kfree(bl_nums);

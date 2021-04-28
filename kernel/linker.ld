@@ -14,25 +14,25 @@ SECTIONS
     .bss ALIGN(4K) : AT(ADDR(.bss) - V_KERNEL_START)
     {
         KEEP(*(COMMON))
-        KEEP(*(.bss))
+        KEEP(*(.bss*))
         . = ALIGN(4K);
     }
     .text ALIGN(4K) : AT(ADDR(.text) - V_KERNEL_START)
     {
         _kernel_start = .;
-        KEEP(*(.text)) 
+        KEEP(*(.text*)) 
         . = ALIGN(4K);
     } 
     .rodata ALIGN(4K) : AT(ADDR(.rodata) - V_KERNEL_START)
     {
-        KEEP(*(.rodata))
+        KEEP(*(.rodata*))
         . = ALIGN(4K);
         _kernel_ro_end = .;
     }
  
     .data ALIGN(4K) : AT(ADDR(.data) - V_KERNEL_START)
     {
-        KEEP(*(.data))
+        KEEP(*(.data*))
         . = ALIGN(4K);
     }
     _kernel_rw_end = .;

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <panic.h>
 
 // code inspired by Operating Systems : Principles and Practice, 
 // chapter 4

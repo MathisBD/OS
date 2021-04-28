@@ -24,7 +24,9 @@ export IMGDIR="$(pwd)/imgdir"
 # C compiler and compiler options
 export CC=i686-elf-gcc 
 export AR=i686-elf-ar
-export CFLAGS="--sysroot=$SYSROOT -O1 -g"
+export CFLAGS="--sysroot=$SYSROOT -g \
+-Wno-unused-parameter -Wno-unused-label -Wno-int-conversion \
+-Wno-incompatible-pointer-types -Werror=implicit-function-declaration"
 export CPPFLAGS=""
 # the cross compiler was configured with
 # --without-headers but not --with-sysroot

@@ -69,7 +69,7 @@ void sthread_switch(uint32_t switch_mode)
     running = next;
 }
 
-swake_up(thread_t* thread)
+void swake_up(thread_t* thread)
 {
     if (thread->state != THREAD_WAITING) {
         panic("can't wake up a thread that isn't waiting");

@@ -37,8 +37,6 @@ void fn(int arg)
 
 void kernel_main(boot_info_t* boot_info)
 {
-    printf("KERNEL\n");
-
     // =========
     // LOW LEVEL
     // =========
