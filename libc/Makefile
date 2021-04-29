@@ -10,11 +10,13 @@ LIBS?=
 LIBK_CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra -O0
 LIBK_CPPFLAGS:=$(CPPFLAGS) -D__is_libk \
 -I$(SYSROOT)$(INCLUDEDIR)/libc \
--I$(SYSROOT)$(INCLUDEDIR)/kernel
+-I$(SYSROOT)$(INCLUDEDIR)/kernel \
+-Iinclude_internal
 
 LIBC_CFLAGS:=$(CFLAGS) -ffreestanding -Wall -Wextra
 LIBC_CPPFLAGS:=$(CPPFLAGS) -D__is_libc \
--I$(SYSROOT)$(INCLUDEDIR)/libc
+-I$(SYSROOT)$(INCLUDEDIR)/libc \
+-Iinclude_internal
 
 LIBK_OBJS= \
 stdio/printf.libk.o \
@@ -35,8 +37,6 @@ bitset/bitset_clear.libk.o \
 bitset/bitset_find_one.libk.o \
 bitset/bitset_find_zero.libk.o \
 bitset/bitset_test.libk.o \
-syscall/exit.libk.o \
-syscall/new_thread.libk.o \
 list/list_create.libk.o \
 list/list_delete.libk.o \
 list/list_empty.libk.o \
@@ -44,6 +44,7 @@ list/list_add_front.libk.o \
 list/list_add_back.libk.o \
 list/list_pop_front.libk.o \
 list/list_pop_back.libk.o \
+process/proc_fork.libk.o \
 ubsan/ubsan.libk.o
 
 LIBC_OBJS=

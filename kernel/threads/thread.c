@@ -42,9 +42,9 @@ void init_threads()
     // create a thread context for the kernel
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->tid = new_tid();
-    thread->stack = kmalloc(KSTACK_SIZE);
-    thread->esp = thread->stack + KSTACK_SIZE;
-
+    extern void init_stack_bottom();
+    thread->stack = (uint32_t)init_stack_bottom;
+    
     // do the scheduling init stuff
     sinit_threads(thread);
 }

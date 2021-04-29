@@ -38,7 +38,8 @@ filesystem/ext2/ext2_alloc.o \
 filesystem/ext2/ext2_disk.o \
 filesystem/fs.o \
 interrupts/interrupts.o \
-interrupts/interrupts_asm.o
+interrupts/interrupts_asm.o \
+interrupts/syscall.o
 
 .PHONY: all clean install install-headers install-kernel
 

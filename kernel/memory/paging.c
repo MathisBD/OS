@@ -194,6 +194,7 @@ void page_fault(page_fault_info_t info)
         if (is_process_init()) {
             thread_t* thread = curr_thread();
             page_table = thread->process->page_table;
+            while(1);
         }
         else {
             page_table = kernel_pt;
@@ -229,12 +230,12 @@ void copy_address_space(void* __dest_pt, void* __src_pt)
         (PT_SIZE - first_kernel_page) * sizeof(uint32_t));
 
     // duplicate every USED user page
-    memset(dest_pt, 0, first_kernel_page);
+    /*memset(dest_pt, 0, first_kernel_page);
     for (uint32_t i = 0; i < first_kernel_page; i++) {
         if (src_pt[i].present) {
             uint32_t src_addr = src_pt[i].frame_addr << 22;
             uint32_t dest_addr = alloc_page(dest_pt, i);
             panic("copy frame!\n");
         }
-    }
+    }*/
 }

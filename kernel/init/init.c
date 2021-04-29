@@ -14,7 +14,7 @@
 #include "threads/thread.h"
 #include "threads/process.h"
 
-#define PIT_DEFAULT_FREQ 100 // Hz
+#define PIT_DEFAULT_FREQ 1000 // Hz
 
 
 // initialization state of parts of the kernel

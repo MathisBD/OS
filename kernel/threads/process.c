@@ -7,6 +7,7 @@
 #include "memory/paging.h"
 #include "memory/kheap.h"
 #include <string.h>
+#include <stdio.h>
 
 #define MAX_PROC_COUNT  1000
 
@@ -50,9 +51,8 @@ void do_proc_fork(intr_frame_t* frame)
     proc->parent = curr->process;
     proc->children = list_create();
     list_add_back(curr->process->children, proc);
-    // page table
-    panic("align page table on 4K\n");
-    proc->page_table = kmalloc(PAGE_TABLE_SIZE * sizeof(uint32_t));
+    // page table (has to be aligned on 4K)
+    proc->page_table = kmalloc_aligned(PAGE_TABLE_SIZE * sizeof(uint32_t), 4096);
     copy_address_space(proc->page_table, curr->process->page_table);
 
     // copy the thread
@@ -74,7 +74,7 @@ void do_proc_fork(intr_frame_t* frame)
     // (if we wanted this argument to be valid,
     // we could do *(copy->esp) = copy_frame)
     copy->esp--;
-    // return address for the original thread pushed for 
+    // return address the original thread pushed for 
     // handle_interrupt. this will now become the return
     // address for thread_switch.
     copy->esp--;

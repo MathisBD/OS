@@ -29,19 +29,15 @@ thread_switch_asm:
     mov (%edi, %ecx), %esp 
 
     mov (%esi, %ebx), %ebx // get the new process
-    test %ebx, %ebx 
-    jz 1f
-
-    // switch in the new page directory.
+    /*// switch in the new page directory.
     // the code of this function (thread_switch) and
     // the stack we are using are all in kernel space,
     // and the page directories all map the kernel space
     // to the same place, so we can safely do the switch.
     mov (%ebx, %edx), %ebx // get the new page table address
     sub $V_KERNEL_START, %ebx // compute the physical address
-    mov %ebx, %cr3 // load the page table
+    mov %ebx, %cr3 // load the page table*/
 
-1:
     // restore ebx and ebp
     pop %ebx 
     pop %ebp

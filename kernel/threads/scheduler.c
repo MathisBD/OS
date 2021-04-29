@@ -45,6 +45,8 @@ void sthread_switch(uint32_t switch_mode)
 {
     thread_t* prev = running;
     thread_t* next = list_pop_front(ready_list);
+    //printf("switching from %u to %u\n", prev->tid, next->tid);
+
     // prev was in RUNNING state
     if (switch_mode == SWITCH_FINISH) {
         prev->state = THREAD_FINISHED;

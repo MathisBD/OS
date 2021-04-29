@@ -14,6 +14,7 @@ typedef struct __mem_node {
     uint32_t size;
     struct __mem_node* next;
     struct __mem_node* prev;
+    uint32_t padding;
 } __attribute__((packed)) mem_node_t;
 
 // free blocks 
@@ -77,11 +78,59 @@ void init_kheap()
 
 }*/
 
-mem_node_t* find_hole(uint32_t size)
+// shrink a node down to a new size.
+// the part of the node that was cut off will become a new 
+// node (if it is big enough).
+// returns the address of the new node.
+mem_node_t* shrink_node(mem_node_t* node, uint32_t size)
+{
+    if (size > node->size) {
+        return 0;
+    }
+    uint32_t node_addr = (uint32_t)node;
+    uint32_t end = node_addr + sizeof(mem_node_t) + node->size;
+    uint32_t new_node_addr = node_addr + sizeof(mem_node_t) + size;
+    if (new_node_addr % NODE_ALIGN != 0) {
+        new_node_addr = NODE_ALIGN * (new_node_addr / NODE_ALIGN + 1);
+    }
+    node->size = size;
+    // check there is enough space for a new node
+    if (new_node_addr + sizeof(node) >= end) {
+        return 0;
+    }
+    // create a new node
+    mem_node_t* new_node = (mem_node_t*)new_node_addr;
+    new_node->next = new_node->prev = 0;
+    new_node->size = end - (new_node_addr + sizeof(mem_node_t));    
+    return new_node;
+}
+
+mem_node_t* find_hole(uint32_t size, uint32_t align)
 {
     for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {   
-        if (size <= hole->size) {
-            return hole;
+        uint32_t start = ((uint32_t)hole) + sizeof(mem_node_t);
+        uint32_t end = start + hole->size;
+        uint32_t aligned_start = start;
+        if (start % align != 0) {
+            aligned_start = align * (start / align + 1);  
+        }  
+        if (aligned_start + size <= end) {
+            // we found the node !
+            if (start + sizeof(mem_node_t) < aligned_start) {
+                // split the node
+                uint32_t new_size = aligned_start - (sizeof(mem_node_t) + start);
+                mem_node_t* new_hole = shrink_node(hole, new_size);
+                add_hole(new_hole);
+                return new_hole;
+            }
+            else {
+                // just move the node
+                detach_node(hole);
+                hole = (mem_node_t*)(aligned_start - sizeof(mem_node_t));
+                hole->size = end - aligned_start;
+                add_hole(hole);
+                return hole;
+            }
         }
     }
     panic("find_hole : not enough space for malloc\n");
@@ -107,34 +156,34 @@ void print_lists()
     printf("\n");
 }
 
-void* kmalloc(uint32_t size)
+inline void* kmalloc(uint32_t size)
 {
+    return kmalloc_aligned(size, NODE_ALIGN);
+} 
+
+void* kmalloc_aligned(uint32_t size, uint32_t align)
+{
+    if (align & (NODE_ALIGN - 1)) {
+        panic("kmalloc : invalid align value!");
+    }
     // align size
     if (size & (NODE_ALIGN - 1)) {
         size &= ~(NODE_ALIGN - 1);
-        size += NODE_ALIGN;   
+        size += NODE_ALIGN;  
     }
 
-    mem_node_t* hole = find_hole(size);
+    mem_node_t* hole = find_hole(size, align);
 
     // switch from hole to block
     detach_node(hole);
     add_block(hole);
 
-    // address of the potential new node
-    uint32_t node_addr = (uint32_t)hole + sizeof(mem_node_t) + size;
-    // end of the memory owned by the hole
-    uint32_t end_addr = (uint32_t)hole + sizeof(mem_node_t) + hole->size;
-    // node_addr and end_addr are aligned, since nodes and size are aligned
-    if (node_addr + sizeof(mem_node_t) < end_addr) {
-        mem_node_t* node = (mem_node_t*)node_addr;
-        node->size = end_addr - (node_addr + sizeof(mem_node_t));
-        hole->size = size;
-        add_hole(node);
+    uint32_t start = ((uint32_t)hole) + sizeof(mem_node_t);
+    if (start + size + sizeof(mem_node_t) < start + hole->size) {
+        mem_node_t* new_hole = shrink_node(hole, size);
+        add_hole(new_hole);
     }
-    // otherwise don't change the hole size
-
-    return (void*)((uint32_t)hole + sizeof(mem_node_t));
+    return (uint32_t)hole + sizeof(mem_node_t);
 
     // count free space (except at the end)
     // if it is big (>= % of alloc space),

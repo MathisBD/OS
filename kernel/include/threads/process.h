@@ -38,6 +38,9 @@ void init_process();
 void do_proc_fork(intr_frame_t* frame);
 // replaces the user code/data for the current process.
 // only works if the process has a single thread.
+// (this ensures no thread is waiting on this thread,
+// thus we don't have to call thread_exit() for this thread
+// and we can just plainly replace it).
 void do_proc_exec(intr_frame_t* frame);
 // when a thread calls exit, all threads in the process are terminated.
 void do_proc_exit(intr_frame_t* frame);
