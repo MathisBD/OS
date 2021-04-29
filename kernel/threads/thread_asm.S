@@ -1,7 +1,11 @@
+#include "memory/constants.h"
+
 // arguments :
 // 1) prev : thread_t* 
 // 2) next : thread_t*
 // 3) esp_ofs : offset in bytes of the esp field in thread_t
+// 4) proc_ofs : offset in bytes of the process field in thread_t 
+// 5) pt_ofs : offset in bytes of the page_table field in process_t
 .global thread_switch_asm
 thread_switch_asm:
     // gcc already saved nearly all registers on stack
@@ -15,6 +19,8 @@ thread_switch_asm:
     mov 8(%ebp), %esi  // prev
     mov 12(%ebp), %edi // next
     mov 16(%ebp), %ecx // esp_ofs
+    mov 20(%ebp), %ebx // proc_ofs  
+    mov 24(%ebp), %edx // pt_ofs
 
     // switch stacks
     // prev->esp = %esp
@@ -22,6 +28,20 @@ thread_switch_asm:
     // %esp = next->esp   
     mov (%edi, %ecx), %esp 
 
+    mov (%esi, %ebx), %ebx // get the new process
+    test %ebx, %ebx 
+    jz 1f
+
+    // switch in the new page directory.
+    // the code of this function (thread_switch) and
+    // the stack we are using are all in kernel space,
+    // and the page directories all map the kernel space
+    // to the same place, so we can safely do the switch.
+    mov (%ebx, %edx), %ebx // get the new page table address
+    sub $V_KERNEL_START, %ebx // compute the physical address
+    mov %ebx, %cr3 // load the page table
+
+1:
     // restore ebx and ebp
     pop %ebx 
     pop %ebp
@@ -32,6 +52,4 @@ thread_switch_asm:
     // Otherwise the calling function will restore all 
     // the registers pushed by gcc.
     ret
-
-format: .asciz "%x\n"
 

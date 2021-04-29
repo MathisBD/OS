@@ -20,7 +20,7 @@ typedef struct {
 
 
 #define IDT_SIZE 256
-IDT_entry IDT[IDT_SIZE];
+static IDT_entry IDT[IDT_SIZE];
 
 // idt gate type attributes
 #define IDT_PRESENT		0x80

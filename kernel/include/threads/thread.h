@@ -1,10 +1,13 @@
 #pragma once
 #include <stdint.h>
 #include <list.h>
+#include "threads/process.h"
 
-// implements KERNEL threads
+// implements both kernel and user threads.
+// user threads are always in a process, whereas
+// kernel threads are never in a process.
 
-// kthread identifier
+// thread identifier
 typedef uint32_t tid_t;
 
 #define THREAD_RUNNING  2
@@ -24,12 +27,16 @@ typedef struct {
     list_t* join_list;
     //// thread data
     int exit_code;
+    // process this thread is part of.
+    // for kernel threads, the parent process is null.
+    process_t* process; 
 } thread_t;
 
 
 void init_threads();
 void timer_tick(float seconds);
-
+tid_t new_tid();
+ 
 tid_t thread_create(void(*func)(int), int arg);
 void thread_yield();
 // the thread never returns from this call

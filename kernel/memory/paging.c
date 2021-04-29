@@ -6,8 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <panic.h>
-#include "bootloader_info.h"
-
+#include "threads/scheduler.h"
+#include "init/init.h"
 
 typedef struct {
     uint32_t address;
@@ -18,8 +18,8 @@ typedef struct {
 
 #define MAX_MEM_BLOCKS 32
 // available memory blocks (in RAM)
-mem_block_t mem_blocks[MAX_MEM_BLOCKS];
-int mem_blocks_count;
+static mem_block_t mem_blocks[MAX_MEM_BLOCKS];
+static int mem_blocks_count;
 
 // the physical address of a frame is limited to 10 + 22 = 32 bits
 // we can address 4GB at most
@@ -35,11 +35,11 @@ typedef struct {
     uint32_t unused     : 3; // unused, avaible for use
     uint32_t reserved_3 : 10;// cpu-reserved (because of PSE)
     uint32_t frame_addr : 10;// higher 10 bits of the frame physical address
-} pde_entry_t;
+} pt_entry_t;
 
-// kernel page directory
+// kernel page table
 // has to be aligned on 4K
-pde_entry_t kernel_pd[PD_SIZE] __attribute__((aligned(4096)));
+static pt_entry_t kernel_pt[PT_SIZE] __attribute__((aligned(4096)));
 
 
 void print_mem_blocks()
@@ -114,15 +114,15 @@ void parse_mmap(mmap_entry_t* mmap, uint32_t mmap_ent_count)
 void setup_page_dir()
 {
     // initialise page directory
-    memset(kernel_pd, 0, PD_SIZE * sizeof(pde_entry_t));
+    memset(kernel_pt, 0, PT_SIZE * sizeof(pt_entry_t));
     // kernel page mapped to 0x00
     uint32_t idx = V_KERNEL_START / PAGE_SIZE;
-    kernel_pd[idx].present = 1;
-    kernel_pd[idx].rw = 1;
-    kernel_pd[idx].size = 1;
-    kernel_pd[idx].frame_addr = 0;
+    kernel_pt[idx].present = 1;
+    kernel_pt[idx].rw = 1;
+    kernel_pt[idx].size = 1;
+    kernel_pt[idx].frame_addr = 0;
 
-    uint32_t pd_phys_addr = (uint32_t)(&kernel_pd) - V_KERNEL_START;
+    uint32_t pd_phys_addr = (uint32_t)(&kernel_pt) - V_KERNEL_START;
     extern void load_cr3(uint32_t);
     load_cr3(pd_phys_addr);
 }
@@ -136,8 +136,9 @@ uint32_t find_free_frame()
             return mem_blocks[i].address + index * PAGE_SIZE;
         }
     }
-    printf("NO FREE FRAME\n");
+    panic("no free frame\n");
     // TODO : no free frame
+    return 0;
 }
 
 void claim_frame(uint32_t frame_addr)
@@ -164,18 +165,21 @@ void free_frame(uint32_t frame_addr)
     }
 }
 
-void alloc_page(uint32_t idx, uint32_t frame_addr)
+// returns the (physical) address of the frame allocated to the page
+uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
 {
+    uint32_t frame_addr = find_free_frame();
     claim_frame(frame_addr);
 
-    kernel_pd[idx].present = 1;
-    kernel_pd[idx].rw = 1;
-    kernel_pd[idx].size = 1;
-    kernel_pd[idx].frame_addr = frame_addr >> 22;
+    pt[page].present = 1;
+    pt[page].rw = 1;
+    pt[page].size = 1;
+    pt[page].frame_addr = frame_addr >> 22;
 
-    //if (idx < V_KERNEL_START / PAGE_SIZE) {
-        kernel_pd[idx].user = 1;
-    //}
+    if (page < (V_KERNEL_START / PAGE_SIZE)) {
+        pt[page].user = 1;
+    }
+    return frame_addr;
 }
 
 
@@ -185,9 +189,16 @@ void page_fault(page_fault_info_t info)
 
     // page was absent
     if (!info.present) {
-        uint32_t frame_addr = find_free_frame();
-        uint32_t page_idx = info.address / PAGE_SIZE;
-        alloc_page(page_idx, frame_addr);
+        uint32_t page = info.address / PAGE_SIZE;
+        pt_entry_t* page_table;
+        if (is_process_init()) {
+            thread_t* thread = curr_thread();
+            page_table = thread->process->page_table;
+        }
+        else {
+            page_table = kernel_pt;
+        }
+        alloc_page(page_table, page);
     }
     else {
         panic("page_fault : unknown page fault type");
@@ -198,4 +209,32 @@ void init_paging(mmap_entry_t* mmap, uint32_t mmap_ent_count)
 {   
     parse_mmap(mmap, mmap_ent_count);
     setup_page_dir();
+}
+
+void* kernel_page_table()
+{
+    return kernel_pt;
+}
+
+
+void copy_address_space(void* __dest_pt, void* __src_pt)
+{
+    pt_entry_t* dest_pt = __dest_pt;
+    pt_entry_t* src_pt = __src_pt;
+
+    uint32_t first_kernel_page = V_KERNEL_START / PAGE_SIZE;
+    // don't duplicate the kernel pages
+    memcpy(dest_pt + first_kernel_page, 
+        src_pt + first_kernel_page,
+        (PT_SIZE - first_kernel_page) * sizeof(uint32_t));
+
+    // duplicate every USED user page
+    memset(dest_pt, 0, first_kernel_page);
+    for (uint32_t i = 0; i < first_kernel_page; i++) {
+        if (src_pt[i].present) {
+            uint32_t src_addr = src_pt[i].frame_addr << 22;
+            uint32_t dest_addr = alloc_page(dest_pt, i);
+            panic("copy frame!\n");
+        }
+    }
 }

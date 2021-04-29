@@ -10,8 +10,8 @@ load_idtr:
 
 isr_common:
     // save registers 
-    // this has to respect the layout given by intr_stack_t
-    // in interrupts/regs.h
+    // this has to respect the layout given by intr_frame_t
+    // in interrupts/interrupts.h
     push %edi
     push %esi
     push %eax 

@@ -7,7 +7,7 @@
 #include "tables/idt.h"
 #include <stdio.h>
 
-void dispatch_syscall(intr_stack_t* pregs) 
+void dispatch_syscall(intr_frame_t* pregs) 
 {
     switch (pregs->eax) {
     /*case SC_NEW_THREAD:
@@ -28,7 +28,7 @@ void dispatch_syscall(intr_stack_t* pregs)
     }
 }
 
-void dispatch_interrupt(intr_stack_t* pregs)
+void handle_interrupt(intr_frame_t* pregs)
 {
 	// PIC IRQs
 	if (IDT_PIC_OFFSET <= pregs->intr_num && 
@@ -81,11 +81,3 @@ void dispatch_interrupt(intr_stack_t* pregs)
 	}
 }
 
-
-void handle_interrupt(intr_stack_t* pregs)
-{
-	dispatch_interrupt(pregs);
-	/*if (curr_proc->need_resched) {
-		schedule();
-	}*/
-}

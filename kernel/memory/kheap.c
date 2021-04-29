@@ -17,9 +17,9 @@ typedef struct __mem_node {
 } __attribute__((packed)) mem_node_t;
 
 // free blocks 
-mem_node_t* first_hole;
+static mem_node_t* first_hole;
 // allocated blocks
-mem_node_t* first_block;
+static mem_node_t* first_block;
 
 
 void detach_node(mem_node_t* node)

@@ -1,6 +1,6 @@
 #include "memory/constants.h"
 
-.extern kernel_main
+.extern init_kernel
 .global init_stack_bottom
 .global init_stack_top
 
@@ -27,7 +27,7 @@ boot_page_dir:
     .int 0x00000083 // first 4MB
     .fill (KERNEL_PAGE_IDX - 1), 4, 0x42424242 //0x00000000
     .int 0x00000083 // kernel 4MB page
-    .fill (PD_SIZE - KERNEL_PAGE_IDX - 1), 0x42424242 //0x00000000
+    .fill (PT_SIZE - KERNEL_PAGE_IDX - 1), 0x42424242 //0x00000000
 
 boot_info_addr: .int 0
 
@@ -71,7 +71,7 @@ launch_kernel:
     
     cli
     push boot_info_addr
-    call kernel_main   
+    call init_kernel   
 
     // this should not happen
     cli

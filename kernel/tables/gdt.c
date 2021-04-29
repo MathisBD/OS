@@ -89,8 +89,8 @@ typedef struct {
 } __attribute__((packed)) tss_entry_t;
 
 
-gdt_entry_t gdt[GDT_SIZE];
-tss_entry_t tss_entry; // we use only one tss entry
+static gdt_entry_t gdt[GDT_SIZE];
+static tss_entry_t tss_entry; // we use only one tss entry
 
 void set_gdt_entry(int index, uint32_t seg_start, 
     uint32_t seg_size, uint8_t flags, uint8_t gran)

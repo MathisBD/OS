@@ -8,17 +8,17 @@
 #include <stdbool.h>
 #include <string.h>
 #include <panic.h>
+#include "init/init.h"
 
 // code inspired by Operating Systems : Principles and Practice, 
 // chapter 4
 
 #define MAX_THREAD_COUNT 1000
 
-thread_t** thread_array;
-bool enabled_threads = false;
+static thread_t** thread_array;
 
 // TODO : reuse free tids ? with a bitmap or something ?
-tid_t next_tid = 0;
+static tid_t next_tid = 0;
 tid_t new_tid()
 {
     if (next_tid >= MAX_THREAD_COUNT) {
@@ -47,18 +47,17 @@ void init_threads()
 
     // do the scheduling init stuff
     sinit_threads(thread);
-
-    // set the flag
-    enabled_threads = true;
 }
 
 // switch out the current thread for the next READY thread.
-// switch_mode indicates what state the current thread should be put in after the switch
-// interrupts should be disabled when calling this function
+// switch_mode indicates what state the current thread should be put in after the switch.
+// interrupts should be disabled when calling this function.
 extern void thread_switch_asm(
     thread_t* prev, 
     thread_t* next,
-    uint32_t esp_ofs);
+    uint32_t esp_ofs,
+    uint32_t proc_ofs,
+    uint32_t pt_ofs);
 void thread_switch(uint32_t switch_mode)
 {
     thread_t* prev = curr_thread();
@@ -70,14 +69,18 @@ void thread_switch(uint32_t switch_mode)
         panic("no more READY thread\n");
     }
     sthread_switch(switch_mode);
-    uint32_t esp_ofs = offsetof(thread_t, esp);
-    thread_switch_asm(prev, next, esp_ofs);
+    thread_switch_asm(
+        prev, 
+        next, 
+        offsetof(thread_t, esp),
+        offsetof(thread_t, process),
+        offsetof(process_t, page_table));
 }
 
 void timer_tick(float seconds)
 {
     disable_interrupts();
-    if (enabled_threads) {
+    if (is_threads_init()) {
         thread_switch(SWITCH_READY);
     }
     enable_interrupts();
@@ -117,9 +120,18 @@ tid_t thread_create(void (*func)(int), int arg)
     thread->esp--;
     thread->esp--;
 
+    // disable interrupts since we now modify state
+    // visible from the outside
+    disable_interrupts();
+    thread_t* curr = curr_thread();
+    thread->process = curr->process;
+    if (thread->process != 0) {
+        list_add_back(thread->process->threads, thread);
+    }
     sthread_create(thread);
-
     thread_array[thread->tid] = thread;
+    enable_interrupts();
+
     return thread->tid;
 }
 

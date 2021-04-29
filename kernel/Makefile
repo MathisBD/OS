@@ -9,7 +9,9 @@ CPPFLAGS:=$(CPPFLAGS) -D__is_kernel \
 
 LIBS:=$(LIBS) -nostdlib -lk -lgcc
 
-KERNEL_OBJS=kernel.o boot.o \
+KERNEL_OBJS=kernel.o \
+init/boot.o \
+init/init.o \
 tables/idt.o tables/idt_asm.o \
 tables/gdt.o tables/gdt_asm.o \
 drivers/vga_driver.o \
@@ -26,6 +28,7 @@ memory/kheap.o \
 threads/scheduler.o \
 threads/thread_asm.o \
 threads/thread.o \
+threads/process.o \
 loader/loader.o \
 loader/loader_asm.o \
 filesystem/ext2/ext2_gen.o \

@@ -28,7 +28,10 @@
 
 
 #define PAGE_SIZE 0x400000 // 4MB
-// number of pages in a page directory
-#define PD_SIZE 1024
-// maximum number of physical frames
+// number of pages in a page table
+#define PT_SIZE 1024
+// maximum number of physical frames.
+// each frame is 4MB and we can store only 10bits
+// of frame address in a page table entry,
+// so at most 4GB of physical memory can be used.
 #define MAX_FRAMES 1024 

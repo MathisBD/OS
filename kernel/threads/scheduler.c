@@ -5,11 +5,11 @@
 #include <panic.h>
 
 // the only process in THREAD_RUNNING state
-thread_t* running;
+static thread_t* running;
 // all processes in THREAD_READY state
-list_t* ready_list;
+static list_t* ready_list;
 // all processes in THREAD_FINISHED state
-list_t* finished_list;
+static list_t* finished_list;
 
 // called by init_threads
 // thread : data of the first thread

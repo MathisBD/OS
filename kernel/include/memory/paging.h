@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "bootloader_info.h"
+#include "init/bootloader_info.h"
 
 // info passed to the page fault handler
 typedef struct {
@@ -27,3 +27,7 @@ void print_mem_blocks();
 
 void init_paging(mmap_entry_t* mmap, uint32_t mmap_ent_count);
 void page_fault(page_fault_info_t info);
+
+// returns the address of the (statically allocated) kernel page table
+void* kernel_page_table();
+void copy_address_space(void* dest_pt, void* src_pt);
