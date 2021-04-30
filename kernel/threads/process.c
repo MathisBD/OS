@@ -2,12 +2,15 @@
 #include "threads/thread.h"
 #include "threads/scheduler.h"
 #include "interrupts/interrupts.h"
+#include "interrupts/syscall.h"
 #include <panic.h>
 #include "memory/constants.h"
 #include "memory/paging.h"
 #include "memory/kheap.h"
 #include <string.h>
 #include <stdio.h>
+#include "loader/loader.h"
+
 
 #define MAX_PROC_COUNT  1000
 
@@ -98,3 +101,11 @@ void do_proc_fork(intr_frame_t* frame)
     enable_interrupts();
 }
 
+void do_proc_exec(intr_frame_t* frame)
+{
+    // load the user code/data
+    char* prog_name = get_syscall_arg(frame, 1);
+    free_user_pages();
+    void* new_stack = load_program(prog_name);
+    
+}

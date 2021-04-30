@@ -30,4 +30,6 @@ void page_fault(page_fault_info_t info);
 
 // returns the address of the (statically allocated) kernel page table
 void* kernel_page_table();
+// free all pages below 3GB
+void free_user_pages();
 void copy_address_space(void* dest_pt, void* src_pt);

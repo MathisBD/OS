@@ -2,16 +2,6 @@
 #include <stdint.h>
 
 
-/*// system calls takes their arguments in registers, 
-// in the following order :
-// eax, ebx, ecx, edx, edi, esi
-// the first argument is always the system call number
-// the return value is put in eax
-
-#define SC_NEW_THREAD       1
-#define SC_NEW_PROCESS      2
-#define SC_EXIT             3*/
-
 
 // maps the contents of the stack when handling an interrupt.
 // some is pushed by the cpu, some by the assembly wrapper
