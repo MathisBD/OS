@@ -3,9 +3,6 @@
 
 #define EOF (-1)
  
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // format specifiers : '%[width][type]'
 // width : 
@@ -22,10 +19,6 @@ int printf(const char* __restrict, ...);
 int putchar(int);
 int puts(const char*);
 
-#ifdef __is_libk
+#if defined(__is_kernel) || defined(__is_libk)
 int print_mem(const void*, size_t count);
 #endif 
-
-#ifdef __cplusplus
-}
-#endif

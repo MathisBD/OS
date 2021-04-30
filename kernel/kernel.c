@@ -4,18 +4,20 @@
 #include "threads/scheduler.h"
 #include <stdlib.h>
 #include "memory/kheap.h"
+#include "memory/constants.h"
+#include "memory/paging.h"
 #include <user_process.h>
 
 
 #define DELAY() {for (int i = 0; i < 100000000; i++);}
 
 
-void fn(int arg)
+/*void fn(int arg)
 {
     printf("thread : arg = %d\n", arg);
     DELAY();
     thread_exit(arg);
-}
+}*/
 
 
 void kernel_main()
@@ -32,6 +34,10 @@ void kernel_main()
 
     pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
+
+    if (pid == 0) {
+        proc_exec("/user/user.o");
+    }
 
     while (1);
 }

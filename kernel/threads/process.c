@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "loader/loader.h"
+#include "tables/gdt.h"
 
 
 #define MAX_PROC_COUNT  1000
@@ -93,7 +94,8 @@ void do_proc_fork(intr_frame_t* frame)
     // book-keeping
     proc->threads = list_create();
     list_add_front(proc->threads, copy);
-
+    copy->process = proc;
+    
     // everything is up and ready to run !
     proc->state = PROC_ALIVE;
     disable_interrupts();
@@ -103,9 +105,15 @@ void do_proc_fork(intr_frame_t* frame)
 
 void do_proc_exec(intr_frame_t* frame)
 {
-    // load the user code/data
     char* prog_name = get_syscall_arg(frame, 1);
-    free_user_pages();
-    void* new_stack = load_program(prog_name);
-    
+    //free_user_pages();
+
+    // load the user code/data
+    uint32_t entry_addr;
+    uint32_t user_stack_top;
+    load_program(prog_name, &entry_addr, &user_stack_top);
+
+    // assembly stub to jump
+    extern void exec_jump_asm(uint32_t entry_addr, uint32_t user_stack_top);
+    exec_jump_asm(entry_addr, user_stack_top);
 }

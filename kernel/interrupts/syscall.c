@@ -25,8 +25,13 @@ void handle_syscall(intr_frame_t* frame)
 		do_proc_fork(frame);
 		return;
     }
+    case SC_PROC_EXEC:
+    {
+        do_proc_exec(frame);
+        return;
+    }
     default:
-        printf("Unknown system call !\nsyscall number=%d\n", frame->eax);
+        printf("Unknown system call !\nsyscall number=0x%x\n", frame->eax);
         while(1);
     }
 }

@@ -3,6 +3,7 @@
 #include <list.h>
 #include "memory/kheap.h"
 #include "memory/constants.h"
+#include "memory/paging.h"
 #include "interrupts/interrupts.h"
 #include <stdio.h>
 #include <stdbool.h>
@@ -56,8 +57,8 @@ extern void thread_switch_asm(
     thread_t* prev, 
     thread_t* next,
     uint32_t esp_ofs,
-    uint32_t proc_ofs,
-    uint32_t pt_ofs);
+    uint32_t page_table_address // physical address
+);
 void thread_switch(uint32_t switch_mode)
 {
     thread_t* prev = curr_thread();
@@ -69,18 +70,14 @@ void thread_switch(uint32_t switch_mode)
         panic("no more READY thread\n");
     }
     sthread_switch(switch_mode);
-    thread_switch_asm(
-        prev, 
-        next, 
-        offsetof(thread_t, esp),
-        offsetof(thread_t, process),
-        offsetof(process_t, page_table));
+    uint32_t pt_addr = physical_address(next->process->page_table);
+    thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
 }
 
 void timer_tick(float seconds)
 {
     disable_interrupts();
-    if (is_threads_init()) {
+    if (is_all_init()) {
         thread_switch(SWITCH_READY);
     }
     enable_interrupts();

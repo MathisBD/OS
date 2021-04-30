@@ -4,4 +4,4 @@
 typedef uint32_t pid_t;
 
 pid_t proc_fork();
-
+void proc_exec(char* prog_name);

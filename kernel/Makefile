@@ -21,7 +21,6 @@ drivers/keyboard_driver.o \
 drivers/pit_driver.o \
 drivers/ata_driver.o \
 drivers/timer_driver.o \
-utils/string_utils.o \
 memory/paging.o \
 memory/memory_asm.o \
 memory/kheap.o \
@@ -29,6 +28,7 @@ threads/scheduler.o \
 threads/thread_asm.o \
 threads/thread.o \
 threads/process.o \
+threads/process_asm.o \
 loader/loader.o \
 loader/loader_asm.o \
 filesystem/ext2/ext2_gen.o \

@@ -45,6 +45,7 @@ list/list_add_back.libk.o \
 list/list_pop_front.libk.o \
 list/list_pop_back.libk.o \
 process/proc_fork.libk.o \
+process/proc_exec.libk.o \
 ubsan/ubsan.libk.o
 
 LIBC_OBJS=

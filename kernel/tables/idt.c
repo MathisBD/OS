@@ -2,7 +2,7 @@
 #include "tables/idt.h"
 #include "utils/string_utils.h"
 #include <stdio.h>
-
+#include "tables/selectors.h"
 
 typedef struct {
     uint16_t offset_lowbits;
@@ -31,7 +31,7 @@ static IDT_entry IDT[IDT_SIZE];
 void set_isr(uint32_t handler_addr, int index)
 {
 	IDT[index].offset_lowbits = handler_addr & 0xFFFF;
-	IDT[index].selector = 0x08; // offset in the gdt of the kernel code descriptor
+	IDT[index].selector = KERNEL_CODE_SEL; // offset in the gdt of the kernel code descriptor
 	IDT[index].zero = 0;
 	IDT[index].type_attr = IDT_PRESENT | IDT_DPL_0 | IDT_INT_GATE; // interrupt gate
 	IDT[index].offset_highbits = (handler_addr & 0xFFFF0000) >> 16;

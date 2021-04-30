@@ -171,14 +171,15 @@ uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
     uint32_t frame_addr = find_free_frame();
     claim_frame(frame_addr);
 
+    memset(pt + page, 0, sizeof(pt_entry_t));
     pt[page].present = 1;
     pt[page].rw = 1;
     pt[page].size = 1;
     pt[page].frame_addr = frame_addr >> 22;
 
-    if (page < (V_KERNEL_START / PAGE_SIZE)) {
+    //if (page < (V_KERNEL_START / PAGE_SIZE)) {
         pt[page].user = 1;
-    }
+    //}
     return frame_addr;
 }
 
@@ -194,7 +195,6 @@ void page_fault(page_fault_info_t info)
         if (is_process_init()) {
             thread_t* thread = curr_thread();
             page_table = thread->process->page_table;
-            while(1);
         }
         else {
             page_table = kernel_pt;
@@ -217,6 +217,24 @@ void* kernel_page_table()
     return kernel_pt;
 }
 
+uint32_t physical_address(uint32_t vaddr)
+{
+    uint32_t page = vaddr / PAGE_SIZE;
+    uint32_t ofs = vaddr % PAGE_SIZE;
+    
+    thread_t* thread = curr_thread();
+    pt_entry_t* pt = thread->process->page_table;
+
+    if (pt[page].present == 0) {
+        panic("can't get physical address of unmapped virtual address");
+    }
+    return (pt[page].frame_addr << 22) | ofs;
+}
+
+void free_user_pages()
+{
+    panic("free user pages");
+}
 
 void copy_address_space(void* __dest_pt, void* __src_pt)
 {

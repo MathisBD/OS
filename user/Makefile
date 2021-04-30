@@ -32,8 +32,8 @@ install-headers:
 	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/user/.
 
 install-user: user.o
-	mkdir -p $(SYSROOT)$(BOOTDIR)
-	cp --preserve=timestamps user.o $(SYSROOT)$(BOOTDIR)
+	mkdir -p $(SYSROOT)/user
+	cp --preserve=timestamps user.o $(SYSROOT)/user
 
 clean:
 	rm -f $(OBJS)
