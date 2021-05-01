@@ -4,6 +4,7 @@
 #include "memory/kheap.h"
 #include "memory/constants.h"
 #include "memory/paging.h"
+#include "tables/gdt.h"
 #include "interrupts/interrupts.h"
 #include <stdio.h>
 #include <stdbool.h>
@@ -70,6 +71,8 @@ void thread_switch(uint32_t switch_mode)
         panic("no more READY thread\n");
     }
     sthread_switch(switch_mode);
+    set_tss_esp(((uint32_t)(next->stack)) + KSTACK_SIZE);
+
     uint32_t pt_addr = physical_address(next->process->page_table);
     thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
 }

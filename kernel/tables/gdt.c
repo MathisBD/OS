@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "tables/gdt.h"
 #include <string.h>
+#include "tables/selectors.h"
+
 
 #define GDT_SIZE 6
 
@@ -138,10 +140,10 @@ void init_gdt(void)
 
     // initialize the tss entry
     memset(&tss_entry, 0, sizeof(tss_entry_t));
-    tss_entry.ss0 = 0x10;
-    tss_entry.esp0 = 0;
+    tss_entry.ss0 = KERNEL_DATA_SEL | RPL_KERNEL;
+    tss_entry.esp0 = 0; // will be set later on
     // RPL is 0x03
-    tss_entry.cs = 0x08 | 0x03;
+    tss_entry.cs = KERNEL_CODE_SEL | RPL_KERNEL;
     tss_entry.ss = tss_entry.ds = tss_entry.es = tss_entry.fs = tss_entry.gs = 0x10 | 0x03; 
 
 
@@ -150,5 +152,5 @@ void init_gdt(void)
     gdtr.limit = (sizeof(gdt_entry_t) * GDT_SIZE) - 1;
     gdtr.start = (uint32_t)&gdt;
     load_gdtr((uint32_t)&gdtr);
-    load_tr(0x28 | 0x03); // 0x03 : RPL
+    load_tr(TSS_SEL | RPL_USER);
 }

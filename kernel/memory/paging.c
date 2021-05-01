@@ -177,9 +177,9 @@ uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
     pt[page].size = 1;
     pt[page].frame_addr = frame_addr >> 22;
 
-    //if (page < (V_KERNEL_START / PAGE_SIZE)) {
+    if (page < (V_KERNEL_START / PAGE_SIZE)) {
         pt[page].user = 1;
-    //}
+    }
     return frame_addr;
 }
 

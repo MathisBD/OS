@@ -59,6 +59,9 @@ void handle_interrupt(intr_frame_t* frame)
     }
 	default:
 		printf("Uncatched interrupt !\nint num=%d\n", frame->intr_num);
+		printf("instruction : %x:%x\n", frame->cs, frame->eip);
+		printf("registers : eax=%x, ebx=%x, ecx=%x, edx=%x, esi=%x, edi=%x\n",
+			frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi);
 		while(1);
 	}
 }
