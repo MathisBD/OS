@@ -29,6 +29,7 @@ threads/thread_asm.o \
 threads/thread.o \
 threads/process.o \
 threads/process_asm.o \
+threads/lock.o \
 loader/loader.o \
 loader/loader_asm.o \
 filesystem/ext2/ext2_gen.o \

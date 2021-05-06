@@ -19,6 +19,9 @@
 #define SC_THREAD_JOIN      7
 #define SC_THREAD_EXIT      8
 
+#define SC_LOCK_CREATE      9
+#define SC_LOCK_ACQUIRE     10
+#define SC_LOCK_RELEASE     11
 
 #define SC_ARG_0    %eax
 #define SC_ARG_1    %ebx

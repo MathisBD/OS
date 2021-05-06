@@ -29,3 +29,6 @@ void list_add_front(list_t* l, void* elem);
 void list_add_back(list_t* l, void* elem);
 void* list_pop_front(list_t* l);
 void* list_pop_back(list_t* l);
+// doesn't free the node (or its contents of course).
+void list_remove_node(list_t* l, list_node_t* node);
+

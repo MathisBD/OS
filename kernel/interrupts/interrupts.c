@@ -6,7 +6,7 @@
 #include "memory/paging.h"
 #include "tables/idt.h"
 #include <stdio.h>
-#include "interrupts/syscall.h"
+#include <panic.h>
 
 
 void handle_interrupt(intr_frame_t* frame)
@@ -52,11 +52,6 @@ void handle_interrupt(intr_frame_t* frame)
 		page_fault(info);
 		return;
 	}
-    case SC_INTR: // system call
-    {
-        handle_syscall(frame);
-        return;
-    }
 	default:
 		printf("Uncatched interrupt !\nint num=%d\n", frame->intr_num);
 		printf("instruction : %x:%x\n", frame->cs, frame->eip);

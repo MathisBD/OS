@@ -100,7 +100,7 @@ void init_kernel(boot_info_t* boot_info)
         boot_info->mmap_ent_count
     );
     paging = true;
-    enable_interrupts();
+    set_interrupt_flag(true);
 
     // HIGH LEVEL
 

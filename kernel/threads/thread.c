@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <panic.h>
+#include <user_thread.h>
 #include "init/init.h"
 
 // code inspired by Operating Systems : Principles and Practice, 
@@ -50,10 +51,6 @@ void init_threads()
     // do the scheduling init stuff
     sinit_threads(thread);
 }
-
-// switch out the current thread for the next READY thread.
-// switch_mode indicates what state the current thread should be put in after the switch.
-// interrupts should be disabled when calling this function.
 extern void thread_switch_asm(
     thread_t* prev, 
     thread_t* next,
@@ -79,24 +76,25 @@ void thread_switch(uint32_t switch_mode)
 
 void timer_tick(float seconds)
 {
-    disable_interrupts();
+    bool old_if = set_interrupt_flag(false);
     if (is_all_init()) {
         thread_switch(SWITCH_READY);
     }
-    enable_interrupts();
+    set_interrupt_flag(old_if);
 }
 
 // first function a newly created thread executes
 void stub(void (*func)(int), int arg)
 {
     // interrupts were disabled before switching threads.
-    enable_interrupts();
+    set_interrupt_flag(true);
     (*func)(arg);
     thread_exit(0); // in case the function didn't call exit already
 }
 
 tid_t thread_create(void (*func)(int), int arg)
 {
+    bool old_if = set_interrupt_flag(false);
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->tid = new_tid();
     thread->stack = kmalloc(KSTACK_SIZE);
@@ -120,9 +118,6 @@ tid_t thread_create(void (*func)(int), int arg)
     thread->esp--;
     thread->esp--;
 
-    // disable interrupts since we now modify state
-    // visible from the outside
-    disable_interrupts();
     thread_t* curr = curr_thread();
     thread->process = curr->process;
     if (thread->process != 0) {
@@ -130,21 +125,22 @@ tid_t thread_create(void (*func)(int), int arg)
     }
     sthread_create(thread);
     thread_array[thread->tid] = thread;
-    enable_interrupts();
+    
+    set_interrupt_flag(old_if);
 
     return thread->tid;
 }
 
 void thread_yield()
 {
-    disable_interrupts();
+    bool old_if = set_interrupt_flag(false);
     thread_switch(SWITCH_READY);
-    enable_interrupts();
+    set_interrupt_flag(old_if);
 }
 
 void thread_exit(int exit_code)
 {
-    disable_interrupts();
+    set_interrupt_flag(false);
     thread_t* curr = curr_thread();
     curr->exit_code = exit_code;
 
@@ -170,7 +166,7 @@ void delete_thread(thread_t* thread)
 
 int thread_join(tid_t tid)
 {
-    disable_interrupts();
+    bool old_if = set_interrupt_flag(false);
     thread_t* thread = get_thread(tid);
 
     // wait for the thread to be finished
@@ -182,6 +178,6 @@ int thread_join(tid_t tid)
 
     int code = thread->exit_code;
     delete_thread(thread);
-    enable_interrupts();
+    set_interrupt_flag(old_if);
     return code;
 }

@@ -1,3 +1,6 @@
+.extern handle_interrupt
+.extern handle_syscall
+
 
 // arguments (stack) :
 //   1) address of an 8 byte memory location containing 
@@ -8,7 +11,8 @@ load_idtr:
     lidt (%edx)
     ret
 
-isr_common:
+
+.macro mSaveState
     // save registers 
     // this has to respect the layout given by intr_frame_t
     // in interrupts/interrupts.h
@@ -23,25 +27,38 @@ isr_common:
     push %es 
     push %fs 
     push %gs
+.endm 
 
+.macro mLoadKernelSel
     // load kernel data selector
     mov $0x10, %ax 
     mov %ax, %ds 
     mov %ax, %es 
     mov %ax, %fs
     mov %ax, %gs
+.endm
 
-    // call the C interrupt handler 
-    // push its argument : address of the intr_stack_t struct
+.macro mHandleIntr
+    // call the C interrupt handler.
+    // push its argument : address of the intr_frame_t struct
     // (which we just constructed on the stack)
     mov %esp, %ecx
     push %ecx
-
-    .extern handle_interrupt
     call handle_interrupt
-    add $4, %esp // remove the address of intr_stack_t struct
+    add $4, %esp // remove the address of intr_frame_t struct
+.endm
 
-    // restore registers 
+.macro mHandleSyscall
+    // call the C syscall handler.
+    // push its argument : address of the intr_frame_t struct
+    // (which we just constructed on the stack)
+    mov %esp, %ecx
+    push %ecx
+    call handle_syscall
+    add $4, %esp // remove the address of intr_frame_t struct
+.endm
+
+.macro mRestoreState 
     pop %gs 
     pop %fs 
     pop %es 
@@ -53,86 +70,112 @@ isr_common:
     pop %eax 
     pop %esi 
     pop %edi 
+.endm 
 
+// the cpu pushed an error code
+.macro mIsrErrcode n
+.global isr\n
+isr\n:
+    cli
+    push $\n // interrupt number
+    mSaveState
+    mLoadKernelSel
+    mHandleIntr
+    mRestoreState
     add $8, %esp // pop the interrupt number and error code
     iret // pops the stuff the cpu pushed 
+.endm
 
-
-.macro isr_no_errcode n
+// the cpu didn't push an error code
+.macro mIsrNoErrcode n
 .global isr\n
 isr\n:
+    cli
     push $0 // dummy error code 
     push $\n // interrupt number
-    jmp isr_common
+    mSaveState
+    mLoadKernelSel
+    mHandleIntr
+    mRestoreState
+    add $8, %esp // pop the interrupt number and error code
+    iret // pops the stuff the cpu pushed 
 .endm
 
-.macro isr_errcode n 
+// the cpu didn't push an error code
+.macro mIsrSyscall n
 .global isr\n
 isr\n:
-    push $\n
-    jmp isr_common
+    cli
+    push $0 // dummy error code 
+    push $\n // interrupt number
+    mSaveState
+    mLoadKernelSel
+
+    // interrupts are enabled during a syscall
+    sti 
+    mHandleSyscall
+
+    cli
+    mRestoreState
+    add $8, %esp // pop the interrupt number and error code
+    iret // pops the stuff the cpu pushed 
 .endm
 
-isr_no_errcode 0  // Divide Error
-isr_no_errcode 1  // Debug Exception
-isr_no_errcode 2  // Non Maskable Interrupt 
-isr_no_errcode 3  // Breakpoint
-isr_no_errcode 4  // Overflow
-isr_no_errcode 5  // Out of Bounds
-isr_no_errcode 6  // Invalid Opcode
-isr_no_errcode 7  // Device Not Available
-isr_errcode 8     // Double Fault
-isr_no_errcode 9  // Coprocessor Segment Overrun
-isr_errcode 10    // Invalid TSS
-isr_errcode 11    // Segment Not Present
-isr_errcode 12    // Stack Fault
-isr_errcode 13    // General Protection
-isr_errcode 14    // Page Fault 
-isr_no_errcode 15 // Intel reserved
-isr_no_errcode 16 // Floating Point Error
-isr_errcode 17    // Alignment Check
-isr_no_errcode 18 // Machine Check
+mIsrNoErrcode 0  // Divide Error
+mIsrNoErrcode 1  // Debug Exception
+mIsrNoErrcode 2  // Non Maskable Interrupt 
+mIsrNoErrcode 3  // Breakpoint
+mIsrNoErrcode 4  // Overflow
+mIsrNoErrcode 5  // Out of Bounds
+mIsrNoErrcode 6  // Invalid Opcode
+mIsrNoErrcode 7  // Device Not Available
+mIsrErrcode 8     // Double Fault
+mIsrNoErrcode 9  // Coprocessor Segment Overrun
+mIsrErrcode 10    // Invalid TSS
+mIsrErrcode 11    // Segment Not Present
+mIsrErrcode 12    // Stack Fault
+mIsrErrcode 13    // General Protection
+mIsrErrcode 14    // Page Fault 
+mIsrNoErrcode 15 // Intel reserved
+mIsrNoErrcode 16 // Floating Point Error
+mIsrErrcode 17    // Alignment Check
+mIsrNoErrcode 18 // Machine Check
 
 // Intel reserved
-isr_no_errcode 19
-isr_no_errcode 20
-isr_errcode 21
-isr_no_errcode 22
-isr_no_errcode 23
-isr_no_errcode 24
-isr_no_errcode 25
-isr_no_errcode 26
-isr_no_errcode 27
-isr_no_errcode 28
-isr_no_errcode 29
-isr_no_errcode 30
-isr_no_errcode 31
+mIsrNoErrcode 19
+mIsrNoErrcode 20
+mIsrErrcode 21
+mIsrNoErrcode 22
+mIsrNoErrcode 23
+mIsrNoErrcode 24
+mIsrNoErrcode 25
+mIsrNoErrcode 26
+mIsrNoErrcode 27
+mIsrNoErrcode 28
+mIsrNoErrcode 29
+mIsrNoErrcode 30
+mIsrNoErrcode 31
 
 // IRQs (for PICs)
 // PIC 1
-isr_no_errcode 32
-isr_no_errcode 33
-isr_no_errcode 34
-isr_no_errcode 35
-isr_no_errcode 36
-isr_no_errcode 37
-isr_no_errcode 38
-isr_no_errcode 39
+mIsrNoErrcode 32
+mIsrNoErrcode 33
+mIsrNoErrcode 34
+mIsrNoErrcode 35
+mIsrNoErrcode 36
+mIsrNoErrcode 37
+mIsrNoErrcode 38
+mIsrNoErrcode 39
 
 // PIC 2
-isr_no_errcode 40
-isr_no_errcode 41
-isr_no_errcode 42
-isr_no_errcode 43
-isr_no_errcode 44
-isr_no_errcode 45
-isr_no_errcode 46
-isr_no_errcode 47
+mIsrNoErrcode 40
+mIsrNoErrcode 41
+mIsrNoErrcode 42
+mIsrNoErrcode 43
+mIsrNoErrcode 44
+mIsrNoErrcode 45
+mIsrNoErrcode 46
+mIsrNoErrcode 47
 
-// syscall
-.global isr128
-isr128:
-    push $0 // dummy error code 
-    push $128 // interrupt number
-    jmp isr_common
-.endm
+// syscall 
+mIsrSyscall 128

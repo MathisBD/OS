@@ -1,6 +1,6 @@
 #pragma once 
 #include <stdint.h>
-
+#include <stdbool.h>
 
 
 // maps the contents of the stack when handling an interrupt.
@@ -17,7 +17,8 @@ typedef struct {
 	uint32_t eip, cs, eflags;
 } __attribute__((packed)) intr_frame_t;
 
-
-void enable_interrupts();
-void disable_interrupts();
-void handle_interrupt(intr_frame_t* pregs);
+// returns the old state of interrupts.
+// true means they were enabled.
+bool set_interrupt_flag(bool enable);
+bool get_interrupt_flag();
+void handle_interrupt(intr_frame_t* frame);
