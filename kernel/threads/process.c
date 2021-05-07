@@ -63,7 +63,7 @@ static process_t* copy_process(process_t* original)
     copy->parent = original;
     copy->children = list_create();
     list_add_back(original->children, copy);
-    copy->children = list_create();
+    copy->threads = list_create();
 
     // page table (has to be aligned on 4K)
     copy->page_table = kmalloc_aligned(PAGE_TABLE_SIZE * sizeof(uint32_t), 4096);
@@ -107,7 +107,7 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     copy->esp--;
     copy->esp--;
 
-    // return values :  the child gets 0,
+    // return values : the child gets 0,
     // the parent gets the child pid (nonzero).
     frame->eax = new_proc->pid;
     copy_frame->eax = 0; 
@@ -115,6 +115,9 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     // book-keeping
     list_add_front(new_proc->threads, copy);
     copy->process = new_proc;
+
+    queuelock_release(original->lock);
+    return copy;
 }
 
 

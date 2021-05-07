@@ -38,17 +38,10 @@ void handle_interrupt(intr_frame_t* frame)
 	switch(frame->intr_num) {
 	case 14: // page fault
 	{
-		page_fault_info_t info;
-		info.present = frame->error_code & 0x01;
-		info.read_write = frame->error_code & 0x02;
-		info.user_supervisor = frame->error_code & 0x04;
-		info.reserved = frame->error_code & 0x08;
-		info.instr_fetch = frame->error_code & 0x10;
-
 		extern uint32_t get_cr2();
-		info.address = get_cr2();
+		uint32_t faulty_address = get_cr2();
 
-		page_fault(info);
+		page_fault(frame, faulty_address);
 		return;
 	}
 	default:

@@ -30,28 +30,30 @@ void fn(arg_t* arg)
 
 void kernel_main()
 {
-    arg_t* arg = kmalloc(sizeof(arg_t));
-    arg->ptr = kmalloc(sizeof(int));
-    *(arg->ptr) = 0;
-    arg->lock = queuelock_create();
-
-    tid_t tids[8];
-    for (int i = 0; i < 8; i++) {
-        tids[i] = thread_create(fn, arg);
-        printf("created i = %d\n", i);
-    }
-
-
-    for (int i = 0; i < 8; i++) {
-        thread_join(tids[i]);
-    }
-
-    printf("n=%d\n", *(arg->ptr));
-
-    /*pid_t pid = proc_fork();
+    pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
 
     if (pid == 0) {
+        printf("hello\n");
+        /*arg_t* arg = kmalloc(sizeof(arg_t));
+        arg->ptr = kmalloc(sizeof(int));
+        *(arg->ptr) = 0;
+        arg->lock = queuelock_create();
+        tid_t tids[8];
+        for (int i = 0; i < 8; i++) {
+            tids[i] = thread_create(fn, arg);
+            printf("created i = %d\n", i);
+        }
+
+
+        for (int i = 0; i < 8; i++) {
+            thread_join(tids[i]);
+        }
+
+        printf("n=%d\n", *(arg->ptr));*/
+    }
+
+    /*if (pid == 0) {
         proc_exec("/user/user.o");
     }*/
 

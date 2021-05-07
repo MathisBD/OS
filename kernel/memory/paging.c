@@ -9,6 +9,7 @@
 #include "threads/scheduler.h"
 #include "init/init.h"
 
+
 typedef struct {
     uint32_t address;
     uint32_t frame_count;
@@ -184,13 +185,25 @@ uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
 }
 
 
-void page_fault(page_fault_info_t info)
+void page_fault(intr_frame_t* frame, uint32_t mem_address)
 {
-    printf("PAGE FAULT (addr=%x)\n", info.address);
+    printf("PAGE FAULT (addr=%x)\n", mem_address);
+
+    // 0 : non-present page
+    // 1 : privilege violation
+    bool present = frame->error_code & 0x01;
+    // 1 : write
+    bool read_write = frame->error_code & 0x02;
+    // 1 : user
+    bool user_supervisor = frame->error_code & 0x04;
+    // 1 : the page reserved bit was set
+    bool reserved = frame->error_code & 0x08;
+    // 1 : caused by an instruction fetch
+    bool instr_fetch = frame->error_code & 0x10;
 
     // page was absent
-    if (!info.present) {
-        uint32_t page = info.address / PAGE_SIZE;
+    if (!present) {
+        uint32_t page = mem_address / PAGE_SIZE;
         pt_entry_t* page_table;
         if (is_process_init()) {
             thread_t* thread = curr_thread();

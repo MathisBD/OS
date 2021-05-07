@@ -56,7 +56,7 @@ void sthread_create(thread_t* thread)
 {
     LOCK();
     thread->state = THREAD_READY;
-    list_add_back(ready_list, (void*)thread);
+    list_add_back(ready_list, thread);
     UNLOCK();
 }
 
@@ -79,6 +79,7 @@ extern void thread_switch_asm(
 );
 static void thread_switch(thread_t* prev, thread_t* next)
 {
+    printf("switch %x->%x\n", prev->tid, next->tid);
     set_tss_esp(((uint32_t)(next->stack)) + KSTACK_SIZE);
     uint32_t pt_addr = physical_address(next->process->page_table);
     thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
@@ -86,7 +87,10 @@ static void thread_switch(thread_t* prev, thread_t* next)
 
 void sched_switch(uint32_t switch_mode)
 {
+    set_interrupt_flag(false);
+    printf("lock=%d\n", sched_spinlock->value);
     LOCK();
+
     thread_t* prev = running;
     if (list_empty(ready_list)) {
         if (switch_mode == SWITCH_READY) {
@@ -133,6 +137,13 @@ void sched_switch(uint32_t switch_mode)
 
     // do the actual switch
     thread_switch(prev, next);
+
+    panic("TODO : sched_switch");
+    // TODO : move the UNLOCK() to thread_switch.
+    // reason : after forking a process, when the new thread is
+    // switched in, it will return from thread_switch_asm but not to 
+    // thread_switch, and thus won't execute the code below this comment,
+    // and won't unlock sched_spinlock;
     UNLOCK();
 }
 
