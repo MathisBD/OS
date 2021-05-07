@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 #include <list.h>
-#include "threads/_types.h"
 #include "interrupts/interrupts.h"
 
 #define PAGE_TABLE_SIZE 1024
@@ -13,18 +12,32 @@
 // (at which point it is freed and completely deleted).
 #define PROC_DEAD   2
 
+typedef uint32_t pid_t;
+typedef struct _process {
+    pid_t pid;
+    list_t* threads; // the threads in this process
+    struct _process* parent; // parent process
+    list_t* children; // child processes
+    uint32_t* page_table;
+    // process lifecycle
+    uint32_t state;
+    int exit_code;
+    // process resources (locks, file descriptors are local to a process)
+    //list_t* locks;
+    //lock_id_t next_lock_id;
+} process_t;
 
 void init_process();
 
 // interrupts should be disabled when calling any of those lock functions.
 
-lock_t* proc_get_lock(process_t* proc, lock_id_t lock_id);
+/*lock_t* proc_get_lock(process_t* proc, lock_id_t lock_id);
 // overwrites the lock->id field with a new id.
 // returns this new id.
 lock_id_t proc_add_lock(process_t* proc, lock_t* lock);
 // doesn't free the lock, only removes it from the process list.
 // returns a reference to the removed lock (or zero if the lock wasn't found).
-lock_t* proc_remove_lock(process_t* proc, lock_id_t lock_id);
+lock_t* proc_remove_lock(process_t* proc, lock_id_t lock_id);*/
 
 
 // all these functions are meant to be called

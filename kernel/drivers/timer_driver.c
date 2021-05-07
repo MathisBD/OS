@@ -1,6 +1,6 @@
 #include "drivers/timer_driver.h"
 #include <stdint.h>
-#include "threads/thread.h"
+#include "threads/scheduler.h"
 
 
 float freq; // frequency of interrupts, in Hz

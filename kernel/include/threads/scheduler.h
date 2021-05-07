@@ -1,6 +1,9 @@
 #pragma once 
 #include "threads/thread.h"
 #include <stdbool.h>
+#include "sync/spinlock.h"
+#include "sync/queuelock.h"
+
 
 // what state to put prev in when performing
 // a thread switch ?
@@ -11,22 +14,27 @@
 
 // returns the currently running thread
 thread_t* curr_thread();
-// returns the thread to run right after the current thread
-// i.e. the fist READY thread
-// returns 0 if there is no READY thread
-thread_t* next_thread();
 
-// these scheduler functions are called by functions
-// inside thread.h to update scheduler state
+void sched_wake_up(thread_t* thread);
+// switch out the current thread. 
+// switch_mode determines the new state of the thread.
+void sched_switch(uint32_t switch_mode);
+// atomically release the lock and switch out the current thread,
+// putting it in waiting state.
+void sched_suspend_and_release_spinlock(spinlock_t*);
+void sched_suspend_and_release_queuelock(queuelock_t*);
 
+void timer_tick(float seconds);
+
+// first function a new thread executes.
+// should not be called directly (see thread.c).
+void new_thread_stub(void (*func)(int), int arg);
+
+// callback functions
+
+// called by init_thread()
 void sinit_threads(thread_t* thread);
-// called once the thread has finished been created 
+// called once a thread has finished been created 
 void sthread_create(thread_t* thread); 
 // called right BEFORE switching stacks from prev to next
-// interrupts should be disabled when calling this function.
-// if finish_prev is true, prev will never run again and go 
-// to FINISH state.
 void sthread_switch(uint32_t switch_mode);
-
-// assumes interrutps are disabled
-void swake_up(thread_t* thread);

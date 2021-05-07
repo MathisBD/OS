@@ -3,6 +3,7 @@
 #include <list.h>
 #include <panic.h>
 #include <stdio.h>
+#include "sync/spinlock.h"
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,
@@ -22,8 +23,12 @@ static mem_node_t* first_hole;
 // allocated blocks
 static mem_node_t* first_block;
 
+// global heap lock (statically allocated).
+// this has to be a spinlock to avoid infinite recursion
+// when calling lock_acquire() on a queuelock.
+static spinlock_t heap_spinlock;
 
-void detach_node(mem_node_t* node)
+static void detach_node(mem_node_t* node)
 {
     if (node == first_hole) {
         first_hole = first_hole->next;
@@ -44,7 +49,7 @@ void detach_node(mem_node_t* node)
     }
 }
 
-void add_hole(mem_node_t* node)
+static void add_hole(mem_node_t* node)
 {
     node->prev = 0;
     node->next = first_hole;
@@ -54,7 +59,7 @@ void add_hole(mem_node_t* node)
     first_hole = node;
 }
 
-void add_block(mem_node_t* node)
+static void add_block(mem_node_t* node)
 {
     node->prev = 0;
     node->next = first_block;
@@ -71,18 +76,16 @@ void init_kheap()
     first_hole = (mem_node_t*)HEAP_START;
     first_hole->size = HEAP_SIZE - sizeof(mem_node_t);
     first_hole->prev = first_hole->next = 0;
+
+    heap_spinlock.value = 0;
 }
 
-/*void compactify_heap()
-{
-
-}*/
 
 // shrink a node down to a new size.
 // the part of the node that was cut off will become a new 
 // node (if it is big enough).
 // returns the address of the new node.
-mem_node_t* shrink_node(mem_node_t* node, uint32_t size)
+static mem_node_t* shrink_node(mem_node_t* node, uint32_t size)
 {
     if (size > node->size) {
         return 0;
@@ -105,7 +108,7 @@ mem_node_t* shrink_node(mem_node_t* node, uint32_t size)
     return new_node;
 }
 
-mem_node_t* find_hole(uint32_t size, uint32_t align)
+static mem_node_t* find_hole(uint32_t size, uint32_t align)
 {
     for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {   
         uint32_t start = ((uint32_t)hole) + sizeof(mem_node_t);
@@ -163,6 +166,8 @@ inline void* kmalloc(uint32_t size)
 
 void* kmalloc_aligned(uint32_t size, uint32_t align)
 {
+    spinlock_acquire(&heap_spinlock);
+
     if (align & (NODE_ALIGN - 1)) {
         panic("kmalloc : invalid align value!");
     }
@@ -183,21 +188,23 @@ void* kmalloc_aligned(uint32_t size, uint32_t align)
         mem_node_t* new_hole = shrink_node(hole, size);
         add_hole(new_hole);
     }
-    return (uint32_t)hole + sizeof(mem_node_t);
+    uint32_t res = ((uint32_t)hole) + sizeof(mem_node_t);
 
-    // count free space (except at the end)
-    // if it is big (>= % of alloc space),
-    // compactify
+    spinlock_release(&heap_spinlock);
+    return res;
 }
 
 void kfree(void* ptr)
 {
+    spinlock_acquire(&heap_spinlock);
+
     mem_node_t* node = (mem_node_t*)(ptr - sizeof(mem_node_t));
-    
     // switch from block to hole
     // assumes the node is a block at the moment
     detach_node(node);
     add_hole(node);
+
+    spinlock_release(&heap_spinlock);
 }
 
 

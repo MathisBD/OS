@@ -20,7 +20,6 @@ void handle_interrupt(intr_frame_t* frame)
 		
 		switch(irq) {
 		case 0: // clock (PIT)
-			//timer_interrupt(frame->eax);
 			timer_interrupt();
 			return;
 		case 1: // keyboard

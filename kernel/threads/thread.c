@@ -18,17 +18,22 @@
 
 #define MAX_THREAD_COUNT 1000
 
+// protects access to global thread data, such as next_pid or thread_array.
+static queuelock_t* threads_lock;
+
 static thread_t** thread_array;
 
 // TODO : reuse free tids ? with a bitmap or something ?
 static tid_t next_tid = 0;
-tid_t new_tid()
+static tid_t _new_tid()
 {
+    //queuelock_acquire(threads_lock);
     if (next_tid >= MAX_THREAD_COUNT) {
         panic("max thread count reached\n");
     }
     tid_t tmp = next_tid;
     next_tid++;
+    //queuelock_release(threads_lock);
     return tmp;
 }
 
@@ -45,54 +50,19 @@ void init_threads()
     // create a thread context for the kernel
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->tid = new_tid();
+    thread->lock = queuelock_create();
+    thread->join_list = list_create();
+    thread->next_waiting = 0;
     extern void init_stack_bottom();
     thread->stack = (uint32_t)init_stack_bottom;
     
     // do the scheduling init stuff
     sinit_threads(thread);
 }
-extern void thread_switch_asm(
-    thread_t* prev, 
-    thread_t* next,
-    uint32_t esp_ofs,
-    uint32_t page_table_address // physical address
-);
-void thread_switch(uint32_t switch_mode)
-{
-    thread_t* prev = curr_thread();
-    thread_t* next = next_thread();
-    if (next == 0) {
-        if (switch_mode == SWITCH_READY) {
-            return;
-        }
-        panic("no more READY thread\n");
-    }
-    sthread_switch(switch_mode);
-    set_tss_esp(((uint32_t)(next->stack)) + KSTACK_SIZE);
 
-    uint32_t pt_addr = physical_address(next->process->page_table);
-    thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
-}
 
-void timer_tick(float seconds)
-{
-    bool old_if = set_interrupt_flag(false);
-    if (is_all_init()) {
-        thread_switch(SWITCH_READY);
-    }
-    set_interrupt_flag(old_if);
-}
 
-// first function a newly created thread executes
-void stub(void (*func)(int), int arg)
-{
-    // interrupts were disabled before switching threads.
-    set_interrupt_flag(true);
-    (*func)(arg);
-    thread_exit(0); // in case the function didn't call exit already
-}
-
-tid_t thread_create(void (*func)(int), int arg)
+tid_t do_thread_create(void (*func)(int), int arg)
 {
     bool old_if = set_interrupt_flag(false);
     thread_t* thread = kmalloc(sizeof(thread_t));
@@ -100,6 +70,7 @@ tid_t thread_create(void (*func)(int), int arg)
     thread->stack = kmalloc(KSTACK_SIZE);
     thread->esp = ((uint32_t)thread->stack) + KSTACK_SIZE;
     thread->join_list = list_create();
+    thread->next_waiting = 0;
     // setup a dummy stack frame for the new thread
     // so that it can be started as if resuming from a switch.
     // this frame has to mimmick that of a thread that was switched out
@@ -113,16 +84,15 @@ tid_t thread_create(void (*func)(int), int arg)
     thread->esp--;
     // thread_switch return address
     // (no need to push dummy arguments for thread_switch)
-    thread->esp--; *(thread->esp) = stub;
+    thread->esp--; *(thread->esp) = new_thread_stub;
     // dummy registers ebx and ebp
     thread->esp--;
     thread->esp--;
 
     thread_t* curr = curr_thread();
     thread->process = curr->process;
-    if (thread->process != 0) {
-        list_add_back(thread->process->threads, thread);
-    }
+    list_add_back(thread->process->threads, thread);
+
     sthread_create(thread);
     thread_array[thread->tid] = thread;
     
@@ -131,14 +101,12 @@ tid_t thread_create(void (*func)(int), int arg)
     return thread->tid;
 }
 
-void thread_yield()
+void do_thread_yield()
 {
-    bool old_if = set_interrupt_flag(false);
-    thread_switch(SWITCH_READY);
-    set_interrupt_flag(old_if);
+    sched_switch(SWITCH_READY);
 }
 
-void thread_exit(int exit_code)
+void do_thread_exit(int exit_code)
 {
     set_interrupt_flag(false);
     thread_t* curr = curr_thread();
@@ -147,15 +115,15 @@ void thread_exit(int exit_code)
     // wake up all threads waiting on the current thread
     while (!list_empty(curr->join_list)) {
         thread_t* thread = list_pop_front(curr->join_list);
-        swake_up(thread);
+        sched_wake_up(thread);
     }
 
     // code past this will never be executed
-    thread_switch(SWITCH_FINISH);
+    sched_switch(SWITCH_FINISH);
     panic("executing code in finished thread !");    
 }
 
-void delete_thread(thread_t* thread)
+static void delete_thread(thread_t* thread)
 {
     thread_array[thread->tid] = 0;
     kfree(thread->stack);
@@ -164,7 +132,7 @@ void delete_thread(thread_t* thread)
     kfree(thread);
 }
 
-int thread_join(tid_t tid)
+int do_thread_join(tid_t tid)
 {
     bool old_if = set_interrupt_flag(false);
     thread_t* thread = get_thread(tid);
@@ -173,7 +141,7 @@ int thread_join(tid_t tid)
     if (thread->state != THREAD_FINISHED) {
         thread_t* curr = curr_thread();
         list_add_back(thread->join_list, curr);
-        thread_switch(SWITCH_WAIT);
+        sched_switch(SWITCH_WAIT);
     }
 
     int code = thread->exit_code;

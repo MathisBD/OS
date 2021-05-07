@@ -5,6 +5,8 @@
         "stdio.h": "c",
         "bitset.h": "c",
         "process.h": "c",
-        "ext2.h": "c"
+        "ext2.h": "c",
+        "constants.h": "c",
+        "paging.h": "c"
     }
 }

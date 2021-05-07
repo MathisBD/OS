@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include "threads/_types.h"
+#include "threads/process.h"
+#include "sync/queuelock.h"
 
 // implements both kernel and user threads.
 // user threads are always in a process, whereas
@@ -11,16 +12,30 @@
 #define THREAD_WAITING  4
 #define THREAD_FINISHED 5
 
+typedef uint32_t tid_t;
+typedef struct _thread {
+    tid_t tid;
+    queuelock_t* lock;
+    //// context info
+    uint32_t* stack;
+    uint32_t* esp;
+    //// scheduling info
+    uint32_t state; // run status
+    // if we are waiting on a lock,
+    // the next thread waiting on the same lock
+    struct _thread* next_waiting;
+    // the list of threads waiting for this thread to finish 
+    list_t* join_list;
+    //// thread data
+    int exit_code;
+    // process this thread is part of.
+    process_t* process; 
+} thread_t;
+
 
 
 void init_threads();
-void timer_tick(float seconds);
 tid_t new_tid();
-// switch out the current thread for the next READY thread.
-// switch_mode indicates what state the current thread should be put in after the switch.
-// interrupts should be disabled when calling this function.
-void thread_switch(uint32_t switch_mode);
-
 
 // creates a thread in the same process.
 tid_t do_thread_create(void(*func)(int), int arg);

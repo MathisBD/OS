@@ -25,11 +25,13 @@ memory/paging.o \
 memory/memory_asm.o \
 memory/kheap.o \
 threads/scheduler.o \
-threads/thread_asm.o \
+threads/scheduler_asm.o \
 threads/thread.o \
 threads/process.o \
 threads/process_asm.o \
-threads/lock.o \
+sync/spinlock.o \
+sync/queuelock.o \
+sync/event.o \
 loader/loader.o \
 loader/loader_asm.o \
 filesystem/ext2/ext2_gen.o \

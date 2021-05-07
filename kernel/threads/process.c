@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include "loader/loader.h"
 #include "tables/gdt.h"
-#include "threads/lock.h"
 
 
 #define MAX_PROC_COUNT  1000
@@ -35,8 +34,8 @@ void init_process()
     proc->parent = 0;
     proc->children = list_create();
     proc->state = PROC_ALIVE;
-    proc->locks = list_create();
-    proc->next_lock_id = 0;
+    //proc->locks = list_create();
+    //proc->next_lock_id = 0;
 
     thread_t* thread = curr_thread();
     thread->process = proc;
@@ -46,39 +45,6 @@ void init_process()
     proc->page_table = kernel_page_table();
 }
 
-lock_t* proc_get_lock(process_t* proc, lock_id_t lock_id)
-{
-    for (list_node_t* node = proc->locks->first; node != 0; node = node->next) {
-        lock_t* lock = node->contents;
-        if (lock->id == lock_id) {
-            return lock;
-        }
-    }
-    return 0;
-}
-
-
-lock_id_t proc_add_lock(process_t* proc, lock_t* lock)
-{
-    lock->id = proc->next_lock_id;
-    (proc->next_lock_id)++;
-    list_add_back(proc->locks, lock);
-    return lock->id;
-}
-
-
-lock_t* proc_remove_lock(process_t* proc, lock_id_t lock_id)
-{
-    for (list_node_t* node = proc->locks->first; node != 0; node = node->next) {
-        lock_t* lock = node->contents;
-        if (lock->id == lock_id) {
-            list_remove_node(proc->locks, node);
-            kfree(node);
-            return lock;
-        }
-    }
-    return 0;
-}
 
 void do_proc_fork(intr_frame_t* frame)
 {
@@ -98,12 +64,14 @@ void do_proc_fork(intr_frame_t* frame)
     
     // process resources
     // the forked process has no locks initially.
-    proc->next_lock_id = 0;
-    proc->locks = list_create();
+    //proc->next_lock_id = 0;
+    //proc->locks = list_create();
 
     // copy the thread
     thread_t* copy = kmalloc(sizeof(thread_t));
     copy->tid = new_tid();
+    copy->next_waiting = 0;
+    copy->join_list = list_create();
     // dummy stack for the copied thread.
     // when thread_switch switches the copied thread in
     // and then returns, we want it to return to isr_common
