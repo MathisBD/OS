@@ -87,8 +87,7 @@ static void thread_switch(thread_t* prev, thread_t* next)
 
 void sched_switch(uint32_t switch_mode)
 {
-    set_interrupt_flag(false);
-    printf("lock=%d\n", sched_spinlock->value);
+    panic("TODO : sched_switch"); // see the comment at the end of the method
     LOCK();
 
     thread_t* prev = running;
@@ -138,7 +137,6 @@ void sched_switch(uint32_t switch_mode)
     // do the actual switch
     thread_switch(prev, next);
 
-    panic("TODO : sched_switch");
     // TODO : move the UNLOCK() to thread_switch.
     // reason : after forking a process, when the new thread is
     // switched in, it will return from thread_switch_asm but not to 
