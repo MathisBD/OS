@@ -15,27 +15,33 @@
 
 #define MAX_PROC_COUNT  1000
 
+// protects global process data such as next_pid
+static queuelock_t* proc_lock;
+
 static pid_t next_pid = 0;
 pid_t new_pid()
 {
+    queuelock_acquire(proc_lock);
     if (next_pid >= MAX_PROC_COUNT) {
         panic("max process count reached\n");
     }
     pid_t tmp = next_pid;
     next_pid++;
+    queuelock_release(proc_lock);
     return tmp;
 }
 
 void init_process()
 {
+    proc_lock = queuelock_create();
+
     // create the kernel process
     process_t* proc = kmalloc(sizeof(process_t));
     proc->pid = new_pid();
+    proc->lock = queuelock_create();
     proc->parent = 0;
     proc->children = list_create();
     proc->state = PROC_ALIVE;
-    //proc->locks = list_create();
-    //proc->next_lock_id = 0;
 
     thread_t* thread = curr_thread();
     thread->process = proc;
@@ -45,41 +51,46 @@ void init_process()
     proc->page_table = kernel_page_table();
 }
 
-
-void do_proc_fork(intr_frame_t* frame)
+static process_t* copy_process(process_t* original)
 {
-    bool old_if = set_interrupt_flag(false);
+    queuelock_acquire(original->lock);
 
-    thread_t* curr = curr_thread();
     // create a new process
-    process_t* proc = kmalloc(sizeof(process_t));
-    proc->pid = new_pid();
-    // process relationsships
-    proc->parent = curr->process;
-    proc->children = list_create();
-    list_add_back(curr->process->children, proc);
-    // page table (has to be aligned on 4K)
-    proc->page_table = kmalloc_aligned(PAGE_TABLE_SIZE * sizeof(uint32_t), 4096);
-    copy_address_space(proc->page_table, curr->process->page_table);
-    
-    // process resources
-    // the forked process has no locks initially.
-    //proc->next_lock_id = 0;
-    //proc->locks = list_create();
+    process_t* copy = kmalloc(sizeof(process_t));
+    copy->pid = new_pid();
+    copy->lock = queuelock_create();
+    // process relationships
+    copy->parent = original;
+    copy->children = list_create();
+    list_add_back(original->children, copy);
+    copy->children = list_create();
 
-    // copy the thread
+    // page table (has to be aligned on 4K)
+    copy->page_table = kmalloc_aligned(PAGE_TABLE_SIZE * sizeof(uint32_t), 4096);
+    copy_address_space(copy->page_table, original->page_table);
+
+    queuelock_release(original->lock);
+    return copy;
+}
+
+// assumes new_proc isn't visible by other threads yet
+// (i.e. there is no need to lock it when modifying it).
+static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame_t* frame)
+{
+    queuelock_acquire(original->lock);
+
     thread_t* copy = kmalloc(sizeof(thread_t));
     copy->tid = new_tid();
-    copy->next_waiting = 0;
-    copy->join_list = list_create();
+    copy->lock = queuelock_create();
+    copy->on_finish = event_create(copy->lock);
     // dummy stack for the copied thread.
     // when thread_switch switches the copied thread in
     // and then returns, we want it to return to isr_common
     // (in idt_asm.S), just as if it had returned from the call
     // to handle_interrupt.
     copy->stack = kmalloc(KSTACK_SIZE);
-    memcpy(copy->stack, curr->stack, KSTACK_SIZE);
-    int ofs = ((int)copy->stack) - ((int)curr->stack);
+    memcpy(copy->stack, original->stack, KSTACK_SIZE);
+    int ofs = ((int)copy->stack) - ((int)original->stack);
     intr_frame_t* copy_frame = ((void*)frame) + ofs;
     // remember stacks grow towards the bottom,
     // and copy_frame points to the lowest address of the struct
@@ -96,21 +107,30 @@ void do_proc_fork(intr_frame_t* frame)
     copy->esp--;
     copy->esp--;
 
-    // return values. the child gets 0,
+    // return values :  the child gets 0,
     // the parent gets the child pid (nonzero).
-    frame->eax = proc->pid;
+    frame->eax = new_proc->pid;
     copy_frame->eax = 0; 
 
     // book-keeping
-    proc->threads = list_create();
-    list_add_front(proc->threads, copy);
-    copy->process = proc;
-    
-    // everything is up and ready to run !
-    proc->state = PROC_ALIVE;
-    sthread_create(copy);
+    list_add_front(new_proc->threads, copy);
+    copy->process = new_proc;
+}
 
-    set_interrupt_flag(old_if);
+
+void do_proc_fork(intr_frame_t* frame)
+{
+    queuelock_acquire(proc_lock);
+
+    process_t* new_proc = copy_process(curr_thread()->process);
+    thread_t* new_thread = copy_thread(curr_thread(), new_proc, frame);
+    
+    // everything is up and ready to run :
+    // make the new process and thread visible to everyone.
+    new_proc->state = PROC_ALIVE;
+    sthread_create(new_thread);
+
+    queuelock_release(proc_lock);
 }
 
 void do_proc_exec(intr_frame_t* frame)

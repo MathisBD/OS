@@ -16,11 +16,9 @@ typedef struct {
     queuelock_t* lock;
 } arg_t;
 
-spinlock_t* ll;
-
 void fn(arg_t* arg)
 {
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100000; i++) {
         queuelock_acquire(arg->lock);
         int local = *(arg->ptr);
         DELAY();
@@ -30,25 +28,21 @@ void fn(arg_t* arg)
 }
 
 
-
 void kernel_main()
 {
-    ll = spinlock_create();
-
     arg_t* arg = kmalloc(sizeof(arg_t));
     arg->ptr = kmalloc(sizeof(int));
     *(arg->ptr) = 0;
     arg->lock = queuelock_create();
 
-
-    tid_t tids[2];
-    for (int i = 0; i < 2; i++) {
+    tid_t tids[8];
+    for (int i = 0; i < 8; i++) {
         tids[i] = thread_create(fn, arg);
         printf("created i = %d\n", i);
     }
 
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 8; i++) {
         thread_join(tids[i]);
     }
 

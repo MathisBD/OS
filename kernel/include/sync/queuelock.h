@@ -14,8 +14,7 @@ typedef struct  {
     list_t* waiting;
     spinlock_t* spinlock;
     // owner only makes sense when the lock is busy
-    tid_t owner;
-    uint32_t 
+    tid_t owner; 
 } queuelock_t;
 
 

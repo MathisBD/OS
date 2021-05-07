@@ -19,9 +19,6 @@ void queuelock_delete(queuelock_t* lock)
 {
     spinlock_acquire(lock->spinlock);
 
-    if (lock->value > 0) {
-        panic("can't delete a busy queuelock");
-    }
     if (!list_empty(lock->waiting)) {
         panic("can't delete a queuelock if threads are waiting on it");
     }
@@ -77,7 +74,7 @@ void queuelock_release(queuelock_t* lock)
 bool queuelock_is_held(queuelock_t* lock)
 {
     spinlock_acquire(lock->spinlock);
-    bool held = (lock->owner == curr_thread()->tid);
+    bool held = (lock->value > 0 && lock->owner == curr_thread()->tid);
     spinlock_release(lock->spinlock);
     return held;
 }

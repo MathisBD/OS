@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "threads/process.h"
 #include "sync/queuelock.h"
+#include "sync/event.h"
 
 // implements both kernel and user threads.
 // user threads are always in a process, whereas
@@ -21,11 +22,9 @@ typedef struct _thread {
     uint32_t* esp;
     //// scheduling info
     uint32_t state; // run status
-    // if we are waiting on a lock,
-    // the next thread waiting on the same lock
-    struct _thread* next_waiting;
-    // the list of threads waiting for this thread to finish 
-    list_t* join_list;
+    // join() waits on this event.
+    // exit() broadcasts this event.
+    event_t* on_finish;
     //// thread data
     int exit_code;
     // process this thread is part of.
