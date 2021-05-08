@@ -10,7 +10,7 @@ static void check_monitor(event_t* event)
     }
 }
 
-event_t* event_create(queuelock_t* lock)
+event_t* kevent_create(queuelock_t* lock)
 {
     event_t* event = kmalloc(sizeof(event_t));
     event->waiting = list_create();
@@ -18,7 +18,7 @@ event_t* event_create(queuelock_t* lock)
     return event;
 }
 
-void event_delete(event_t* event)
+void kevent_delete(event_t* event)
 {
     check_monitor(event);
     if (!list_empty(event->waiting)) {
@@ -29,7 +29,7 @@ void event_delete(event_t* event)
     kfree(event);
 }
 
-void event_wait(event_t* event)
+void kevent_wait(event_t* event)
 {
     check_monitor(event);
 
@@ -38,7 +38,7 @@ void event_wait(event_t* event)
     queuelock_acquire(event->monitor);
 }
 
-void event_signal(event_t* event)
+void kevent_signal(event_t* event)
 {
     check_monitor(event);
 
@@ -48,7 +48,7 @@ void event_signal(event_t* event)
     }
 }
 
-void event_broadcast(event_t* event)
+void kevent_broadcast(event_t* event)
 {
     check_monitor(event);
 

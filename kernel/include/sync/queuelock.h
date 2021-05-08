@@ -18,9 +18,9 @@ typedef struct  {
 } queuelock_t;
 
 
-queuelock_t* queuelock_create();
-void queuelock_delete(queuelock_t*);
-void queuelock_acquire(queuelock_t*);
-void queuelock_release(queuelock_t*);
+queuelock_t* kql_create();
+void kql_delete(queuelock_t*);
+void kql_acquire(queuelock_t*);
+void kql_release(queuelock_t*);
 // returns true if the current thread holds the lock.
-bool queuelock_is_held(queuelock_t*);
+bool kql_is_held(queuelock_t*);

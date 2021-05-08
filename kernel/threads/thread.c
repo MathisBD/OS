@@ -27,29 +27,29 @@ static thread_t** thread_array;
 static tid_t next_tid = 0;
 tid_t new_tid()
 {
-    queuelock_acquire(threads_lock);
+    kql_acquire(threads_lock);
 
     if (next_tid >= MAX_THREAD_COUNT) {
         panic("max thread count reached\n");
     }
     tid_t tmp = next_tid;
     next_tid++;
-    queuelock_release(threads_lock);
+    kql_release(threads_lock);
     return tmp;
 }
 
 static thread_t* get_thread(tid_t tid)
 {
-    queuelock_acquire(threads_lock);
+    kql_acquire(threads_lock);
     thread_t* thread = thread_array[tid];
-    queuelock_release(threads_lock);
+    kql_release(threads_lock);
     return thread;
 }
 
 void init_threads()
 {
     // create the threads lock
-    threads_lock = queuelock_create();
+    threads_lock = kql_create();
 
     thread_array = kmalloc(MAX_THREAD_COUNT * sizeof(thread_t*));
     memset(thread_array, 0, MAX_THREAD_COUNT * sizeof(thread_t*));
@@ -60,7 +60,7 @@ void init_threads()
     // which requires the scheduler to be initialized
     thread->tid = next_tid;
     next_tid++;
-    thread->lock = queuelock_create();
+    thread->lock = kql_create();
     thread->on_finish = event_create(thread->lock);
  
     extern void init_stack_bottom();
@@ -80,7 +80,7 @@ tid_t do_thread_create(void (*func)(int), int arg)
     // a pointer to it until this method ends.
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->tid = new_tid();
-    thread->lock = queuelock_create();
+    thread->lock = kql_create();
     thread->on_finish = event_create(thread->lock);
 
     thread->stack = kmalloc(KSTACK_SIZE);
@@ -106,14 +106,14 @@ tid_t do_thread_create(void (*func)(int), int arg)
     thread_t* curr = curr_thread();
     thread->process = curr->process;
     
-    queuelock_acquire(thread->process->lock);
+    kql_acquire(thread->process->lock);
     list_add_back(thread->process->threads, thread);
-    queuelock_release(thread->process->lock);
+    kql_release(thread->process->lock);
 
     sthread_create(thread);
     thread_array[thread->tid] = thread;
     
-    queuelock_release(threads_lock);
+    kql_release(threads_lock);
     return thread->tid;
 }
 
@@ -125,12 +125,12 @@ void do_thread_yield()
 void do_thread_exit(int exit_code)
 {
     thread_t* curr = curr_thread();
-    queuelock_acquire(curr->lock);
+    kql_acquire(curr->lock);
     curr->exit_code = exit_code;
 
     // wake up all threads waiting on the current thread
     event_broadcast(curr->on_finish);
-    queuelock_release(curr->lock);
+    kql_release(curr->lock);
     
     // code past this will never be executed
     sched_switch(SWITCH_FINISH);
@@ -139,22 +139,22 @@ void do_thread_exit(int exit_code)
 
 static void delete_thread(thread_t* thread)
 {
-    queuelock_acquire(threads_lock);
+    kql_acquire(threads_lock);
 
-    queuelock_acquire(thread->lock);
+    kql_acquire(thread->lock);
     thread_array[thread->tid] = 0;
     kfree(thread->stack);
     event_delete(thread->on_finish);
-    queuelock_delete(thread->lock);
+    kql_delete(thread->lock);
     kfree(thread);
     
-    queuelock_release(threads_lock);
+    kql_release(threads_lock);
 }
 
 int do_thread_join(tid_t tid)
 {
     thread_t* thread = get_thread(tid);
-    queuelock_acquire(thread->lock);
+    kql_acquire(thread->lock);
 
     // wait for the thread to be finished
     while (thread->state != THREAD_FINISHED) {

@@ -21,24 +21,24 @@ static queuelock_t* proc_lock;
 static pid_t next_pid = 0;
 pid_t new_pid()
 {
-    queuelock_acquire(proc_lock);
+    kql_acquire(proc_lock);
     if (next_pid >= MAX_PROC_COUNT) {
         panic("max process count reached\n");
     }
     pid_t tmp = next_pid;
     next_pid++;
-    queuelock_release(proc_lock);
+    kql_release(proc_lock);
     return tmp;
 }
 
 void init_process()
 {
-    proc_lock = queuelock_create();
+    proc_lock = kql_create();
 
     // create the kernel process
     process_t* proc = kmalloc(sizeof(process_t));
     proc->pid = new_pid();
-    proc->lock = queuelock_create();
+    proc->lock = kql_create();
     proc->parent = 0;
     proc->children = list_create();
     proc->state = PROC_ALIVE;
@@ -51,14 +51,95 @@ void init_process()
     proc->page_table = kernel_page_table();
 }
 
+
+uint32_t proc_add_lock(process_t* proc, queuelock_t* lock)
+{
+    kql_acquire(proc->lock);
+    uint32_t id = proc->next_lid;
+    (proc->next_lid)++;
+    map_add(proc->locks, id, lock);
+    kql_release(proc->lock);
+    return id;
+}
+
+queuelock_t* proc_get_lock(process_t* proc, uint32_t id)
+{
+    kql_acquire(proc->lock);
+    queuelock_t* lock = map_get(proc->locks, id);
+    kql_release(proc->lock);
+    return lock;
+}
+
+queuelock_t* proc_remove_lock(process_t* proc, uint32_t id)
+{
+    kql_acquire(proc->lock);
+    queuelock_t* lock = map_remove(proc->locks, id);
+    kql_release(proc->lock);
+    return lock;
+}
+
+uint32_t proc_add_event(process_t* proc, event_t* event)
+{
+    kql_acquire(proc->lock);
+    uint32_t id = proc->next_eid;
+    (proc->next_eid)++;
+    map_add(proc->events, id, event);
+    kql_release(proc->lock);
+    return id;
+}
+
+event_t* proc_get_event(process_t* proc, uint32_t id)
+{
+    kql_acquire(proc->lock);
+    event_t* event = map_get(proc->events, id);
+    kql_release(proc->lock);
+    return event;
+}
+
+event_t* proc_remove_event(process_t* proc, uint32_t id)
+{
+    kql_acquire(proc->lock);
+    event_t* event = map_remove(proc->events, id);
+    kql_release(proc->lock);
+    return event;
+}
+
+uint32_t proc_add_fd(process_t* proc, file_descr_t* fd)
+{
+    kql_acquire(proc->lock);
+    uint32_t id = proc->next_fdid;
+    (proc->next_fdid)++;
+    map_add(proc->file_descrs, id, fd);
+    kql_release(proc->lock);
+    return id;
+}
+
+file_descr_t* proc_get_fd(process_t* proc, uint32_t id)
+{
+    kql_acquire(proc->lock);
+    file_descr_t* fd = map_get(proc->file_descrs, id);
+    kql_release(proc->lock);
+    return fd;
+}
+
+file_descr_t* proc_remove_fd(process_t* proc, uint32_t id)
+{
+    kql_acquire(proc->lock);
+    file_descr_t* fd = map_remove(proc->file_descrs, id);
+    kql_release(proc->lock);
+    return fd;
+}
+
+
+
 static process_t* copy_process(process_t* original)
 {
-    queuelock_acquire(original->lock);
+    kql_acquire(original->lock);
 
     // create a new process
     process_t* copy = kmalloc(sizeof(process_t));
     copy->pid = new_pid();
-    copy->lock = queuelock_create();
+    copy->lock = kql_create();
     // process relationships
     copy->parent = original;
     copy->children = list_create();
@@ -69,7 +150,7 @@ static process_t* copy_process(process_t* original)
     copy->page_table = kmalloc_aligned(PAGE_TABLE_SIZE * sizeof(uint32_t), 4096);
     copy_address_space(copy->page_table, original->page_table);
 
-    queuelock_release(original->lock);
+    kql_release(original->lock);
     return copy;
 }
 
@@ -77,11 +158,11 @@ static process_t* copy_process(process_t* original)
 // (i.e. there is no need to lock it when modifying it).
 static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame_t* frame)
 {
-    queuelock_acquire(original->lock);
+    kql_acquire(original->lock);
 
     thread_t* copy = kmalloc(sizeof(thread_t));
     copy->tid = new_tid();
-    copy->lock = queuelock_create();
+    copy->lock = kql_create();
     copy->on_finish = event_create(copy->lock);
     // dummy stack for the copied thread.
     // when thread_switch switches the copied thread in
@@ -119,14 +200,14 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     list_add_front(new_proc->threads, copy);
     copy->process = new_proc;
 
-    queuelock_release(original->lock);
+    kql_release(original->lock);
     return copy;
 }
 
 
 void do_proc_fork(intr_frame_t* frame)
 {
-    queuelock_acquire(proc_lock);
+    kql_acquire(proc_lock);
 
     process_t* new_proc = copy_process(curr_thread()->process);
     thread_t* new_thread = copy_thread(curr_thread(), new_proc, frame);
@@ -136,18 +217,16 @@ void do_proc_fork(intr_frame_t* frame)
     new_proc->state = PROC_ALIVE;
     sthread_create(new_thread);
 
-    queuelock_release(proc_lock);
+    kql_release(proc_lock);
 }
 
-void do_proc_exec(intr_frame_t* frame)
+void kproc_exec(char* prog)
 {
-    char* prog_name = get_syscall_arg(frame, 1);
-    //free_user_pages();
-
     // load the user code/data
+    //free_user_pages();
     uint32_t entry_addr;
     uint32_t user_stack_top;
-    load_program(prog_name, &entry_addr, &user_stack_top);
+    load_program(prog, &entry_addr, &user_stack_top);
 
     // assembly stub to jump
     extern void exec_jump_asm(uint32_t entry_addr, uint32_t user_stack_top);

@@ -37,12 +37,12 @@ void init_threads();
 tid_t new_tid();
 
 // creates a thread in the same process.
-tid_t do_thread_create(void(*func)(int), int arg);
-void do_thread_yield();
+tid_t kthread_create(void(*func)(int), int arg);
+void kthread_yield();
 // the thread never returns from this call
 // (it stops running)
-void do_thread_exit(int exit_code);
+void kthread_exit(int exit_code);
 // returns the exit code of the thread.
 // can only join a thread from the same process.
-int do_thread_join(tid_t tid);
+int kthread_join(tid_t tid);
 

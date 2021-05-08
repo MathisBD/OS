@@ -9,7 +9,7 @@ typedef struct {
     volatile int value;
 } spinlock_t;
 
-spinlock_t* spinlock_create();
-void spinlock_delete(spinlock_t*);
-void spinlock_acquire(spinlock_t*);
-void spinlock_release(spinlock_t*);
+spinlock_t* ksl_create();
+void ksl_delete(spinlock_t*);
+void ksl_acquire(spinlock_t*);
+void ksl_release(spinlock_t*);

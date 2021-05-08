@@ -12,8 +12,8 @@ typedef struct {
     queuelock_t* monitor;
 } event_t;
 
-event_t* event_create(queuelock_t* lock);
-void event_delete(event_t* event);
+event_t* kevent_create(queuelock_t* lock);
+void kevent_delete(event_t* event);
 
 // event_wait() atomically releases the monitor lock and
 // suspends the current thread ; when the thread is woken up it acquires
@@ -21,7 +21,7 @@ void event_delete(event_t* event);
 // event_wait() should always be called inside a loop :
 // while(!condition) {
 //     event_wait(event);    
-//}
-void event_wait(event_t* event);
-void event_signal(event_t* event);
-void event_broadcast(event_t* event);
+// }
+void kevent_wait(event_t* event);
+void kevent_signal(event_t* event);
+void kevent_broadcast(event_t* event);

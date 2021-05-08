@@ -13,10 +13,10 @@
 
 #define LOCK() \
 bool _old_if = set_interrupt_flag(false); \
-spinlock_acquire(sched_spinlock);
+ksl_acquire(sched_spinlock);
 
 #define UNLOCK() \
-spinlock_release(sched_spinlock); \
+ksl_release(sched_spinlock); \
 set_interrupt_flag(_old_if); 
 
 // the scheduler lock.
@@ -43,7 +43,7 @@ void sinit_threads(thread_t* thread)
     thread->state = THREAD_RUNNING;
     running = thread;   
 
-    sched_spinlock = spinlock_create(); 
+    sched_spinlock = ksl_create(); 
 }
 
 thread_t* curr_thread()
@@ -65,7 +65,7 @@ void new_thread_stub(void (*func)(int), int arg)
 {
     // before switching threads, interrupts were disabled and
     // the scheduler lock was acquired.
-    spinlock_release(sched_spinlock);
+    ksl_release(sched_spinlock);
     set_interrupt_flag(true);
     (*func)(arg);
     thread_exit(0); // in case the function didn't call exit already
@@ -76,7 +76,7 @@ void forked_thread_stub()
 {
     // before switching threads, interrupts were disabled and
     // the scheduler lock was acquired.
-    spinlock_release(sched_spinlock);
+    ksl_release(sched_spinlock);
     set_interrupt_flag(true);
     // simply pop an address from the stack and jump to it.
     return;
@@ -171,7 +171,7 @@ void sched_wake_up(thread_t* thread)
 void sched_suspend_and_release_spinlock(spinlock_t* lock)
 {
     LOCK();
-    spinlock_release(lock);
+    ksl_release(lock);
 
     thread_t* prev = running;
     if (list_empty(ready_list)) {
@@ -188,7 +188,7 @@ void sched_suspend_and_release_spinlock(spinlock_t* lock)
 void sched_suspend_and_release_queuelock(queuelock_t* lock)
 {
     LOCK();
-    queuelock_release(lock);
+    kql_release(lock);
 
     thread_t* prev = running;
     if (list_empty(ready_list)) {
