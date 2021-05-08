@@ -33,9 +33,9 @@ void kernel_main()
     pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
 
-    if (pid == 0) {
+    /*if (pid != 0) {
         printf("hello\n");
-        /*arg_t* arg = kmalloc(sizeof(arg_t));
+        arg_t* arg = kmalloc(sizeof(arg_t));
         arg->ptr = kmalloc(sizeof(int));
         *(arg->ptr) = 0;
         arg->lock = queuelock_create();
@@ -50,12 +50,12 @@ void kernel_main()
             thread_join(tids[i]);
         }
 
-        printf("n=%d\n", *(arg->ptr));*/
-    }
-
-    /*if (pid == 0) {
-        proc_exec("/user/user.o");
+        printf("n=%d\n", *(arg->ptr));
     }*/
+
+    if (pid == 0) {
+        proc_exec("/user/user.o");
+    }
 
     while (1);
 }

@@ -26,9 +26,12 @@ void sched_suspend_and_release_queuelock(queuelock_t*);
 
 void timer_tick(float seconds);
 
-// first function a new thread executes.
-// should not be called directly (see thread.c).
+// first function a new thread (created by thread_create() or 
+// proc_fork()) executes.
+// should not be called directly (see thread.c and process.c).
 void new_thread_stub(void (*func)(int), int arg);
+void forked_thread_stub();
+
 
 // callback functions
 

@@ -101,9 +101,12 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     copy->esp--;
     // return address the original thread pushed for 
     // handle_interrupt. this will now become the return
-    // address for thread_switch.
+    // address for the stub.
     copy->esp--;
-    // dummy ebx and ebp registers for thread_switch
+    // return address of thread_switch_asm : it will jump to a stub
+    // (that will unlock the scheduler).
+    copy->esp--; *(copy->esp) = forked_thread_stub;
+    // dummy ebx and ebp registers for thread_switch_asm
     copy->esp--;
     copy->esp--;
 

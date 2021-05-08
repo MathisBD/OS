@@ -60,7 +60,7 @@ void sthread_create(thread_t* thread)
     UNLOCK();
 }
 
-// first function a newly created thread executes
+// first function a thread created with thread_create() executes
 void new_thread_stub(void (*func)(int), int arg)
 {
     // before switching threads, interrupts were disabled and
@@ -71,6 +71,17 @@ void new_thread_stub(void (*func)(int), int arg)
     thread_exit(0); // in case the function didn't call exit already
 }
 
+// first function a thread created with proc_fork() executes
+void forked_thread_stub()
+{
+    // before switching threads, interrupts were disabled and
+    // the scheduler lock was acquired.
+    spinlock_release(sched_spinlock);
+    set_interrupt_flag(true);
+    // simply pop an address from the stack and jump to it.
+    return;
+}
+
 extern void thread_switch_asm(
     thread_t* prev, 
     thread_t* next,
@@ -79,7 +90,7 @@ extern void thread_switch_asm(
 );
 static void thread_switch(thread_t* prev, thread_t* next)
 {
-    printf("switch %x->%x\n", prev->tid, next->tid);
+    //printf("switch %x->%x\n", prev->tid, next->tid);
     set_tss_esp(((uint32_t)(next->stack)) + KSTACK_SIZE);
     uint32_t pt_addr = physical_address(next->process->page_table);
     thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
@@ -87,7 +98,6 @@ static void thread_switch(thread_t* prev, thread_t* next)
 
 void sched_switch(uint32_t switch_mode)
 {
-    panic("TODO : sched_switch"); // see the comment at the end of the method
     LOCK();
 
     thread_t* prev = running;
@@ -136,12 +146,6 @@ void sched_switch(uint32_t switch_mode)
 
     // do the actual switch
     thread_switch(prev, next);
-
-    // TODO : move the UNLOCK() to thread_switch.
-    // reason : after forking a process, when the new thread is
-    // switched in, it will return from thread_switch_asm but not to 
-    // thread_switch, and thus won't execute the code below this comment,
-    // and won't unlock sched_spinlock;
     UNLOCK();
 }
 
