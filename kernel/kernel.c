@@ -7,33 +7,65 @@
 #include "sync/queuelock.h"
 #include "sync/spinlock.h"
 #include "threads/scheduler.h"
+#include <blocking_queue.h>
 
 
-#define DELAY() {for (int a = 0; a < 100; a++);}
+#define DELAY() {for (int a = 0; a < 10000; a++);}
 
 typedef struct {
-    int* ptr;
-    queuelock_t* lock;
+    blocking_queue_t* q;
 } arg_t;
 
-void fn(arg_t* arg)
+
+void writer(arg_t* arg)
 {
-    for (int i = 0; i < 100000; i++) {
-        queuelock_acquire(arg->lock);
-        int local = *(arg->ptr);
+    uint32_t N = 5;
+    char* buf = kmalloc(N);
+
+    for (int i = 0; i < 10; i++) {
+        for (int c = 0; c < N; c++) {
+            buf[c] = c + i;
+        }
+        bq_add(arg->q, buf, N);
         DELAY();
-        *(arg->ptr) = local + 1;
-        queuelock_release(arg->lock);
+    }
+}
+
+void reader(arg_t* arg)
+{
+    uint32_t N = 5;
+    char* buf = kmalloc(N);
+
+    for (int i = 0; i < 10; i++) {
+        bq_remove(arg->q, buf, N);
+        print_mem(buf, N);
+        printf("\n");
+
+        DELAY();
     }
 }
 
 
 void kernel_main()
 {
-    pid_t pid = proc_fork();
+    arg_t* arg = kmalloc(sizeof(arg));
+    arg->q = bq_create(18);
+
+    tid_t tids[2];
+    tids[0] = thread_create(writer, arg);
+    tids[1] = thread_create(reader, arg);
+
+    for (int i = 0; i < 2; i++) {
+        thread_join(tids[i]);
+    }
+
+    printf("done\n");
+
+
+    /*pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
 
-    /*if (pid != 0) {
+    if (pid != 0) {
         printf("hello\n");
         arg_t* arg = kmalloc(sizeof(arg_t));
         arg->ptr = kmalloc(sizeof(int));
@@ -51,11 +83,11 @@ void kernel_main()
         }
 
         printf("n=%d\n", *(arg->ptr));
-    }*/
+    }
 
     if (pid == 0) {
         proc_exec("/user/user.o");
-    }
+    }*/
 
     while (1);
 }

@@ -50,7 +50,11 @@ user_process/proc_exec.libk.o \
 user_thread/thread_create.libk.o \
 user_thread/thread_exit.libk.o \
 user_thread/thread_join.libk.o \
-user_thread/thread_yield.libk.o
+user_thread/thread_yield.libk.o \
+blocking_queue/bq_create.libk.o \
+blocking_queue/bq_delete.libk.o \
+blocking_queue/bq_add.libk.o \
+blocking_queue/bq_remove.libk.o
 #ubsan/ubsan.libk.o
 
 LIBC_OBJS=

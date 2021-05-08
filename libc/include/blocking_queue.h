@@ -23,9 +23,7 @@ typedef struct {
 
 blocking_queue_t* bq_create(uint32_t capacity);
 void bq_delete(blocking_queue_t* bq);
-
 void bq_add(blocking_queue_t* queue, void* buf, uint32_t count);
 void bq_remove(blocking_queue_t* queue, void* buf, uint32_t count);
-
 
 #endif

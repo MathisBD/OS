@@ -1,4 +1,3 @@
-#ifdef __is_libk
 #include <blocking_queue.h>
 #include <string.h>
 
@@ -43,4 +42,3 @@ void bq_remove(blocking_queue_t* q, void* buf, uint32_t count)
     }
     queuelock_release(q->lock);
 }
-#endif
