@@ -12,8 +12,9 @@
 #define SWITCH_WAIT     3
 
 
-// returns the currently running thread
+// returns the currently running thread/process
 thread_t* curr_thread();
+process_t* curr_process();
 
 void sched_wake_up(thread_t* thread);
 // switch out the current thread. 

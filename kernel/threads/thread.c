@@ -61,7 +61,7 @@ void init_threads()
     thread->tid = next_tid;
     next_tid++;
     thread->lock = kql_create();
-    thread->on_finish = event_create(thread->lock);
+    thread->on_finish = kevent_create(thread->lock);
  
     extern void init_stack_bottom();
     thread->stack = (uint32_t)init_stack_bottom;
@@ -72,16 +72,16 @@ void init_threads()
 
 
 
-tid_t do_thread_create(void (*func)(int), int arg)
+tid_t kthread_create(void (*func)(int), int arg)
 {
-    queuelock_acquire(threads_lock);
+    kql_acquire(threads_lock);
 
     // no need to lock this thread, we are the only one to have 
     // a pointer to it until this method ends.
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->tid = new_tid();
     thread->lock = kql_create();
-    thread->on_finish = event_create(thread->lock);
+    thread->on_finish = kevent_create(thread->lock);
 
     thread->stack = kmalloc(KSTACK_SIZE);
     thread->esp = ((uint32_t)thread->stack) + KSTACK_SIZE;
@@ -117,19 +117,19 @@ tid_t do_thread_create(void (*func)(int), int arg)
     return thread->tid;
 }
 
-void do_thread_yield()
+void kthread_yield()
 {
     sched_switch(SWITCH_READY);
 }
 
-void do_thread_exit(int exit_code)
+void kthread_exit(int exit_code)
 {
     thread_t* curr = curr_thread();
     kql_acquire(curr->lock);
     curr->exit_code = exit_code;
 
     // wake up all threads waiting on the current thread
-    event_broadcast(curr->on_finish);
+    kevent_broadcast(curr->on_finish);
     kql_release(curr->lock);
     
     // code past this will never be executed
@@ -144,21 +144,21 @@ static void delete_thread(thread_t* thread)
     kql_acquire(thread->lock);
     thread_array[thread->tid] = 0;
     kfree(thread->stack);
-    event_delete(thread->on_finish);
+    kevent_delete(thread->on_finish);
     kql_delete(thread->lock);
     kfree(thread);
     
     kql_release(threads_lock);
 }
 
-int do_thread_join(tid_t tid)
+int kthread_join(tid_t tid)
 {
     thread_t* thread = get_thread(tid);
     kql_acquire(thread->lock);
 
     // wait for the thread to be finished
     while (thread->state != THREAD_FINISHED) {
-        event_wait(thread->on_finish);
+        kevent_wait(thread->on_finish);
     }
 
     int code = thread->exit_code;

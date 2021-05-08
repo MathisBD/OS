@@ -8,16 +8,19 @@
 #include "sync/spinlock.h"
 #include "threads/scheduler.h"
 #include <blocking_queue.h>
+#include <user_thread.h>
+#include <user_lock.h>
 
 
-#define DELAY() {for (int a = 0; a < 10000; a++);}
+#define DELAY() {for (int a = 0; a < 100; a++);}
 
 typedef struct {
-    blocking_queue_t* q;
+    lock_id_t lock;
+    int* ptr;
 } arg_t;
 
 
-void writer(arg_t* arg)
+/*void writer(arg_t* arg)
 {
     uint32_t N = 5;
     char* buf = kmalloc(N);
@@ -30,7 +33,6 @@ void writer(arg_t* arg)
         DELAY();
     }
 }
-
 void reader(arg_t* arg)
 {
     uint32_t N = 5;
@@ -43,12 +45,41 @@ void reader(arg_t* arg)
 
         DELAY();
     }
+}*/
+
+void allocate(void* arg)
+{
+    int* ptr;
+    for (int i = 0; i < 1000000; i++) {
+        ptr = kmalloc(1000);
+    }
 }
+
+
+/*void fn(arg_t* arg)
+{
+    for (int i = 0; i < 1000; i++) {
+        //lock_acquire(arg->lock);
+        int local = *(arg->ptr);
+        DELAY();
+        *(arg->ptr) = local + 1;
+        //lock_release(arg->lock);
+    }
+}*/
 
 
 void kernel_main()
 {
-    arg_t* arg = kmalloc(sizeof(arg));
+    printf("hello\n");
+
+    for (int i = 0; i < 8; i++) {
+        thread_create(allocate, 0);
+    }
+
+    printf("created threads\n");
+
+
+    /*arg_t* arg = kmalloc(sizeof(arg));
     arg->q = bq_create(18);
 
     tid_t tids[2];
@@ -62,30 +93,31 @@ void kernel_main()
     printf("done\n");
 
 
-    /*pid_t pid = proc_fork();
+    pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
 
-    if (pid != 0) {
-        printf("hello\n");
-        arg_t* arg = kmalloc(sizeof(arg_t));
-        arg->ptr = kmalloc(sizeof(int));
-        *(arg->ptr) = 0;
-        arg->lock = queuelock_create();
-        tid_t tids[8];
-        for (int i = 0; i < 8; i++) {
-            tids[i] = thread_create(fn, arg);
-            printf("created i = %d\n", i);
-        }
+    if (pid != 0) {*/
+    /*printf("hello\n");
+    arg_t* arg = kmalloc(sizeof(arg_t));
+    arg->ptr = kmalloc(sizeof(int));
+    *(arg->ptr) = 0;
+    arg->lock = lock_create();
 
-
-        for (int i = 0; i < 8; i++) {
-            thread_join(tids[i]);
-        }
-
-        printf("n=%d\n", *(arg->ptr));
+    tid_t tids[8];
+    for (int i = 0; i < 8; i++) {
+        tids[i] = thread_create(fn, arg);
+        printf("created i = %d\n", i);
     }
 
-    if (pid == 0) {
+
+    for (int i = 0; i < 8; i++) {
+        thread_join(tids[i]);
+    }
+
+    printf("n=%d\n", *(arg->ptr));*/
+    //}
+
+    /*if (pid == 0) {
         proc_exec("/user/user.o");
     }*/
 

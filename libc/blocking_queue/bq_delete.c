@@ -3,11 +3,11 @@
 
 void bq_delete(blocking_queue_t* q)
 {
-    queuelock_acquire(q->lock);
+    kql_acquire(q->lock);
 
-    event_delete(q->on_add);
-    event_delete(q->on_remove);
+    kevent_delete(q->on_add);
+    kevent_delete(q->on_remove);
     kfree(q->buffer);
-    queuelock_delete(q->lock);
+    kql_delete(q->lock);
     kfree(q);
 }

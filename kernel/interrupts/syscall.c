@@ -1,6 +1,7 @@
 #include "interrupts/syscall.h"
 #include "threads/process.h"
 #include "threads/thread.h"
+#include "threads/scheduler.h"
 #include "threads/file_descr.h"
 #include "sync/event.h"
 #include "sync/queuelock.h"
@@ -69,46 +70,52 @@ void handle_syscall(intr_frame_t* frame)
     case SC_QL_CREATE:
     {
         queuelock_t* lock = kql_create();
-        frame->eax = proc_add_lock(curr_proc(), lock);
+        frame->eax = proc_add_lock(curr_process(), lock);
         return;
     }
     case SC_QL_DELETE:
     {
         queuelock_t* lock = proc_remove_lock(
-            curr_proc(), 
+            curr_process(), 
             get_syscall_arg(frame, 1));
         kql_delete(lock);
         return;
     }
     case SC_QL_ACQUIRE:
     {
-        queuelock_t* lock = proc_get_lock(get_syscall_arg(frame, 1));
+        queuelock_t* lock = proc_get_lock(
+            curr_process(),
+            get_syscall_arg(frame, 1));
         kql_acquire(lock);
         return;
     }
     case SC_QL_RELEASE:
     {
-        queuelock_t* lock = proc_get_lock(get_syscall_arg(frame, 1));
+        queuelock_t* lock = proc_get_lock(
+            curr_process(),
+            get_syscall_arg(frame, 1));
         kql_release(lock);
         return;
     }
     case SC_OPEN:
     {
         file_descr_t* fd = kopen(get_syscall_arg(frame, 1));
-        frame->eax = proc_add_fd(curr_proc(), fd);
+        frame->eax = proc_add_fd(curr_process(), fd);
         return;
     }
     case SC_CLOSE:
     {
         file_descr_t* fd = proc_remove_fd(
-            curr_proc(),
+            curr_process(),
             get_syscall_arg(frame, 1));
         kclose(fd);
         return;
     }
     case SC_READ:
     {
-        file_descr_t* fd = proc_get_fd(get_syscall_arg(frame, 1));
+        file_descr_t* fd = proc_get_fd(
+            curr_process(),
+            get_syscall_arg(frame, 1));
         frame->eax = kread(
             fd,
             get_syscall_arg(frame, 2),
@@ -117,7 +124,9 @@ void handle_syscall(intr_frame_t* frame)
     }
     case SC_WRITE:
     {
-        file_descr_t* fd = proc_get_fd(get_syscall_arg(frame, 1));
+        file_descr_t* fd = proc_get_fd(
+            curr_process(),
+            get_syscall_arg(frame, 1));
         frame->eax = kwrite(
             fd,
             get_syscall_arg(frame, 2),
@@ -136,33 +145,42 @@ void handle_syscall(intr_frame_t* frame)
     }*/
     case SC_EVENT_CREATE:
     {
-        event_t* event = kevent_create();
-        frame->eax = proc_add_event(curr_proc(), event);
+        queuelock_t* lock = proc_get_lock(
+            curr_process(),
+            get_syscall_arg(frame, 1));
+        event_t* event = kevent_create(lock);
+        frame->eax = proc_add_event(curr_process(), event);
         return;
     }
     case SC_EVENT_DELETE:
     {
         event_t* event = proc_remove_event(
-            curr_proc(), 
+            curr_process(), 
             get_syscall_arg(frame, 1));
         kevent_delete(event);
         return;
     }
     case SC_EVENT_WAIT:
     {
-        event_t* event = proc_get_event(get_syscall_arg(frame, 1));
+        event_t* event = proc_get_event(
+            curr_process(), 
+            get_syscall_arg(frame, 1));
         kevent_wait(event);
         return;
     }
     case SC_EVENT_SIGNAL:
     {
-        event_t* event = proc_get_event(get_syscall_arg(frame, 1));
+        event_t* event = proc_get_event(
+            curr_process(), 
+            get_syscall_arg(frame, 1));
         kevent_signal(event);
         return;
     }
     case SC_EVENT_BROADCAST:
     {
-        event_t* event = proc_get_event(get_syscall_arg(frame, 1));
+        event_t* event = proc_get_event(
+            curr_process(), 
+            get_syscall_arg(frame, 1));
         kevent_broadcast(event);
         return;
     }

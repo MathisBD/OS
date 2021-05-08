@@ -45,16 +45,32 @@ list/list_add_back.libk.o \
 list/list_pop_front.libk.o \
 list/list_pop_back.libk.o \
 list/list_remove_node.libk.o \
-user_process/proc_fork.libk.o \
-user_process/proc_exec.libk.o \
-user_thread/thread_create.libk.o \
-user_thread/thread_exit.libk.o \
-user_thread/thread_join.libk.o \
-user_thread/thread_yield.libk.o \
 blocking_queue/bq_create.libk.o \
 blocking_queue/bq_delete.libk.o \
 blocking_queue/bq_add.libk.o \
-blocking_queue/bq_remove.libk.o
+blocking_queue/bq_remove.libk.o \
+map/map_create.libk.o \
+map/map_delete.libk.o \
+map/map_add.libk.o \
+map/map_get.libk.o \
+map/map_remove.libk.o \
+user_lock/lock_create.libk.o \
+user_lock/lock_delete.libk.o \
+user_lock/lock_acquire.libk.o \
+user_lock/lock_release.libk.o \
+user_event/event_create.libk.o \
+user_event/event_delete.libk.o \
+user_event/event_wait.libk.o \
+user_event/event_signal.libk.o \
+user_event/event_broadcast.libk.o \
+user_thread/thread_create.libk.o \
+user_thread/thread_exit.libk.o \
+user_thread/thread_yield.libk.o \
+user_thread/thread_join.libk.o \
+user_process/proc_fork.libk.o \
+user_process/proc_exec.libk.o \
+user_process/proc_exit.libk.o \
+user_process/proc_wait.libk.o
 #ubsan/ubsan.libk.o
 
 LIBC_OBJS=

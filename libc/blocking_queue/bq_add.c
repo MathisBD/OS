@@ -28,19 +28,19 @@ static void do_add(blocking_queue_t* q, void* buf, uint32_t count)
 
 void bq_add(blocking_queue_t* q, void* buf, uint32_t count)
 {
-    queuelock_acquire(q->lock);
+    kql_acquire(q->lock);
 
     uint32_t ofs = 0;
     while (ofs < count) {
         while (q->count >= q->capacity) {
-            event_wait(q->on_remove);
+            kevent_wait(q->on_remove);
         }
         // how much bytes can we add ?
         uint32_t amount = min(count - ofs, q->capacity - q->count);
         do_add(q, buf + ofs, amount);
         ofs += amount;
         // tell others we added to the queue.
-        event_broadcast(q->on_add);
+        kevent_broadcast(q->on_add);
     }
-    queuelock_release(q->lock);
+    kql_release(q->lock);
 }

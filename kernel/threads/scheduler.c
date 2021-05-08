@@ -51,6 +51,11 @@ thread_t* curr_thread()
     return running;
 }
 
+process_t* curr_process()
+{
+    return running->process;
+}
+
 
 void sthread_create(thread_t* thread)
 {
@@ -68,7 +73,7 @@ void new_thread_stub(void (*func)(int), int arg)
     ksl_release(sched_spinlock);
     set_interrupt_flag(true);
     (*func)(arg);
-    thread_exit(0); // in case the function didn't call exit already
+    kthread_exit(0); // in case the function didn't call exit already
 }
 
 // first function a thread created with proc_fork() executes

@@ -31,6 +31,17 @@ pid_t new_pid()
     return tmp;
 }
 
+// doesn't lock the process
+static void init_proc_resources(process_t* proc)
+{
+    proc->locks = map_create();
+    proc->next_lid = 0;
+    proc->events = map_create();
+    proc->next_eid = 0;
+    proc->file_descrs = map_create();
+    proc->next_fdid = 0;
+}
+
 void init_process()
 {
     proc_lock = kql_create();
@@ -42,6 +53,7 @@ void init_process()
     proc->parent = 0;
     proc->children = list_create();
     proc->state = PROC_ALIVE;
+    init_proc_resources(proc);
 
     thread_t* thread = curr_thread();
     thread->process = proc;
@@ -150,6 +162,9 @@ static process_t* copy_process(process_t* original)
     copy->page_table = kmalloc_aligned(PAGE_TABLE_SIZE * sizeof(uint32_t), 4096);
     copy_address_space(copy->page_table, original->page_table);
 
+    // process resources
+    init_proc_resources(copy);
+
     kql_release(original->lock);
     return copy;
 }
@@ -163,7 +178,7 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     thread_t* copy = kmalloc(sizeof(thread_t));
     copy->tid = new_tid();
     copy->lock = kql_create();
-    copy->on_finish = event_create(copy->lock);
+    copy->on_finish = kevent_create(copy->lock);
     // dummy stack for the copied thread.
     // when thread_switch switches the copied thread in
     // and then returns, we want it to return to isr_common
@@ -209,7 +224,7 @@ void do_proc_fork(intr_frame_t* frame)
 {
     kql_acquire(proc_lock);
 
-    process_t* new_proc = copy_process(curr_thread()->process);
+    process_t* new_proc = copy_process(curr_process());
     thread_t* new_thread = copy_thread(curr_thread(), new_proc, frame);
     
     // everything is up and ready to run :
@@ -231,4 +246,14 @@ void kproc_exec(char* prog)
     // assembly stub to jump
     extern void exec_jump_asm(uint32_t entry_addr, uint32_t user_stack_top);
     exec_jump_asm(entry_addr, user_stack_top);
+}
+
+void kproc_exit(int code)
+{
+
+}
+
+int kproc_wait(pid_t pid)
+{
+    return 0;
 }

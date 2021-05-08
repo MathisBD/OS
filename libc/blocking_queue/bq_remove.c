@@ -26,19 +26,19 @@ static void do_remove(blocking_queue_t* q, void* buf, uint32_t count)
 
 void bq_remove(blocking_queue_t* q, void* buf, uint32_t count)
 {
-    queuelock_acquire(q->lock);
+    kql_acquire(q->lock);
 
     uint32_t ofs = 0;
     while (ofs < count) {
         while (q->count == 0) {
-            event_wait(q->on_add);
+            kevent_wait(q->on_add);
         }
         // how much bytes can we remove ?
         uint32_t amount = min(count - ofs, q->count);
         do_remove(q, buf + ofs, amount);
         ofs += amount;
         // tell others we removed from the queue.
-        event_broadcast(q->on_remove);
+        kevent_broadcast(q->on_remove);
     }
-    queuelock_release(q->lock);
+    kql_release(q->lock);
 }

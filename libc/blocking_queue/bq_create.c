@@ -13,8 +13,8 @@ blocking_queue_t* bq_create(uint32_t capacity)
     q->start = 0;
     q->count = 0;
     q->capacity = capacity;
-    q->lock = queuelock_create();
-    q->on_add = event_create(q->lock);
-    q->on_remove = event_create(q->lock);
+    q->lock = kql_create();
+    q->on_add = kevent_create(q->lock);
+    q->on_remove = kevent_create(q->lock);
     return q;
 }

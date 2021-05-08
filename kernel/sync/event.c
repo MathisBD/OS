@@ -5,7 +5,7 @@
 
 static void check_monitor(event_t* event)
 {
-    if (!queuelock_is_held(event->monitor)) {
+    if (!kql_is_held(event->monitor)) {
         panic("can't interact with an event when we don't hold it's monitor lock");
     }
 }
@@ -35,7 +35,7 @@ void kevent_wait(event_t* event)
 
     list_add_back(event->waiting, curr_thread());
     sched_suspend_and_release_queuelock(event->monitor);
-    queuelock_acquire(event->monitor);
+    kql_acquire(event->monitor);
 }
 
 void kevent_signal(event_t* event)

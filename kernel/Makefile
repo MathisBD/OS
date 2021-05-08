@@ -29,6 +29,7 @@ threads/scheduler_asm.o \
 threads/thread.o \
 threads/process.o \
 threads/process_asm.o \
+threads/file_descr.o \
 sync/spinlock.o \
 sync/queuelock.o \
 sync/event.o \

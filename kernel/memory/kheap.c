@@ -166,7 +166,7 @@ inline void* kmalloc(uint32_t size)
 
 void* kmalloc_aligned(uint32_t size, uint32_t align)
 {
-    spinlock_acquire(&heap_spinlock);
+    ksl_acquire(&heap_spinlock);
 
     if (align & (NODE_ALIGN - 1)) {
         panic("kmalloc : invalid align value!");
@@ -190,13 +190,13 @@ void* kmalloc_aligned(uint32_t size, uint32_t align)
     }
     uint32_t res = ((uint32_t)hole) + sizeof(mem_node_t);
 
-    spinlock_release(&heap_spinlock);
+    ksl_release(&heap_spinlock);
     return res;
 }
 
 void kfree(void* ptr)
 {
-    spinlock_acquire(&heap_spinlock);
+    ksl_acquire(&heap_spinlock);
 
     mem_node_t* node = (mem_node_t*)(ptr - sizeof(mem_node_t));
     // switch from block to hole
@@ -204,7 +204,7 @@ void kfree(void* ptr)
     detach_node(node);
     add_hole(node);
 
-    spinlock_release(&heap_spinlock);
+    ksl_release(&heap_spinlock);
 }
 
 
