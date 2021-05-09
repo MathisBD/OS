@@ -28,17 +28,24 @@ static spinlock_t* sched_spinlock;
 
 // the only process in THREAD_RUNNING state
 static thread_t* running;
-// all processes in THREAD_READY state
-static list_t* ready_list;
-// all processes in THREAD_FINISHED state
-static list_t* finished_list;
+// first/last thread in the ready list.
+// we can't use regular lists here, because we 
+// can't use the heap (i.e. malloc/free) when switching between
+// threads : interrupts are disabled during the timer interrupt,
+// and aren't enabled before the thread switch is complete.
+// if we use the heap in this interval, we need to acquire the 
+// heap spinlock, which might be busy if an interrupted process
+// was using it : deadlock.
+static thread_t* first_ready;
+static thread_t* last_ready;
+
 
 // called by init_threads
 // thread : data of the first thread
 void sinit_threads(thread_t* thread)
 {
-    ready_list = list_create();
-    finished_list = list_create();
+    first_ready = 0;
+    last_ready = 0;
 
     thread->state = THREAD_RUNNING;
     running = thread;   
@@ -56,12 +63,47 @@ process_t* curr_process()
     return running->process;
 }
 
+static void add_ready(thread_t* thread)
+{
+    if (last_ready == 0) {
+        first_ready = thread;
+        last_ready = thread;
+    }
+    else {
+        last_ready->sched_next = thread;
+        last_ready = thread;
+    }
+}
+
+static thread_t* pop_ready()
+{
+    if (first_ready == 0) {
+        return 0;
+    }
+    else if (first_ready == last_ready) {
+        thread_t* thread = first_ready;
+        first_ready = 0;
+        last_ready = 0;
+        return thread;
+    }
+    else {
+        thread_t* thread = first_ready;
+        first_ready = first_ready->sched_next;
+        return thread;
+    }
+}
+
+static thread_t* next_ready()
+{
+    return first_ready;
+}
+
 
 void sthread_create(thread_t* thread)
 {
     LOCK();
     thread->state = THREAD_READY;
-    list_add_back(ready_list, thread);
+    add_ready(thread);
     UNLOCK();
 }
 
@@ -106,7 +148,7 @@ void sched_switch(uint32_t switch_mode)
     LOCK();
 
     thread_t* prev = running;
-    if (list_empty(ready_list)) {
+    if (next_ready() == 0) {
         if (switch_mode == SWITCH_READY) {
             UNLOCK();
             return;
@@ -115,22 +157,20 @@ void sched_switch(uint32_t switch_mode)
             panic("no ready thread to switch to !");
         }
     }
-    thread_t* next = list_pop_front(ready_list);
+    thread_t* next = pop_ready();
 
     // prev was in RUNNING state
     switch (switch_mode) {
     case SWITCH_FINISH:
     {
         prev->state = THREAD_FINISHED;
-        // add to the finished list
-        list_add_back(finished_list, (void*)prev);
         break;
     }
     case SWITCH_READY:
     {
         prev->state = THREAD_READY;
         // add to the end of the ready list
-        list_add_back(ready_list, (void*)prev);
+        add_ready(prev);
         break;
     }
     case SWITCH_WAIT: 
@@ -169,7 +209,7 @@ void sched_wake_up(thread_t* thread)
         panic("can't wake up a thread that isn't waiting");
     }
     thread->state = THREAD_READY;
-    list_add_back(ready_list, thread);
+    add_ready(thread);
     UNLOCK();
 }
 
@@ -179,10 +219,10 @@ void sched_suspend_and_release_spinlock(spinlock_t* lock)
     ksl_release(lock);
 
     thread_t* prev = running;
-    if (list_empty(ready_list)) {
+    if (next_ready() == 0) {
         panic("no ready thread to switch to (sched_suspend_and_release_spinlock) !");
     }
-    thread_t* next = list_pop_front(ready_list);
+    thread_t* next = pop_ready();
     prev->state = THREAD_WAITING;
     next->state = THREAD_RUNNING;
     running = next;
@@ -196,10 +236,10 @@ void sched_suspend_and_release_queuelock(queuelock_t* lock)
     kql_release(lock);
 
     thread_t* prev = running;
-    if (list_empty(ready_list)) {
+    if (next_ready() == 0) {
         panic("no ready thread to switch to (sched_suspend_and_release_queuelock) !");
     }
-    thread_t* next = list_pop_front(ready_list);
+    thread_t* next = pop_ready();
     prev->state = THREAD_WAITING;
     next->state = THREAD_RUNNING;
     running = next;

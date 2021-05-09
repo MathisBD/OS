@@ -51,7 +51,7 @@ void allocate(void* arg)
 {
     int* ptr;
     for (int i = 0; i < 1000000; i++) {
-        ptr = kmalloc(1000);
+        ptr = kmalloc(1);
     }
 }
 
@@ -70,8 +70,6 @@ void allocate(void* arg)
 
 void kernel_main()
 {
-    printf("hello\n");
-
     for (int i = 0; i < 8; i++) {
         thread_create(allocate, 0);
     }
