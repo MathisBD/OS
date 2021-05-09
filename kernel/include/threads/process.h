@@ -4,6 +4,7 @@
 #include <map.h>
 #include "interrupts/interrupts.h"
 #include "sync/queuelock.h"
+#include "sync/event.h"
 #include "threads/file_descr.h"
 
 
@@ -15,6 +16,10 @@
 // until its parent calls proc_wait() on it 
 // (at which point it is freed and completely deleted).
 #define PROC_DEAD   2
+
+#define FD_ID_STDOUT    0
+#define FD_ID_STDIN     1
+
 
 typedef uint32_t pid_t;
 typedef struct _process {

@@ -5,6 +5,7 @@
 #include "drivers/pic_driver.h"
 #include "drivers/port_io.h"
 #include <stdio.h>
+#include "drivers/dev.h"
 
 
 // interrupt number for a keyboard interrupt
@@ -14,8 +15,6 @@
 #define KEYBOARD_DATA 0x60 // data port
 
 
-
-
 // qwerty scan code set : https://wiki.osdev.org/PS/2_Keyboard#Scan_Code_Set_1
 // modifying to azerty is straightforward
 #define KEYCODE_CTRL 0x1D
@@ -23,13 +22,20 @@
 #define KEYCODE_RSHIFT 0x36
 #define KEYCODE_ALT 0x38
 
-unsigned char kbd_map[128];
-unsigned char kbd_shift_map[128];
-unsigned char kbd_alt_map[128];
+static char kbd_map[128];
+static char kbd_shift_map[128];
+static char kbd_alt_map[128];
 
-KeyboardState kbd_state;
+static kbd_state_t kbd_state;
 
-void init_keyboard_maps(void) 
+// circular buffer of characters that the interrupt fills
+// and a thread empties.
+static char buf[1024];
+static uint32_t buf_start;
+static uint32_t buf_size;
+static tid_t worker_tid;
+
+static void init_keyboard_maps() 
 {
     for (int i = 0; i < 128; i++) {
         kbd_map[i] = 0;
@@ -158,7 +164,7 @@ void init_keyboard_maps(void)
 }
 
 
-void init_keyboard_driver(void)
+void init_keyboard_driver()
 {
     init_keyboard_maps();
 
@@ -166,10 +172,36 @@ void init_keyboard_driver(void)
     kbd_state.ctrl_pressed = false;
     kbd_state.lshift_pressed = false;
     kbd_state.rshift_pressed = false;
+
+    buf_start = 0;
+    buf_size = 0;
+}
+
+// this will run in a separate thread
+void worker()
+{
+    while (true) {
+        thread_yield();
+
+        // the interrupt woke us up
+        disable_kbd_interrupts();
+        if (buf_size > 0) {
+
+            char c = buf[buf_start];
+            buf_start = (buf_start + 1) % BUF_CAPACITY;
+            buf_size--;
+        }
+        enable_kbd_interrupts();
+    }
+}
+
+void register_keyboard()
+{
+
 }
 
 
-void key_released(uint8_t keycode)
+static void key_released(uint8_t keycode)
 {
     switch (keycode) {
     case KEYCODE_ALT: kbd_state.alt_pressed = false; break;
@@ -179,7 +211,7 @@ void key_released(uint8_t keycode)
     }
 }
 
-void key_pressed(uint8_t keycode)
+static void key_pressed(uint8_t keycode)
 {
     char c;
     switch (keycode) {

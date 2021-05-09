@@ -14,7 +14,7 @@
 #include "threads/thread.h"
 #include "threads/process.h"
 
-#define PIT_DEFAULT_FREQ 500 // Hz
+#define PIT_DEFAULT_FREQ 100 // Hz
 
 
 // initialization state of parts of the kernel
@@ -112,6 +112,8 @@ void init_kernel(boot_info_t* boot_info)
     threads = true;
     init_process();
     process = true;
+
+    // register devices here ?
 
     all = true;
 
