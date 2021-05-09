@@ -29,11 +29,14 @@ static char kbd_alt_map[128];
 static kbd_state_t kbd_state;
 
 // circular buffer of characters that the interrupt fills
-// and a thread empties.
-static char buf[1024];
-static uint32_t buf_start;
-static uint32_t buf_size;
+// and the worker thread sends to the read buffer.
+#define CACHE_CAPACITY 256
+static char cache[CACHE_CAPACITY];
+static uint32_t cache_start;
+static uint32_t cache_size;
 static tid_t worker_tid;
+
+static blocking_queue_t* read_buf;
 
 static void init_keyboard_maps() 
 {
@@ -173,31 +176,36 @@ void init_keyboard_driver()
     kbd_state.lshift_pressed = false;
     kbd_state.rshift_pressed = false;
 
-    buf_start = 0;
-    buf_size = 0;
+    cache_start = 0;
+    cache_size = 0;
 }
 
 // this will run in a separate thread
-void worker()
+void worker(int arg)
 {
     while (true) {
         thread_yield();
 
-        // the interrupt woke us up
+        // the keyboard interrupt woke us up
         disable_kbd_interrupts();
-        if (buf_size > 0) {
+        uint32_t count = min(cache_size, CACHE_CAPACITY - cache_start);
+        enable_kbd_interrupts();
 
-            char c = buf[buf_start];
-            buf_start = (buf_start + 1) % BUF_CAPACITY;
-            buf_size--;
-        }
+        // this call may block us for a while
+        bq_add(read_buf, cache + cache_start, count);
+
+        disable_kbd_interrupts();
+        cache_start = (cache_start + count) % CACHE_CAPACITY;
+        cache_size -= count;
         enable_kbd_interrupts();
     }
 }
 
 void register_keyboard()
 {
-
+    stream_dev_t* dev = register_stream_dev("kbd", DEV_FLAG_READ);
+    read_buf = dev->read_buf;
+    worker_tid = thread_create(worker, 0);
 }
 
 
@@ -213,13 +221,14 @@ static void key_released(uint8_t keycode)
 
 static void key_pressed(uint8_t keycode)
 {
-    char c;
     switch (keycode) {
     case KEYCODE_CTRL: kbd_state.ctrl_pressed = true; break;
     case KEYCODE_LSHIFT: kbd_state.lshift_pressed = true; break;
     case KEYCODE_RSHIFT: kbd_state.rshift_pressed = true; break;
     case KEYCODE_ALT: kbd_state.alt_pressed = true; break;
     default:
+    {
+        char c;
         // shift has a higher priority than alt
         // (because why not ?) 
         if (kbd_state.lshift_pressed || kbd_state.rshift_pressed) {
@@ -231,12 +240,22 @@ static void key_pressed(uint8_t keycode)
         else {
             c = kbd_map[keycode];
         }
-        putchar(c);
+        // store the character in the cache
+        if (cache_size < CACHE_CAPACITY) {
+            cache[(cache_start + cache_size) % CACHE_CAPACITY] = c;
+            cache_size++;
+        }
+        else {
+            panic("keyboard cache is full\n");
+        }
+        // wake up the worker if he was waiting.
+        sched_try_wake_up(worker_tid);
         break;
+    }
     }
 }
 
-void keyboard_interrupt(void)
+void keyboard_interrupt()
 {
 	uint8_t status = port_int8_in(KEYBOARD_COMM);
     
