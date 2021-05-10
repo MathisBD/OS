@@ -22,7 +22,7 @@ typedef struct _thread {
     uint32_t* esp;
     //// scheduling info
     uint32_t state; // run status
-    // next thread in the ready/finished list
+    // next thread in the ready list
     struct _thread* sched_next;
     // join() waits on this event.
     // exit() broadcasts this event.

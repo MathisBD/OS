@@ -71,6 +71,11 @@ void fn(arg_t* arg)
 
 void kernel_main()
 {
+    ////// TODO : replace the heap spinlock with a queuelock
+    // (by changing the queuelock implementation to not use the heap anymore,
+    // and use instead the sched_next field of thread_t);
+
+
     printf("kernel\n");
 
     file_descr_t* fd = kopen("/dev/kbd", FD_PERM_READ);
