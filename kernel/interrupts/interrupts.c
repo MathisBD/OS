@@ -16,22 +16,22 @@ void handle_interrupt(intr_frame_t* frame)
 		frame->intr_num < IDT_PIC_OFFSET + 16)
 	{
 		int irq = frame->intr_num - IDT_PIC_OFFSET;
-		pic_eoi(irq);
-		
 		switch(irq) {
 		case 0: // clock (PIT)
 			timer_interrupt();
-			return;
+			break;
 		case 1: // keyboard
-			keyboard_interrupt();
-			return;
+			kbd_interrupt();
+			break;
 		case 14: // primary ATA drive
 			ata_primary_interrupt();
-			return;
+			break;
 		default:
 			printf("unknown pic irq : %u\n", irq);
-			while(1);
+			break;
 		}
+		pic_eoi(irq);
+		return;
 	}
 
 	// general interrupts

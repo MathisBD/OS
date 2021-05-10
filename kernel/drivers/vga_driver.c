@@ -80,7 +80,7 @@ void move_cursor(int row, int col)
     port_int8_out(CURSOR_PORT_2, (uint8_t)((pos & 0xFF00) >> 8));
 }
 
-void init_vga_driver(void)
+void init_vga_driver()
 {
     vga_buffer = (uint16_t*)V_VGA_ADDRESS;
     term_col = 0;

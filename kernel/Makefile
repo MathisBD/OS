@@ -14,6 +14,7 @@ init/boot.o \
 init/init.o \
 tables/idt.o tables/idt_asm.o \
 tables/gdt.o tables/gdt_asm.o \
+drivers/dev.o \
 drivers/vga_driver.o \
 drivers/pic_driver.o \
 drivers/io_asm.o \

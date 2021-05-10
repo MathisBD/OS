@@ -1,12 +1,16 @@
 #pragma once
+#include <stdint.h>
 #include <stdbool.h>
 
-typedef struct {
-    bool ctrl_pressed;
-    bool alt_pressed;
-    bool lshift_pressed;
-    bool rshift_pressed;
-} kbd_state_t;
+#define KBD_FLAG_CTRL   0x1
+#define KBD_FLAG_ALT    0x2
+#define KBD_FLAG_LSHIFT 0x4
+#define KBD_FLAG_RSHIFT 0x8
 
-void init_keyboard_driver(void);
-void keyboard_interrupt(void);
+typedef struct {
+    char* c;
+    uint8_t flags;
+} key_t;
+
+void init_kbd_driver();
+void kbd_interrupt();

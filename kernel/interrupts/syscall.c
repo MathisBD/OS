@@ -99,7 +99,9 @@ void handle_syscall(intr_frame_t* frame)
     }
     case SC_OPEN:
     {
-        file_descr_t* fd = kopen(get_syscall_arg(frame, 1));
+        file_descr_t* fd = kopen(
+            get_syscall_arg(frame, 1),
+            get_syscall_arg(frame, 2));
         frame->eax = proc_add_fd(curr_process(), fd);
         return;
     }

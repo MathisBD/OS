@@ -1,12 +1,12 @@
 #include <stddef.h>
-
 #include "drivers/keyboard_driver.h"
 #include "tables/idt.h"
 #include "drivers/pic_driver.h"
 #include "drivers/port_io.h"
 #include <stdio.h>
 #include "drivers/dev.h"
-
+#include "threads/thread.h"
+#include "memory/kheap.h"
 
 // interrupt number for a keyboard interrupt
 #define KEYBOARD_IRQ 1
@@ -26,19 +26,19 @@ static char kbd_map[128];
 static char kbd_shift_map[128];
 static char kbd_alt_map[128];
 
-static kbd_state_t kbd_state;
+// lock that protects access to the keyboard function kbd_read()
+static queuelock_t* kbd_lock;
 
-// circular buffer of characters that the interrupt fills
-// and the worker thread sends to the read buffer.
-#define CACHE_CAPACITY 256
-static char cache[CACHE_CAPACITY];
-static uint32_t cache_start;
-static uint32_t cache_size;
-static tid_t worker_tid;
+// the current state of the keyboard
+static uint8_t kbd_flags;
+// the last key pressed
+static key_t last_key;
+// set to true each time a key is pressed,
+// except for ctrl/shift/alt
+static bool key_received;
 
-static blocking_queue_t* read_buf;
 
-static void init_keyboard_maps() 
+static void init_kbd_maps() 
 {
     for (int i = 0; i < 128; i++) {
         kbd_map[i] = 0;
@@ -167,96 +167,86 @@ static void init_keyboard_maps()
 }
 
 
-void init_keyboard_driver()
+int kbd_read(void* buf, int count)
 {
-    init_keyboard_maps();
+    kql_acquire(kbd_lock);
 
-    kbd_state.alt_pressed = false;
-    kbd_state.ctrl_pressed = false;
-    kbd_state.lshift_pressed = false;
-    kbd_state.rshift_pressed = false;
-
-    cache_start = 0;
-    cache_size = 0;
-}
-
-// this will run in a separate thread
-void worker(int arg)
-{
-    while (true) {
-        thread_yield();
-
-        // the keyboard interrupt woke us up
-        disable_kbd_interrupts();
-        uint32_t count = min(cache_size, CACHE_CAPACITY - cache_start);
-        enable_kbd_interrupts();
-
-        // this call may block us for a while
-        bq_add(read_buf, cache + cache_start, count);
-
-        disable_kbd_interrupts();
-        cache_start = (cache_start + count) % CACHE_CAPACITY;
-        cache_size -= count;
-        enable_kbd_interrupts();
+    disable_irq(KEYBOARD_IRQ);
+    key_received = false;
+    while (!key_received) {
+        enable_irq(KEYBOARD_IRQ);
+        // we can't use an event here : 
+        // it would be the keyboard interrupt that would wake us up,
+        // and we can't use signal() or broadcast() in an interrupt
+        // (because they need to acquire the heap spinlock).
+        kthread_yield();
+        disable_irq(KEYBOARD_IRQ);
     }
+    *((key_t*)buf) = last_key;
+    enable_irq(KEYBOARD_IRQ);
+
+    kql_release(kbd_lock);
+    return 2; // a key is two bytes (first: char, second: flags)
 }
 
-void register_keyboard()
+
+void init_kbd_driver()
 {
-    stream_dev_t* dev = register_stream_dev("kbd", DEV_FLAG_READ);
-    read_buf = dev->read_buf;
-    worker_tid = thread_create(worker, 0);
-}
+    kbd_lock = kql_create();
+    init_kbd_maps();
 
+    kbd_flags = 0;
+    key_received = false; 
+
+    stream_dev_t* dev = kmalloc(sizeof(stream_dev_t));
+    dev->lock = kql_create();
+    dev->name = "kbd";
+    dev->flags = DEV_FLAG_READ;
+    dev->read = kbd_read;
+    dev->write = 0;
+    register_stream_dev(dev);
+}
 
 static void key_released(uint8_t keycode)
 {
     switch (keycode) {
-    case KEYCODE_ALT: kbd_state.alt_pressed = false; break;
-    case KEYCODE_CTRL: kbd_state.ctrl_pressed = false; break;
-    case KEYCODE_LSHIFT : kbd_state.lshift_pressed = false; break;
-    case KEYCODE_RSHIFT: kbd_state.rshift_pressed = false; break;
+    case KEYCODE_ALT: kbd_flags &= ~KBD_FLAG_ALT; break;
+    case KEYCODE_CTRL: kbd_flags &= ~KBD_FLAG_CTRL; break;
+    case KEYCODE_LSHIFT : kbd_flags &= ~KBD_FLAG_LSHIFT; break;
+    case KEYCODE_RSHIFT: kbd_flags &= ~KBD_FLAG_RSHIFT; break;
     }
 }
 
 static void key_pressed(uint8_t keycode)
 {
     switch (keycode) {
-    case KEYCODE_CTRL: kbd_state.ctrl_pressed = true; break;
-    case KEYCODE_LSHIFT: kbd_state.lshift_pressed = true; break;
-    case KEYCODE_RSHIFT: kbd_state.rshift_pressed = true; break;
-    case KEYCODE_ALT: kbd_state.alt_pressed = true; break;
+    case KEYCODE_ALT: kbd_flags |= KBD_FLAG_ALT; break;
+    case KEYCODE_CTRL: kbd_flags |= KBD_FLAG_CTRL; break;
+    case KEYCODE_LSHIFT : kbd_flags |= KBD_FLAG_LSHIFT; break;
+    case KEYCODE_RSHIFT: kbd_flags |= KBD_FLAG_RSHIFT; break;
     default:
     {
-        char c;
         // shift has a higher priority than alt
         // (because why not ?) 
-        if (kbd_state.lshift_pressed || kbd_state.rshift_pressed) {
-            c = kbd_shift_map[keycode];
+        if ((kbd_flags & KBD_FLAG_LSHIFT) || (kbd_flags & KBD_FLAG_RSHIFT)) {
+            last_key.c = kbd_shift_map[keycode];
         }
-        else if (kbd_state.alt_pressed) {
-            c = kbd_alt_map[keycode];
-        }
-        else {
-            c = kbd_map[keycode];
-        }
-        // store the character in the cache
-        if (cache_size < CACHE_CAPACITY) {
-            cache[(cache_start + cache_size) % CACHE_CAPACITY] = c;
-            cache_size++;
+        else if (kbd_flags & KBD_FLAG_ALT) {
+            last_key.c = kbd_alt_map[keycode];
         }
         else {
-            panic("keyboard cache is full\n");
+            last_key.c = kbd_map[keycode];
         }
-        // wake up the worker if he was waiting.
-        sched_try_wake_up(worker_tid);
+        key_received = true;
+        //printf("%c", last_key.c);
         break;
     }
     }
 }
 
-void keyboard_interrupt()
+void kbd_interrupt()
 {
+    printf("kbd interrupt\n");
 	uint8_t status = port_int8_in(KEYBOARD_COMM);
     
     // bit 1 of status tells us if the output buffer is empty/full

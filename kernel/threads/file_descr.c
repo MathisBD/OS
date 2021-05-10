@@ -1,8 +1,23 @@
 #include "threads/file_descr.h"
 #include "memory/kheap.h"
+#include <string.h>
+#include <stdio.h>
+#include <panic.h>
+#include "drivers/dev.h"
 
 
-static file_descr_t* open_dev(char* name, uint8_t name)
+static bool is_dev_path(char* path)
+{
+    return memcmp(path, DEV_FOLDER, strlen(DEV_FOLDER)) == 0;
+}
+
+static char* dev_name(char* path)
+{
+    // don't forget to remove the sedond '/'
+    return path + strlen(DEV_FOLDER) + 1;
+}
+
+static file_descr_t* open_dev(char* name, uint8_t perms)
 {
     stream_dev_t* dev = get_stream_dev(name);
     if (dev == 0) {
@@ -65,20 +80,21 @@ int kwrite(file_descr_t* fd, void* buf, uint32_t count)
         panic("thread doesn't have the permission to write to file descriptor");
     }
 
+    int c;
     switch (fd->type) {
     case FD_TYPE_STREAM_DEV:
-        kql_acquire(fd->dev->lock);
-        bq_add(fd->dev->write_buf, buf, count);
-        kql_release(fd->dev->lock);
+        c = fd->dev->write(buf, count);
         break;
     case FD_TYPE_PIPE:
         bq_add(fd->pipe, buf, count);
+        c = count;
         break;
     default:
         panic("kwrite : unknown fd type");
     }
 
     kql_release(fd->lock);
+    return c;
 }
 
 int kread(file_descr_t* fd, void* buf, uint32_t count)
@@ -89,20 +105,21 @@ int kread(file_descr_t* fd, void* buf, uint32_t count)
         panic("thread doesn't have the permission to read from file descriptor");
     }
 
+    int c;
     switch (fd->type) {
     case FD_TYPE_STREAM_DEV:
-        kql_acquire(fd->dev->lock);
-        bq_remove(fd->dev->read_buf, buf, count);
-        kql_release(fd->dev->lock);
+        c = fd->dev->read(buf, count);
         break;
     case FD_TYPE_PIPE:
         bq_remove(fd->pipe, buf, count);
+        c = count;
         break;
     default:
         panic("kwrite : unknown fd type");
     }
 
     kql_release(fd->lock);
+    return c;
 }
 
 void kpipe(file_descr_t** from_ptr, file_descr_t** to_ptr)

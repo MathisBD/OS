@@ -16,10 +16,9 @@ typedef struct {
     queuelock_t* lock;
     char* name;
     uint8_t flags;
-    // buffer used to read from the device
-    blocking_queue_t* read_buf;
-    // buffer used to write to the device
-    blocking_queue_t* write_buf;
+    // return the actual number of bytes read/written
+    int (*read)(void* buf, int count);
+    int (*write)(void* buf, int count);
 } stream_dev_t;
 
 // a request to read/write a block
@@ -43,8 +42,11 @@ typedef struct {
 } block_dev_t;
 
 
-stream_dev_t* register_stream_dev(char* name, uint8_t flags);
-block_dev_t* register_block_dev(char* name, uint8_t flags);
+// call this before initializing other drivers
+void init_dev();
+
+void register_stream_dev(stream_dev_t* dev);
+void register_block_dev(block_dev_t* dev);
 
 stream_dev_t* get_stream_dev(char* name);
 block_dev_t* get_block_dev(char* name);

@@ -13,6 +13,8 @@
 #include "filesystem/fs.h"
 #include "threads/thread.h"
 #include "threads/process.h"
+#include "drivers/dev.h"
+#include <stdio.h>
 
 #define PIT_DEFAULT_FREQ 100 // Hz
 
@@ -75,17 +77,40 @@ bool is_all_init()
 
 void init_kernel(boot_info_t* boot_info)
 {
-    // LOW LEVEL
+    // low level stuff, must go before everything else
     init_gdt();
     gdt = true;
     init_idt();
     idt = true;
 
-    // (we HAVE to initialize the pics 
-    // before we enable interrupts, otherwise double fault)
+    // we need the vga driver early on
     init_vga_driver();
+
+    // paging is early too
+    init_paging(
+        (mmap_entry_t*)(boot_info->mmap_addr + V_KERNEL_START), 
+        boot_info->mmap_ent_count
+    );
+    paging = true;
+
+    // heap is needed by everything else
+    init_kheap();
+    kheap = true;
+    // we need a thread/process context to use locks
+    init_threads();
+    threads = true;
+    init_process();
+    process = true;
+    // filesystem
+    init_fs();
+    fs = true;
+
+    // other drivers.
+    // we have to initialize the pics 
+    // before we enable interrupts, otherwise double fault
+    init_dev();
     init_pic_driver();
-    init_keyboard_driver();
+    init_kbd_driver();
     float pit_freq = init_pit(PIT_DEFAULT_FREQ);
     init_timer(pit_freq);
     drivers = true;
@@ -94,28 +119,10 @@ void init_kernel(boot_info_t* boot_info)
         mmap_entry_t* ent = boot_info->mmap_addr + V_KERNEL_START + i * MMAP_ENT_SIZE;
         printf("base=%llx\tlength=%llx\ttype=%d\n", ent->base, ent->length, ent->type);
     }*/
-
-    init_paging(
-        (mmap_entry_t*)(boot_info->mmap_addr + V_KERNEL_START), 
-        boot_info->mmap_ent_count
-    );
-    paging = true;
-    set_interrupt_flag(true);
-
-    // HIGH LEVEL
-
-    init_kheap();
-    kheap = true;
-    init_fs();
-    fs = true;
-    init_threads();
-    threads = true;
-    init_process();
-    process = true;
-
-    // register devices here ?
-
     all = true;
+
+    // all pending interrupts will now arrive (e.g. a page fault for malloc)
+    set_interrupt_flag(true);
 
     // KERNEL MAIN
     extern void kernel_main();

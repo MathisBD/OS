@@ -10,6 +10,7 @@
 #include <blocking_queue.h>
 #include <user_thread.h>
 #include <user_lock.h>
+#include "drivers/pic_driver.h"
 
 
 #define DELAY() {for (int a = 0; a < 100; a++);}
@@ -47,34 +48,43 @@ void reader(arg_t* arg)
     }
 }*/
 
-void allocate(void* arg)
+/*void allocate(void* arg)
 {
     int* ptr;
     for (int i = 0; i < 1000000; i++) {
         ptr = kmalloc(1);
     }
-}
+}*/
 
 
-/*void fn(arg_t* arg)
+void fn(arg_t* arg)
 {
     for (int i = 0; i < 1000; i++) {
-        //lock_acquire(arg->lock);
+        lock_acquire(arg->lock);
         int local = *(arg->ptr);
         DELAY();
         *(arg->ptr) = local + 1;
-        //lock_release(arg->lock);
+        lock_release(arg->lock);
     }
-}*/
+}
 
 
 void kernel_main()
 {
-    for (int i = 0; i < 8; i++) {
+    printf("kernel\n");
+
+    file_descr_t* fd = kopen("/dev/kbd", FD_PERM_READ);
+
+    uint16_t key;
+    int c = kread(fd, &key, 2);
+    printf("got key : %c\n", (char)(key & 0xFF));
+    printf("c=%d\n", c);
+
+    /*for (int i = 0; i < 8; i++) {
         thread_create(allocate, 0);
     }
 
-    printf("created threads\n");
+    printf("created threads\n");*/
 
 
     /*arg_t* arg = kmalloc(sizeof(arg));
