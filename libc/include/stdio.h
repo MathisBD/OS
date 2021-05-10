@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include <stdint.h>
 
 #define EOF (-1)
  
@@ -15,9 +16,14 @@
 // %u, %lu, %llu : unsigned int / unsigned long int / unsigned long long int -> decimal
 // %x, %lx, %llx : unsigned int / unsigned long int / unsigned long long int -> hexadecimal
 
-int printf(const char* __restrict, ...);
-int putchar(int);
-int puts(const char*);
+typedef uint32_t fid_t;
+
+int fprintf(fid_t file, const char* __restrict format, ...);
+int fputchar(fid_t file, int c);
+
+// outputs to STDOUT
+int printf(const char* __restrict format, ...);
+int putchar(int c);
 
 #if defined(__is_kernel) || defined(__is_libk)
 int print_mem(const void*, size_t count);

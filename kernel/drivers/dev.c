@@ -24,7 +24,6 @@ void register_stream_dev(stream_dev_t* dev)
     kql_acquire(dev_lock);
     list_add_front(stream_devs, dev);
     kql_release(dev_lock);
-    printf("registered device %s\n", dev->name);
 }
 
 void register_block_dev(block_dev_t* dev)

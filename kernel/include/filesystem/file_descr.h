@@ -21,6 +21,10 @@
 #define FD_PERM_READ    0x1
 #define FD_PERM_WRITE   0x2
 
+// file descriptor ids of standard channels
+#define FD_STDIN        0
+#define FD_STDOUT       1
+
 typedef struct {
     queuelock_t* lock;
     uint32_t type;

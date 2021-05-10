@@ -67,7 +67,7 @@ static int parse_uint32(const char* buf, uint32_t* num)
 }
 
 
-int printf(const char* __restrict format, ...)
+int fprintf(fid_t file, const char* __restrict format, ...)
 {
     va_list params;
 	va_start(params, format);
@@ -78,7 +78,7 @@ int printf(const char* __restrict format, ...)
     while (format[i]) {
         // double percent
         if (!memcmp(format + i, "%%", 2)) {
-            putchar('%');
+            fputchar(file, '%');
             written++;
             i += 2;
         }
@@ -171,20 +171,20 @@ int printf(const char* __restrict format, ...)
             if (contents_size < pad_width) {
                 if (pad_zeros) {
                     for (int i = 0; i < pad_width - contents_size; i++) {
-                        putchar('0');   
+                        fputchar(file, '0');   
                     }
                 }
                 else {
                     for (int i = 0; i < pad_width - contents_size; i++) {
-                        putchar(' ');   
+                        fputchar(file, ' ');   
                     }
                 }
             }
-            write(FD_STDOUT, contents, contents_size);
+            write(file, contents, contents_size);
         }
         // normal characters
         else {
-            putchar(format[i]);
+            fputchar(file, format[i]);
             written++;
             i++;
         }

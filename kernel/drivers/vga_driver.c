@@ -160,7 +160,6 @@ static int vga_write(void* buf, int count)
 void finish_init_vga_driver()
 {
     vga_lock = kql_create();
-
     stream_dev_t* dev = kmalloc(sizeof(stream_dev_t));
     dev->lock = kql_create();
     dev->name = "vga";

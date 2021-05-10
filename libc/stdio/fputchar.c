@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <user_file.h>
 
-int putchar(int ic)
+
+int fputchar(fid_t file, int ic)
 {
-    write(FD_STDOUT, &ic, 1);
+    write(file, &ic, 1);
     return ic;
 }

@@ -30,7 +30,6 @@ threads/scheduler_asm.o \
 threads/thread.o \
 threads/process.o \
 threads/process_asm.o \
-threads/file_descr.o \
 sync/spinlock.o \
 sync/queuelock.o \
 sync/event.o \
@@ -42,6 +41,7 @@ filesystem/ext2/ext2_dir.o \
 filesystem/ext2/ext2_alloc.o \
 filesystem/ext2/ext2_disk.o \
 filesystem/fs.o \
+filesystem/file_descr.o \
 interrupts/interrupts.o \
 interrupts/interrupts_asm.o \
 interrupts/syscall.o

@@ -13,8 +13,10 @@
 #include "filesystem/fs.h"
 #include "threads/thread.h"
 #include "threads/process.h"
+#include "threads/scheduler.h"
 #include "drivers/dev.h"
 #include <stdio.h>
+
 
 #define PIT_DEFAULT_FREQ 100 // Hz
 
@@ -96,6 +98,7 @@ void init_kernel(boot_info_t* boot_info)
     // heap is needed by everything else
     init_kheap();
     kheap = true;
+
     // we need a thread/process context to use locks
     init_threads();
     threads = true;
@@ -120,11 +123,21 @@ void init_kernel(boot_info_t* boot_info)
         mmap_entry_t* ent = boot_info->mmap_addr + V_KERNEL_START + i * MMAP_ENT_SIZE;
         printf("base=%llx\tlength=%llx\ttype=%d\n", ent->base, ent->length, ent->type);
     }*/
+
+    // add the default STDOUT and STDIN file descriptors
+    // STDIN is 0
+    file_descr_t* fd_stdin = kopen("/dev/kbd", FD_PERM_READ);
+    proc_add_fd(curr_process(), fd_stdin);
+    // STDOUT is 1
+    //proc_add_fd(curr_process(), fd_stdin);
+    file_descr_t* fd_stdout = kopen("/dev/vga", FD_PERM_WRITE);
+    proc_add_fd(curr_process(), fd_stdout);
+
+    // now we can use printf() ! (instead of the not thread safe vga_print());
     all = true;
 
     // all pending PIC interrupts will now arrive
     set_interrupt_flag(true);
-
 
     // KERNEL MAIN
     extern void kernel_main();

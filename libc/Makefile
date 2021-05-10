@@ -21,7 +21,8 @@ LIBC_CPPFLAGS:=$(CPPFLAGS) -D__is_libc \
 LIBK_OBJS= \
 stdio/printf.libk.o \
 stdio/putchar.libk.o \
-stdio/puts.libk.o \
+stdio/fputchar.libk.o \
+stdio/fprintf.libk.o \
 stdio/print_mem.libk.o \
 string/memcmp.libk.o \
 string/memcpy.libk.o \
@@ -70,7 +71,13 @@ user_thread/thread_join.libk.o \
 user_process/proc_fork.libk.o \
 user_process/proc_exec.libk.o \
 user_process/proc_exit.libk.o \
-user_process/proc_wait.libk.o
+user_process/proc_wait.libk.o \
+user_file/open.libk.o \
+user_file/close.libk.o \
+user_file/read.libk.o \
+user_file/write.libk.o \
+user_file/pipe.libk.o \
+user_file/dup.libk.o
 #ubsan/ubsan.libk.o
 
 LIBC_OBJS=

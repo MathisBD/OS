@@ -2,7 +2,7 @@
 #include "threads/process.h"
 #include "threads/thread.h"
 #include "threads/scheduler.h"
-#include "threads/file_descr.h"
+#include "filesystem/file_descr.h"
 #include "sync/event.h"
 #include "sync/queuelock.h"
 #include <panic.h>

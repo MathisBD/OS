@@ -5,7 +5,7 @@
 #include "interrupts/interrupts.h"
 #include "sync/queuelock.h"
 #include "sync/event.h"
-#include "threads/file_descr.h"
+#include "filesystem/file_descr.h"
 
 
 #define PAGE_TABLE_SIZE 1024

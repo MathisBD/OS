@@ -11,62 +11,10 @@
 #include <user_thread.h>
 #include <user_lock.h>
 #include <string.h>
+#include <user_file.h>
 
 
 #define DELAY() {for (int a = 0; a < 100; a++);}
-
-typedef struct {
-    lock_id_t lock;
-    int* ptr;
-} arg_t;
-
-
-/*void writer(arg_t* arg)
-{
-    uint32_t N = 5;
-    char* buf = kmalloc(N);
-
-    for (int i = 0; i < 10; i++) {
-        for (int c = 0; c < N; c++) {
-            buf[c] = c + i;
-        }
-        bq_add(arg->q, buf, N);
-        DELAY();
-    }
-}
-void reader(arg_t* arg)
-{
-    uint32_t N = 5;
-    char* buf = kmalloc(N);
-
-    for (int i = 0; i < 10; i++) {
-        bq_remove(arg->q, buf, N);
-        print_mem(buf, N);
-        printf("\n");
-
-        DELAY();
-    }
-}*/
-
-/*void allocate(void* arg)
-{
-    int* ptr;
-    for (int i = 0; i < 1000000; i++) {
-        ptr = kmalloc(1);
-    }
-}*/
-
-
-void fn(arg_t* arg)
-{
-    for (int i = 0; i < 1000; i++) {
-        lock_acquire(arg->lock);
-        int local = *(arg->ptr);
-        DELAY();
-        *(arg->ptr) = local + 1;
-        lock_release(arg->lock);
-    }
-}
 
 
 void kernel_main()
@@ -74,12 +22,11 @@ void kernel_main()
     ////// TODO : replace the heap spinlock with a queuelock
     // (by changing the queuelock implementation to not use the heap anymore,
     // and use instead the sched_next field of thread_t);
+    printf("kernel\n");
 
-    file_descr_t* fd = kopen("/dev/kbd", FD_PERM_READ);
-    int a = 42;
     uint16_t key;
     while (true) {
-        kread(fd, &key, 2);
+        read(FD_STDIN, &key, 2);
         printf("%c", (char)(key & 0xFF));
     }
     
