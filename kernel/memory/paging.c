@@ -8,6 +8,7 @@
 #include <panic.h>
 #include "threads/scheduler.h"
 #include "init/init.h"
+#include "drivers/vga_driver.h"
 
 
 typedef struct {
@@ -187,7 +188,12 @@ uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
 
 void page_fault(intr_frame_t* frame, uint32_t mem_address)
 {
-    printf("PAGE FAULT (addr=%x)\n", mem_address);
+    if (!is_all_init()) {
+        vga_print("[page fault] while kernel initialization isn't finished\n");
+    }
+    else {
+        printf("[page fault] address=%x\n", mem_address);
+    }
 
     // 0 : non-present page
     // 1 : privilege violation

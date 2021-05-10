@@ -4,6 +4,7 @@
 #include "drivers/pic_driver.h"
 #include "drivers/port_io.h"
 #include <stdio.h>
+#include <string.h>
 #include "drivers/dev.h"
 #include "threads/thread.h"
 #include "memory/kheap.h"
@@ -167,7 +168,7 @@ static void init_kbd_maps()
 }
 
 
-int kbd_read(void* buf, int count)
+static int kbd_read(void* buf, int count)
 {
     kql_acquire(kbd_lock);
 
@@ -182,7 +183,7 @@ int kbd_read(void* buf, int count)
         kthread_yield();
         disable_irq(KEYBOARD_IRQ);
     }
-    *((key_t*)buf) = last_key;
+    memcpy(buf, &last_key, 2);
     enable_irq(KEYBOARD_IRQ);
 
     kql_release(kbd_lock);
@@ -246,7 +247,6 @@ static void key_pressed(uint8_t keycode)
 
 void kbd_interrupt()
 {
-    printf("kbd interrupt\n");
 	uint8_t status = port_int8_in(KEYBOARD_COMM);
     
     // bit 1 of status tells us if the output buffer is empty/full

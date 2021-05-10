@@ -4,6 +4,21 @@
 #include <string.h>
 #include <stdbool.h>
 
+#ifdef __is_libk
+#include "threads/file_descr.h"
+#define OPEN    kopen
+#define WRITE   kwrite
+#define CLOSE   kclose
+#define FD      file_descr_t*
+#endif 
+#ifdef __is_libc
+#include <user_file.h>
+#define OPEN    open
+#define WRITE   write
+#define CLOSE   close
+#define FD      
+#endif
+
 
 #define MAX_BASE 16
 static char digits[] = {
@@ -65,8 +80,16 @@ static int parse_uint32(const char* buf, uint32_t* num)
     return i;
 }
 
+static void print_char(char c, FD file)
+{
+    WRITE(file, &c, 1);
+}
+
+
 int printf(const char* __restrict format, ...)
 {
+    FD file = OPEN("/dev/vga", FD_PERM_WRITE);
+
     va_list params;
 	va_start(params, format);
     
@@ -76,7 +99,8 @@ int printf(const char* __restrict format, ...)
     while (format[i]) {
         // double percent
         if (!memcmp(format + i, "%%", 2)) {
-            written += putchar('%');
+            print_char('%', file);
+            written++;
             i += 2;
         }
         // variables
@@ -160,6 +184,7 @@ int printf(const char* __restrict format, ...)
             }
             else {
                 // bad variable formatter
+                CLOSE(file);
                 return EOF; 
             }
 
@@ -167,24 +192,24 @@ int printf(const char* __restrict format, ...)
             if (contents_size < pad_width) {
                 for (int i = 0; i < pad_width - contents_size; i++) {
                     if (pad_zeros) {
-                        putchar('0');
+                        print_char('0', file);
                     }
                     else {
-                        putchar(' ');
+                        print_char(' ', file);
                     }
                 }
             }
-            for (int i = 0; i < contents_size; i++) {
-                putchar(contents[i]);
-            }
+            WRITE(file, contents, contents_size);
         }
         // normal characters
         else {
-            written += putchar(format[i]);
+            print_char(format[i], file);
+            written++;
             i++;
         }
     }
     
     va_end(params);
+    //CLOSE(file);
     return written;
 }

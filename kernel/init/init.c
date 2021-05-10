@@ -83,8 +83,8 @@ void init_kernel(boot_info_t* boot_info)
     init_idt();
     idt = true;
 
-    // we need the vga driver early on
-    init_vga_driver();
+    // we need a rudimentary vga driver early on
+    start_init_vga_driver();
 
     // paging is early too
     init_paging(
@@ -109,6 +109,7 @@ void init_kernel(boot_info_t* boot_info)
     // we have to initialize the pics 
     // before we enable interrupts, otherwise double fault
     init_dev();
+    finish_init_vga_driver();
     init_pic_driver();
     init_kbd_driver();
     float pit_freq = init_pit(PIT_DEFAULT_FREQ);
@@ -121,8 +122,9 @@ void init_kernel(boot_info_t* boot_info)
     }*/
     all = true;
 
-    // all pending interrupts will now arrive (e.g. a page fault for malloc)
+    // all pending PIC interrupts will now arrive
     set_interrupt_flag(true);
+
 
     // KERNEL MAIN
     extern void kernel_main();

@@ -10,7 +10,7 @@
 #include <blocking_queue.h>
 #include <user_thread.h>
 #include <user_lock.h>
-#include "drivers/pic_driver.h"
+#include <string.h>
 
 
 #define DELAY() {for (int a = 0; a < 100; a++);}
@@ -75,16 +75,14 @@ void kernel_main()
     // (by changing the queuelock implementation to not use the heap anymore,
     // and use instead the sched_next field of thread_t);
 
-
-    printf("kernel\n");
-
     file_descr_t* fd = kopen("/dev/kbd", FD_PERM_READ);
-
+    int a = 42;
     uint16_t key;
-    int c = kread(fd, &key, 2);
-    printf("got key : %c\n", (char)(key & 0xFF));
-    printf("c=%d\n", c);
-
+    while (true) {
+        kread(fd, &key, 2);
+        printf("%c", (char)(key & 0xFF));
+    }
+    
     /*for (int i = 0; i < 8; i++) {
         thread_create(allocate, 0);
     }

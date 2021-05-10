@@ -121,25 +121,25 @@ isr\n:
     iret // pops the stuff the cpu pushed 
 .endm
 
-mIsrNoErrcode 0  // Divide Error
-mIsrNoErrcode 1  // Debug Exception
-mIsrNoErrcode 2  // Non Maskable Interrupt 
-mIsrNoErrcode 3  // Breakpoint
-mIsrNoErrcode 4  // Overflow
-mIsrNoErrcode 5  // Out of Bounds
-mIsrNoErrcode 6  // Invalid Opcode
-mIsrNoErrcode 7  // Device Not Available
+mIsrNoErrcode 0   // Divide Error
+mIsrNoErrcode 1   // Debug Exception
+mIsrNoErrcode 2   // Non Maskable Interrupt 
+mIsrNoErrcode 3   // Breakpoint
+mIsrNoErrcode 4   // Overflow
+mIsrNoErrcode 5   // Out of Bounds
+mIsrNoErrcode 6   // Invalid Opcode
+mIsrNoErrcode 7   // Device Not Available
 mIsrErrcode 8     // Double Fault
-mIsrNoErrcode 9  // Coprocessor Segment Overrun
+mIsrNoErrcode 9   // Coprocessor Segment Overrun
 mIsrErrcode 10    // Invalid TSS
 mIsrErrcode 11    // Segment Not Present
 mIsrErrcode 12    // Stack Fault
 mIsrErrcode 13    // General Protection
 mIsrErrcode 14    // Page Fault 
-mIsrNoErrcode 15 // Intel reserved
-mIsrNoErrcode 16 // Floating Point Error
+mIsrNoErrcode 15  // Intel reserved
+mIsrNoErrcode 16  // Floating Point Error
 mIsrErrcode 17    // Alignment Check
-mIsrNoErrcode 18 // Machine Check
+mIsrNoErrcode 18  // Machine Check
 
 // Intel reserved
 mIsrNoErrcode 19
