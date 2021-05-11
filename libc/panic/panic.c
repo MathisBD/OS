@@ -1,9 +1,8 @@
-#include "panic.h"
+#include <panic.h>
 #include <stdio.h>
 
-void panic(const char* msg)
+void panic(char* str)
 {
-    printf("PANIC\t%s\n", msg);
-    while (1) {
-    }
+    printf("PANIC : %s\n", str);
+    while (1);
 }

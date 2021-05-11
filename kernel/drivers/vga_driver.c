@@ -147,6 +147,13 @@ void vga_putchar(char c)
     move_cursor(term_row, term_col);
 }
 
+void vga_print_mem(void* addr, uint32_t count)
+{
+    for (uint32_t i = 0; i < count; i++) {
+        vga_print_
+    }
+}
+
 void vga_print(const char* str) 
 {
     for (size_t i = 0; str[i] != '\0'; i++) {

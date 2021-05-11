@@ -10,6 +10,8 @@
 #include "init/init.h"
 #include "tables/gdt.h"
 #include <user_thread.h>
+#include "drivers/vga_driver.h"
+
 
 #define LOCK() \
 bool _old_if = set_interrupt_flag(false); \
@@ -137,7 +139,11 @@ extern void thread_switch_asm(
 );
 static void thread_switch(thread_t* prev, thread_t* next)
 {
-    //printf("switch %x->%x\n", prev->tid, next->tid);
+    vga_print("switch ");
+    vga_print_mem(&(prev->tid), 4);
+    vga_print("->");
+    vga_print_int(&(next->tid), 4);
+
     set_tss_esp(((uint32_t)(next->stack)) + KSTACK_SIZE);
     uint32_t pt_addr = physical_address(next->process->page_table);
     thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
@@ -154,7 +160,8 @@ void sched_switch(uint32_t switch_mode)
             return;
         }
         else {
-            panic("no ready thread to switch to !");
+            vga_print("no ready thread to switch to !");
+            while(1);
         }
     }
     thread_t* next = pop_ready();
@@ -180,14 +187,18 @@ void sched_switch(uint32_t switch_mode)
     }
     default:
     {
-        panic("unknown switch mode\n");
+        vga_print("unknown switch mode\n");
+        while(1);
     }
     }
-
     // next was in READY state
     // and will enter RUNNING state
     next->state = THREAD_RUNNING;
     running = next;
+
+    vga_print("A\n");
+    while(1);
+
 
     // do the actual switch
     thread_switch(prev, next);
@@ -196,9 +207,7 @@ void sched_switch(uint32_t switch_mode)
 
 void timer_tick(float seconds)
 {
-    if (is_all_init()) {
-        sched_switch(SWITCH_READY);
-    }
+    sched_switch(SWITCH_READY);
 }
 
 

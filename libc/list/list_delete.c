@@ -1,20 +1,14 @@
 #include <list.h>
-#ifdef __is_libk
-#include "memory/kheap.h"
-#endif
+#include "heap_macros.h"
+
 
 void list_delete(list_t* l)
 {
     list_node_t* node = l->first;
     while(node != 0) {
         list_node_t* next = node->next;
-        #ifdef __is_libk
-        kfree(node);
-        #endif
+        FREE(node);
         node = next;
     }
-
-    #ifdef __is_libk
-    kfree(l);
-    #endif
+    FREE(l);
 }

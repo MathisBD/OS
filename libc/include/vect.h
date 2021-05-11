@@ -1,17 +1,6 @@
 #pragma once
 #include <stdint.h>
 
-#if defined(__is_libk) || defined(__is_kernel)
-#include "memory/kheap.h"
-#define MALLOC  kmalloc
-#define FREE    kfree
-#endif 
-
-#ifdef __is_libc
-#include <user_heap.h>
-#define MALLOC  malloc
-#define FREE    free
-#endif 
 
 // a resizable array that contains void pointers
 typedef struct {

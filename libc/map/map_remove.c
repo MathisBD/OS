@@ -1,5 +1,5 @@
 #include <map.h>
-#include "memory/kheap.h"
+#include "heap_macros.h"
 
 
 void* map_remove(map_t* map, uint32_t id)
@@ -9,8 +9,8 @@ void* map_remove(map_t* map, uint32_t id)
         if (mnode->id == id) {
             uint32_t value = mnode->value;
             list_remove_node(map, lnode);
-            kfree(lnode);
-            kfree(mnode);
+            FREE(lnode);
+            FREE(mnode);
             return value;
         }
     }

@@ -1,7 +1,7 @@
-.global _entry
+.global main
 
 .section .text
-_entry:
+main:
     push $8
     mov $0xDEADBABA, %eax
     int $0x80

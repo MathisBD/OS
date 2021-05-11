@@ -1,10 +1,13 @@
 #include <list.h>
 #include <panic.h>
+#include <stdio.h>
+#include "heap_macros.h"
+
 
 void* list_pop_front(list_t* l)
 {
     if (l->first == 0) {
-        panic("can't pop from empty list\n");
+        panic("can't pop from empty list");
         return 0;
     }
 
@@ -17,9 +20,7 @@ void* list_pop_front(list_t* l)
     void* elem = l->first->contents;
     list_node_t* node = l->first->next;
     node->prev = 0;
-    #ifdef __is_libk
-    kfree(l->first);
-    #endif
+    FREE(l->first);
     l->first = node;
     return elem;
 }

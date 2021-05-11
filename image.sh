@@ -10,8 +10,8 @@ mkdir -p $IMGDIR
 mkdir -p $IMGDIR$BOOTDIR
 cp -r $SYSROOT$BOOTDIR/. $IMGDIR/$BOOTDIR/.
 
-mkdir -p $IMGDIR/user
-cp -r $SYSROOT/user/. $IMGDIR/user/.
+mkdir -p $IMGDIR/progs
+cp -r $SYSROOT/progs/. $IMGDIR/progs/.
 
 # zeroed out disk
 dd if=/dev/zero of=./$IMAGE bs=$DISK_BLOCK_SIZE count=$DISK_BLOCK_COUNT

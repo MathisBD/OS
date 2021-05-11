@@ -78,7 +78,7 @@ void do_proc_fork(intr_frame_t* frame);
 // thus we don't have to call thread_exit() for this thread
 // and we can just plainly replace it).
 // argument : program to run (full path to the file)
-void kproc_exec(char* prog);
+void kproc_exec(char* prog, uint32_t argc, char** argv);
 // when a thread calls exit, all threads in the process are terminated.
 void kproc_exit(int code);
 // wait on a child process. blocks the thread that calls it.

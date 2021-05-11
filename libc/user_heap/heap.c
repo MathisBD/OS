@@ -1,9 +1,7 @@
-#include "memory/kheap.h"
-#include "memory/constants.h"
-#include <list.h>
 #include <panic.h>
 #include <stdio.h>
-#include "sync/spinlock.h"
+#include <user_lock.h>
+
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,
@@ -23,10 +21,7 @@ static mem_node_t* first_hole;
 // allocated blocks
 static mem_node_t* first_block;
 
-// global heap lock (statically allocated).
-// this has to be a spinlock to avoid infinite recursion
-// when calling lock_acquire() on a queuelock.
-static spinlock_t heap_spinlock;
+static lock_id_t heap_lock;
 
 static void detach_node(mem_node_t* node)
 {
@@ -69,15 +64,14 @@ static void add_block(mem_node_t* node)
     first_block = node;
 }
 
-void init_kheap()
+void init_heap(uint32_t heap_start, uint32_t heap_size)
 {
+    heap_lock = lock_create();
     first_block = 0;
 
-    first_hole = (mem_node_t*)HEAP_START;
-    first_hole->size = HEAP_SIZE - sizeof(mem_node_t);
+    first_hole = (mem_node_t*)heap_start;
+    first_hole->size = heap_size - sizeof(mem_node_t);
     first_hole->prev = first_hole->next = 0;
-
-    heap_spinlock.value = 0;
 }
 
 
@@ -159,14 +153,14 @@ void print_lists()
     printf("\n");
 }
 
-inline void* kmalloc(uint32_t size)
+inline void* malloc(uint32_t size)
 {
-    return kmalloc_aligned(size, NODE_ALIGN);
+    return malloc_aligned(size, NODE_ALIGN);
 } 
 
-void* kmalloc_aligned(uint32_t size, uint32_t align)
+void* malloc_aligned(uint32_t size, uint32_t align)
 {
-    ksl_acquire(&heap_spinlock);
+    lock_acquire(heap_lock);
 
     if (align & (NODE_ALIGN - 1)) {
         panic("kmalloc : invalid align value!");
@@ -190,13 +184,13 @@ void* kmalloc_aligned(uint32_t size, uint32_t align)
     }
     uint32_t res = ((uint32_t)hole) + sizeof(mem_node_t);
 
-    ksl_release(&heap_spinlock);
+    lock_release(heap_lock);
     return res;
 }
 
-void kfree(void* ptr)
+void free(void* ptr)
 {
-    ksl_acquire(&heap_spinlock);
+    lock_acquire(heap_lock);
 
     mem_node_t* node = (mem_node_t*)(ptr - sizeof(mem_node_t));
     // switch from block to hole
@@ -204,7 +198,7 @@ void kfree(void* ptr)
     detach_node(node);
     add_hole(node);
 
-    ksl_release(&heap_spinlock);
+    lock_release(heap_lock);
 }
 
 

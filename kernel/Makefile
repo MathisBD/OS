@@ -52,37 +52,37 @@ all: $(KERNEL)
 
 # kind of a hack to add libk.a in the dependencies
 $(KERNEL): $(KERNEL_OBJS) linker.o	$(SYSROOT)$(LIBDIR)/libk.a
-	$(CC) -T linker.o $(CFLAGS) -o $@ $(KERNEL_OBJS) $(LIBS)
+	@$(CC) -T linker.o $(CFLAGS) -o $@ $(KERNEL_OBJS) $(LIBS)
 
 # we run the C preprocessor on the linker script
 %.o: %.ld
-	# grep to remove comments (in particular #include lines)
-	$(CC) -x c -E $(CPPFLAGS) $< | grep -v '^#' >$@
+# grep to remove comments (in particular #include lines)
+	@$(CC) -x c -E $(CPPFLAGS) $< | grep -v '^#' >$@
 
 %.o: %.c 
-	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
+	@$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
 # we run the C++ preprocessor on assembly files
 # (implicit since g++ does it on .S files)
 %.o: %.S
-	$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
+	@$(CC) -MD -c $< -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
 
 
 # install to the sysroot
 install: install-headers install-kernel
 
 install-headers:
-	mkdir -p $(SYSROOT)$(INCLUDEDIR)/kernel
-	cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/kernel/.
+	@mkdir -p $(SYSROOT)$(INCLUDEDIR)/kernel
+	@cp -R --preserve=timestamps include/. $(SYSROOT)$(INCLUDEDIR)/kernel/.
 
 install-kernel: $(KERNEL)
-	mkdir -p $(SYSROOT)$(BOOTDIR)
-	cp $(KERNEL) $(SYSROOT)$(BOOTDIR)
+	@mkdir -p $(SYSROOT)$(BOOTDIR)
+	@cp $(KERNEL) $(SYSROOT)$(BOOTDIR)
 
 clean:
-	rm -f ./*.o ./*/*.o ./*/*/*.o
-	rm -f ./*.d ./*/*.d ./*/*/*.d
-	rm -f ./*.elf ./*/*.elf ./*/*/*.elf
-	rm -f ./*.bin ./*/*.bin ./*/*/*.bin
+	@rm -f ./*.o ./*/*.o ./*/*/*.o
+	@rm -f ./*.d ./*/*.d ./*/*/*.d
+	@rm -f ./*.elf ./*/*.elf ./*/*/*.elf
+	@rm -f ./*.bin ./*/*.bin ./*/*/*.bin
 
 -include $(KERNEL_OBJS:.o=.d)

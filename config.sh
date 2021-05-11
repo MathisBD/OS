@@ -2,7 +2,7 @@
 
 # projects are compiled/installed in this order
 # therefore libc must appear before kernel
-export PROJECTS="libc bootloader kernel user"
+export PROJECTS="libc bootloader kernel progs"
 
 # executables
 export KERNEL="minios.elf" # elf file 

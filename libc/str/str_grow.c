@@ -1,5 +1,6 @@
 #include <str.h>
 #include <string.h>
+#include "heap_macros.h"
 
 
 void str_grow(str_t* str, uint32_t cap)

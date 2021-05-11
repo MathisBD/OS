@@ -1,10 +1,10 @@
 #include <list.h>
+#include "heap_macros.h"
+
 
 void list_add_front(list_t* l, void* elem) {
     list_node_t* node;
-    #ifdef __is_libk
-    node = kmalloc(sizeof(list_node_t));
-    #endif
+    node = MALLOC(sizeof(list_node_t));
     node->contents = elem;
     node->prev = 0;
     node->next = l->first;

@@ -1,5 +1,6 @@
 #include <vect.h>
 #include <string.h>
+#include "heap_macros.h"
 
 
 void vect_grow(vect_t* vect, uint32_t cap)

@@ -25,9 +25,9 @@ boot_page_dir:
     // 1 : read/write 
     // 7 : PS (4MB pages)
     .int 0x00000083 // first 4MB
-    .fill (KERNEL_PAGE_IDX - 1), 4, 0x42424242 //0x00000000
+    .fill (KERNEL_PAGE_IDX - 1), 4, 0x00000000
     .int 0x00000083 // kernel 4MB page
-    .fill (PT_SIZE - KERNEL_PAGE_IDX - 1), 0x42424242 //0x00000000
+    .fill (PT_SIZE - KERNEL_PAGE_IDX - 1), 0x00000000
 
 boot_info_addr: .int 0
 

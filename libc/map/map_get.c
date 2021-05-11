@@ -1,5 +1,4 @@
 #include <map.h>
-#include "memory/kheap.h"
 
 
 void* map_get(map_t* map, uint32_t id)

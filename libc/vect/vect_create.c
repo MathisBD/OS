@@ -1,5 +1,6 @@
 #include <vect.h>
 #include <string.h>
+#include "heap_macros.h"
 
 
 vect_t* vect_create()

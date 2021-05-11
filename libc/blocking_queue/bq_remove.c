@@ -1,5 +1,8 @@
 #include <blocking_queue.h>
 #include <string.h>
+#include "heap_macros.h"
+#include "event_macros.h"
+#include "lock_macros.h"
 
 
 static uint32_t min(uint32_t a, uint32_t b)
@@ -26,19 +29,19 @@ static void do_remove(blocking_queue_t* q, void* buf, uint32_t count)
 
 void bq_remove(blocking_queue_t* q, void* buf, uint32_t count)
 {
-    kql_acquire(q->lock);
+    LOCK_ACQUIRE(q->lock);
 
     uint32_t ofs = 0;
     while (ofs < count) {
         while (q->count == 0) {
-            kevent_wait(q->on_add);
+            EVENT_WAIT(q->on_add);
         }
         // how much bytes can we remove ?
         uint32_t amount = min(count - ofs, q->count);
         do_remove(q, buf + ofs, amount);
         ofs += amount;
         // tell others we removed from the queue.
-        kevent_broadcast(q->on_remove);
+        EVENT_BROADCAST(q->on_remove);
     }
-    kql_release(q->lock);
+    LOCK_RELEASE(q->lock);
 }

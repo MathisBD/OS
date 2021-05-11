@@ -1,6 +1,6 @@
 #include <str.h>
 #include <string.h>
-
+#include "heap_macros.h"
 
 str_t* str_create()
 {

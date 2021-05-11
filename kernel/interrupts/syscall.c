@@ -32,7 +32,10 @@ void handle_syscall(intr_frame_t* frame)
     }
     case SC_PROC_EXEC:
     {
-        kproc_exec(get_syscall_arg(frame, 1));
+        kproc_exec(
+            get_syscall_arg(frame, 1),
+            get_syscall_arg(frame, 2),
+            get_syscall_arg(frame, 3));
         return;
     }
     case SC_PROC_EXIT:

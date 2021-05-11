@@ -235,7 +235,7 @@ void do_proc_fork(intr_frame_t* frame)
     kql_release(proc_lock);
 }
 
-void kproc_exec(char* prog)
+void kproc_exec(char* prog, uint32_t argc, char** argv)
 {
     // load the user code/data
     //free_user_pages();
@@ -243,9 +243,22 @@ void kproc_exec(char* prog)
     uint32_t user_stack_top;
     load_program(prog, &entry_addr, &user_stack_top);
 
+    // copy args to user heap
+    /*char** user_argv = malloc(argc);
+    for (uint32_t i = 0; i < argc; i++) {
+        uint32_t len = strlen(argv[i]);
+        user_argv[i] = malloc(len);
+        memcpy(user_argv[i], argv[i], len);
+    }*/
+    char** user_argv = argv;
+
     // assembly stub to jump
-    extern void exec_jump_asm(uint32_t entry_addr, uint32_t user_stack_top);
-    exec_jump_asm(entry_addr, user_stack_top);
+    extern void exec_jump_asm(
+        uint32_t entry_addr, 
+        uint32_t user_stack_top,
+        uint32_t argc,
+        uint32_t argv);
+    exec_jump_asm(entry_addr, user_stack_top, argc, user_argv);
 }
 
 void kproc_exit(int code)
