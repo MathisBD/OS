@@ -4,7 +4,10 @@
 #include "drivers/port_io.h"
 #include "drivers/dev.h"
 #include "memory/kheap.h"
-
+#include "filesystem/file_descr.h"
+#include <panic.h>
+#include <string.h>
+#include <stdio.h>
 
 // io ports to communicate with the vga cursor
 #define CURSOR_PORT_1 0x3D4
@@ -21,6 +24,18 @@
 #define TAB_ALIGN 8
 
 
+// layout of the vfa file :
+// first 4 bytes : header
+// next 2*ROWS*COLS bytes :
+// (color byte + char byte) for each cell of each row 
+struct {
+    uint8_t rows;
+    uint8_t cols;
+    uint8_t term_row;
+    uint8_t term_col;
+} file_header;
+static uint32_t file_ofs;
+
 static queuelock_t* vga_lock;
 
 // text output buffer
@@ -28,11 +43,12 @@ static queuelock_t* vga_lock;
 // - B : background color
 // - F : foreground color
 // - C : ASCII character
-static uint16_t* vga_buffer;
+static uint16_t* vga_buffer = V_VGA_ADDRESS;
 
-static uint32_t term_col;
-static uint32_t term_row;
-static uint8_t default_color;
+static uint32_t term_col = 0;
+static uint32_t term_row = 0;
+// white text, black background
+static uint8_t default_color = 0x0F;
 
 static uint16_t vga_entry(uint8_t color, char c)
 {
@@ -86,12 +102,6 @@ static void move_cursor(int row, int col)
 
 void start_init_vga_driver()
 {
-    vga_buffer = (uint16_t*)V_VGA_ADDRESS;
-    term_col = 0;
-    term_row = 0;
-    // white text, black background
-    default_color = 0x0F;
-
     clear_screen();
 
     // setup cursor
@@ -145,7 +155,77 @@ void vga_print(const char* str)
     move_cursor(term_row, term_col);
 }
 
-static int vga_write(void* buf, int count)
+static uint32_t min(uint32_t a, uint32_t b)
+{
+    return a < b ? a : b;
+}
+
+// write to vga_buffer file
+static int vga_write_buffer(uint8_t* buf, uint32_t count)
+{
+    printf("vga write buffer : file_ofs = %u\n", file_ofs);
+    kql_acquire(vga_lock);
+    uint32_t i = 0;
+    if (file_ofs == 0 && count > 0) {
+        i++; file_ofs++; count--;
+    }
+    if (file_ofs == 1 && count > 0) {
+        i++; file_ofs++; count--;
+    }
+    if (file_ofs == 2 && count > 0) {
+        term_row = buf[i]; i++; file_ofs++; count--;
+        move_cursor(term_row, term_col);
+    }
+    if (file_ofs == 3 && count > 0) {
+        term_col = buf[i]; i++; file_ofs++; count--;
+        move_cursor(term_row, term_col);
+    }
+    count = min(count, 2*VGA_COLS*VGA_ROWS - (file_ofs-4));
+    memcpy(((void*)vga_buffer) + (file_ofs-4), buf + i, count);
+    file_ofs += count;
+    kql_release(vga_lock);
+    return 0;
+}
+
+static int vga_read_buffer(uint8_t* buf, uint32_t count)
+{
+    kql_acquire(vga_lock);
+    uint32_t i = 0;
+    if (file_ofs == 0 && count > 0) {
+        buf[i] = VGA_ROWS; i++; file_ofs++; count--;
+    }
+    if (file_ofs == 1 && count > 0) {
+        buf[i] = VGA_COLS; i++; file_ofs++; count--;
+    }
+    if (file_ofs == 2 && count > 0) {
+        buf[i] = term_row; i++; file_ofs++; count--;
+    }
+    if (file_ofs == 3 && count > 0) {
+        buf[i] = term_col; i++; file_ofs++; count--;
+    }
+    count = min(count, 2*VGA_COLS*VGA_ROWS - (file_ofs-4));
+    memcpy(buf + i, ((void*)vga_buffer) + (file_ofs-4), count);
+    file_ofs += count;
+    kql_release(vga_lock);
+    return 0;
+}
+
+// seek in the vga_buffer file
+static void vga_seek_buffer(int ofs, uint8_t flags)
+{
+    kql_acquire(vga_lock);
+    switch(flags)
+    {
+    case FD_SEEK_CUR: file_ofs += ofs; break;
+    case FD_SEEK_SET: file_ofs = ofs; break;
+    case FD_SEEK_END: file_ofs = 4 + 2*VGA_ROWS*VGA_COLS + ofs; break;
+    default: vga_print("vga_seek() : unknown seek flag");
+    }
+    kql_release(vga_lock);
+}
+
+// write a string at the cursor position
+static int vga_write(void* buf, uint32_t count)
 {
     kql_acquire(vga_lock);
     
@@ -155,16 +235,29 @@ static int vga_write(void* buf, int count)
     move_cursor(term_row, term_col);
     
     kql_release(vga_lock);
+    return count;
 }
 
 void finish_init_vga_driver()
 {
     vga_lock = kql_create();
+    file_ofs = 0;
+
+    // device for writing to the vga file
     stream_dev_t* dev = kmalloc(sizeof(stream_dev_t));
     dev->lock = kql_create();
+    dev->name = "vga_buffer";
+    dev->perms = FD_PERM_WRITE | FD_PERM_READ | FD_PERM_SEEK;
+    dev->write = vga_write_buffer;
+    dev->read = vga_read_buffer;
+    dev->seek = vga_seek_buffer;
+    register_stream_dev(dev);
+
+    // device for writting characters at the cursor position
+    dev = kmalloc(sizeof(stream_dev_t));
+    dev->lock = kql_create();
     dev->name = "vga";
-    dev->flags = DEV_FLAG_WRITE;
-    dev->read = 0;
+    dev->perms = FD_PERM_WRITE;
     dev->write = vga_write;
     register_stream_dev(dev);
 }

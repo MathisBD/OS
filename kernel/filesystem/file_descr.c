@@ -31,7 +31,7 @@ static file_descr_t* open_dev(char* name, uint8_t perms)
     fd->perms = 0;
 
     if (perms & FD_PERM_READ) {
-        if (dev->flags && DEV_FLAG_READ) {
+        if (dev->perms && FD_PERM_READ) {
             fd->perms |= FD_PERM_READ;
         }
         else {
@@ -40,11 +40,20 @@ static file_descr_t* open_dev(char* name, uint8_t perms)
         }
     }
     if (perms & FD_PERM_WRITE) {
-        if (dev->flags && DEV_FLAG_WRITE) {
+        if (dev->perms && FD_PERM_WRITE) {
             fd->perms |= FD_PERM_WRITE;
         }
         else {
             printf("can't write to device %s\n", name);
+            panic("open\n");
+        }
+    }
+    if (perms & FD_PERM_SEEK) {
+        if (dev->perms && FD_PERM_SEEK) {
+            fd->perms |= FD_PERM_SEEK;
+        }
+        else {
+            printf("can't seek in device %s\n", name);
             panic("open\n");
         }
     }
@@ -70,6 +79,22 @@ void kclose(file_descr_t* fd)
 
     kql_delete(fd->lock);
     kfree(fd);*/
+}
+
+void kseek(file_descr_t* fd, int ofs, uint8_t flags)
+{
+    if (!(fd->perms & FD_PERM_SEEK)) {
+        panic("thread doesn't have the permission to seek in file descriptor");
+    }
+
+    switch (fd->type) {
+    case FD_TYPE_STREAM_DEV:
+        fd->dev->seek(ofs, flags);
+        break;
+    // we can never seek in a pipe
+    default:
+        panic("kseek : unknown fd type");
+    }
 }
 
 int kwrite(file_descr_t* fd, void* buf, uint32_t count)

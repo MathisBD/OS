@@ -14,12 +14,20 @@
 // for performance.
 #define FD_PIPE_SIZE        4096
 
+// file descriptor types
 #define FD_TYPE_STREAM_DEV  1   // streaming device
 #define FD_TYPE_FILE        2   // file on disk
 #define FD_TYPE_PIPE        3   // pipe between two processes
 
+// file descriptor permissions
 #define FD_PERM_READ    0x1
 #define FD_PERM_WRITE   0x2
+#define FD_PERM_SEEK    0x4
+
+// seek() flags
+#define FD_SEEK_SET     1
+#define FD_SEEK_CUR     2
+#define FD_SEEK_END     3
 
 // file descriptor ids of standard channels
 #define FD_STDIN        0
@@ -52,6 +60,5 @@ void kclose(file_descr_t*);
 int kwrite(file_descr_t*, void* buf, uint32_t count);
 int kread(file_descr_t*, void* buf, uint32_t count);
 void kpipe(file_descr_t** from, file_descr_t** to);
-//void kdup(file_descr_t* from, file_descr_t* to);
-
+void kseek(file_descr_t* fd, int ofs, uint8_t flags);
 

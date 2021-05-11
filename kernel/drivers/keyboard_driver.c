@@ -8,6 +8,8 @@
 #include "drivers/dev.h"
 #include "threads/thread.h"
 #include "memory/kheap.h"
+#include "filesystem/file_descr.h"
+
 
 // interrupt number for a keyboard interrupt
 #define KEYBOARD_IRQ 1
@@ -183,11 +185,11 @@ static int kbd_read(void* buf, int count)
         kthread_yield();
         disable_irq(KEYBOARD_IRQ);
     }
-    memcpy(buf, &last_key, 2);
+    memcpy(buf, &(last_key.c), 1);
     enable_irq(KEYBOARD_IRQ);
 
     kql_release(kbd_lock);
-    return 2; // a key is two bytes (first: char, second: flags)
+    return 1;
 }
 
 
@@ -202,9 +204,8 @@ void init_kbd_driver()
     stream_dev_t* dev = kmalloc(sizeof(stream_dev_t));
     dev->lock = kql_create();
     dev->name = "kbd";
-    dev->flags = DEV_FLAG_READ;
+    dev->perms = FD_PERM_READ;
     dev->read = kbd_read;
-    dev->write = 0;
     register_stream_dev(dev);
 }
 

@@ -24,10 +24,23 @@ void kernel_main()
     // and use instead the sched_next field of thread_t);
     printf("kernel\n");
 
-    uint16_t key;
+    /*uint16_t key;
     while (true) {
         read(FD_STDIN, &key, 2);
         printf("%c", (char)(key & 0xFF));
+    }*/
+
+    file_descr_t* fd = kopen("/dev/vga_buffer", FD_PERM_WRITE | FD_PERM_SEEK | FD_PERM_READ);
+    kseek(fd, 6, FD_SEEK_SET);
+    uint16_t c = 'H';
+    c |= 0x0A00;
+    kwrite(fd, &c, 2);
+
+    uint8_t* buf = kmalloc(16);
+    kseek(fd, 0, FD_SEEK_SET);
+    kread(fd, buf, 16);
+    for (int i = 0; i < 16; i++) {
+        printf("%02x ", buf[i]);
     }
     
     /*for (int i = 0; i < 8; i++) {

@@ -77,7 +77,13 @@ user_file/close.libk.o \
 user_file/read.libk.o \
 user_file/write.libk.o \
 user_file/pipe.libk.o \
-user_file/dup.libk.o
+user_file/dup.libk.o \
+str/str_create.libk.o \
+str/str_delete.libk.o \
+str/str_add_char.libk.o \
+str/str_add_cstr.libk.o \
+str/str_get_cstr.libk.o \
+str/str_grow.libk.o
 #ubsan/ubsan.libk.o
 
 LIBC_OBJS=
