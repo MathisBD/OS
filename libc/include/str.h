@@ -21,7 +21,7 @@ typedef struct {
 } str_t;
 
 
-str_t* string_create();
+str_t* str_create();
 void str_delete(str_t* str);
 void str_grow(str_t* str, uint32_t cap);
 void str_add_char(str_t* str, char c);

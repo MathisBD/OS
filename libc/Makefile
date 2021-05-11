@@ -83,7 +83,14 @@ str/str_delete.libk.o \
 str/str_add_char.libk.o \
 str/str_add_cstr.libk.o \
 str/str_get_cstr.libk.o \
-str/str_grow.libk.o
+str/str_grow.libk.o \
+vect/vect_create.libk.o \
+vect/vect_delete.libk.o \
+vect/vect_get.libk.o \
+vect/vect_add.libk.o \
+vect/vect_pop.libk.o \
+vect/vect_grow.libk.o \
+vect/vect_get_array.libk.o
 #ubsan/ubsan.libk.o
 
 LIBC_OBJS=
