@@ -50,11 +50,6 @@ blocking_queue/bq_create.o \
 blocking_queue/bq_delete.o \
 blocking_queue/bq_add.o \
 blocking_queue/bq_remove.o \
-map/map_create.o \
-map/map_delete.o \
-map/map_add.o \
-map/map_get.o \
-map/map_remove.o \
 user_lock/lock_create.o \
 user_lock/lock_delete.o \
 user_lock/lock_acquire.o \
@@ -87,7 +82,8 @@ str/str_grow.o \
 vect/vect_create.o \
 vect/vect_delete.o \
 vect/vect_get.o \
-vect/vect_add.o \
+vect/vect_append.o \
+vect/vect_set.o \
 vect/vect_pop.o \
 vect/vect_grow.o
 #ubsan/ubsan.o

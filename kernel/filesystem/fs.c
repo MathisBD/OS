@@ -73,7 +73,7 @@ int dir_find_child(uint32_t dir, const char* child_name, uint32_t* child)
 
     uint32_t len = strlen(child_name);
     for (ext2_dir_entry_t* curr = entry; curr != 0; curr = curr->next) {
-        if (memcmp(curr->name, child_name, len) == 0) {
+        if (memcmp(curr->name, child_name, len+1) == 0) {
             *child = curr->inode;
             free_ext2_entr(entry);
             return 0;
@@ -140,7 +140,7 @@ int dir_rem_child(uint32_t dir, const char* child_name)
     uint32_t len = strlen(child_name);
     ext2_dir_entry_t* prev = entry;
     for (ext2_dir_entry_t* curr = entry; curr != 0; curr = curr->next) {
-        if (memcmp(curr->name, child_name, len) == 0) {        
+        if (memcmp(curr->name, child_name, len+1) == 0) {        
             // remove the child's dir entry
             if (prev == entry) {
                 entry = curr->next;

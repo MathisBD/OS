@@ -31,16 +31,6 @@ pid_t new_pid()
     return tmp;
 }
 
-// doesn't lock the process
-static void init_proc_resources(process_t* proc)
-{
-    proc->locks = map_create();
-    proc->next_lid = 0;
-    proc->events = map_create();
-    proc->next_eid = 0;
-    proc->file_descrs = map_create();
-    proc->next_fdid = 0;
-}
 
 void init_process()
 {
@@ -53,7 +43,10 @@ void init_process()
     proc->parent = 0;
     proc->children = list_create();
     proc->state = PROC_ALIVE;
-    init_proc_resources(proc);
+    // process resources
+    proc->locks = vect_create();
+    proc->events = vect_create();
+    proc->file_descrs = vect_create();
 
     thread_t* thread = curr_thread();
     thread->process = proc;
@@ -63,13 +56,23 @@ void init_process()
     proc->page_table = kernel_page_table();
 }
 
+static uint32_t add_resource(vect_t* vect, void* res)
+{
+    for (uint32_t i = 0; i < vect->size; i++) {
+        if (vect_get(vect, i) == 0) {
+            vect_set(vect, i, res);
+            return i;
+        }
+    }
+    vect_append(vect, res);
+    return vect->size - 1;
+}
+
 
 uint32_t proc_add_lock(process_t* proc, queuelock_t* lock)
 {
     kql_acquire(proc->lock);
-    uint32_t id = proc->next_lid;
-    (proc->next_lid)++;
-    map_add(proc->locks, id, lock);
+    uint32_t id = add_resource(proc->locks, lock);
     kql_release(proc->lock);
     return id;
 }
@@ -77,7 +80,7 @@ uint32_t proc_add_lock(process_t* proc, queuelock_t* lock)
 queuelock_t* proc_get_lock(process_t* proc, uint32_t id)
 {
     kql_acquire(proc->lock);
-    queuelock_t* lock = map_get(proc->locks, id);
+    queuelock_t* lock = vect_get(proc->locks, id);
     kql_release(proc->lock);
     return lock;
 }
@@ -85,7 +88,7 @@ queuelock_t* proc_get_lock(process_t* proc, uint32_t id)
 queuelock_t* proc_remove_lock(process_t* proc, uint32_t id)
 {
     kql_acquire(proc->lock);
-    queuelock_t* lock = map_remove(proc->locks, id);
+    queuelock_t* lock = vect_set(proc->locks, id, 0);
     kql_release(proc->lock);
     return lock;
 }
@@ -93,9 +96,7 @@ queuelock_t* proc_remove_lock(process_t* proc, uint32_t id)
 uint32_t proc_add_event(process_t* proc, event_t* event)
 {
     kql_acquire(proc->lock);
-    uint32_t id = proc->next_eid;
-    (proc->next_eid)++;
-    map_add(proc->events, id, event);
+    uint32_t id = add_resource(proc->events, event);
     kql_release(proc->lock);
     return id;
 }
@@ -103,7 +104,7 @@ uint32_t proc_add_event(process_t* proc, event_t* event)
 event_t* proc_get_event(process_t* proc, uint32_t id)
 {
     kql_acquire(proc->lock);
-    event_t* event = map_get(proc->events, id);
+    event_t* event = vect_get(proc->events, id);
     kql_release(proc->lock);
     return event;
 }
@@ -111,7 +112,7 @@ event_t* proc_get_event(process_t* proc, uint32_t id)
 event_t* proc_remove_event(process_t* proc, uint32_t id)
 {
     kql_acquire(proc->lock);
-    event_t* event = map_remove(proc->events, id);
+    event_t* event = vect_set(proc->events, id, 0);
     kql_release(proc->lock);
     return event;
 }
@@ -119,9 +120,7 @@ event_t* proc_remove_event(process_t* proc, uint32_t id)
 uint32_t proc_add_fd(process_t* proc, file_descr_t* fd)
 {
     kql_acquire(proc->lock);
-    uint32_t id = proc->next_fdid;
-    (proc->next_fdid)++;
-    map_add(proc->file_descrs, id, fd);
+    uint32_t id = add_resource(proc->file_descrs, fd);
     kql_release(proc->lock);
     return id;
 }
@@ -129,7 +128,7 @@ uint32_t proc_add_fd(process_t* proc, file_descr_t* fd)
 file_descr_t* proc_get_fd(process_t* proc, uint32_t id)
 {
     kql_acquire(proc->lock);
-    file_descr_t* fd = map_get(proc->file_descrs, id);
+    file_descr_t* fd = vect_get(proc->file_descrs, id);
     kql_release(proc->lock);
     return fd;
 }
@@ -137,11 +136,22 @@ file_descr_t* proc_get_fd(process_t* proc, uint32_t id)
 file_descr_t* proc_remove_fd(process_t* proc, uint32_t id)
 {
     kql_acquire(proc->lock);
-    file_descr_t* fd = map_remove(proc->file_descrs, id);
+    file_descr_t* fd = vect_set(proc->file_descrs, id, 0);
     kql_release(proc->lock);
     return fd;
 }
 
+
+void copy_file_descrs(process_t* copy, process_t* original)
+{
+    copy->file_descrs = vect_create();
+    vect_grow(copy->file_descrs, original->file_descrs->size);
+    for (uint32_t i = 0; i < original->file_descrs->size; i++) {
+        file_descr_t* fd = vect_get(original->file_descrs, i);
+        fd = fd_copy(fd);
+        vect_append(copy->file_descrs, fd);
+    }
+}
 
 
 static process_t* copy_process(process_t* original)
@@ -163,7 +173,9 @@ static process_t* copy_process(process_t* original)
     copy_address_space(copy->page_table, original->page_table);
 
     // process resources
-    init_proc_resources(copy);
+    copy->locks = vect_create();
+    copy->events = vect_create();
+    copy_file_descrs(copy, original);
 
     kql_release(original->lock);
     return copy;
@@ -226,7 +238,7 @@ void do_proc_fork(intr_frame_t* frame)
 
     process_t* new_proc = copy_process(curr_process());
     thread_t* new_thread = copy_thread(curr_thread(), new_proc, frame);
-    
+
     // everything is up and ready to run :
     // make the new process and thread visible to everyone.
     new_proc->state = PROC_ALIVE;
@@ -252,13 +264,17 @@ void kproc_exec(char* prog, uint32_t argc, char** argv)
     }*/
     char** user_argv = argv;
 
+    // prepare initial user stack
+    uint32_t* esp = user_stack_top;
+    esp--; *esp = user_argv;
+    esp--; *esp = argc;
+    esp--; // dummy return address
+
     // assembly stub to jump
     extern void exec_jump_asm(
         uint32_t entry_addr, 
-        uint32_t user_stack_top,
-        uint32_t argc,
-        uint32_t argv);
-    exec_jump_asm(entry_addr, user_stack_top, argc, user_argv);
+        uint32_t user_esp);
+    exec_jump_asm(entry_addr, esp);
 }
 
 void kproc_exit(int code)

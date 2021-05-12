@@ -7,6 +7,7 @@
 #include "tables/idt.h"
 #include <stdio.h>
 #include <panic.h>
+#include "drivers/vga_driver.h"
 
 
 void handle_interrupt(intr_frame_t* frame)
@@ -16,6 +17,16 @@ void handle_interrupt(intr_frame_t* frame)
 		frame->intr_num < IDT_PIC_OFFSET + 16)
 	{
 		int irq = frame->intr_num - IDT_PIC_OFFSET;
+		// for the timer interrupt in particular,
+		// it is MANDATORY that we send the eoi signal before we switch threads,
+		// otherwise the new thread won't send the signal and pic interrupts won't be active
+		// until another thread that was switched out by a timer interrupt 
+		// (no matter which) resumes.
+		// for other interrupts, calling this before or after
+		// the interrupt is processes shouldn't make a difference since
+		// interrupts are disabled in an ISR.
+		pic_eoi(irq); 
+		
 		switch(irq) {
 		case 0: // clock (PIT)
 			timer_interrupt();
@@ -27,10 +38,11 @@ void handle_interrupt(intr_frame_t* frame)
 			ata_primary_interrupt();
 			break;
 		default:
-			printf("unknown pic irq : %u\n", irq);
+			vga_print("unknown pic irq");
+			vga_print_mem(&irq, 4);
+			vga_print("\n");
 			break;
 		}
-		pic_eoi(irq);
 		return;
 	}
 

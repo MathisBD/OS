@@ -71,7 +71,6 @@ void load_program(char* prog_name, uint32_t* entry_addr, uint32_t* user_stack_to
         if (r < 0) {
             panic("load_program : couldn't read segment header");
         }
-        
         if (header->p_type == PT_LOAD) {
             // load the segment
             r = read_file(file, header->p_offset, header->p_filesz, header->p_vaddr);
@@ -82,8 +81,8 @@ void load_program(char* prog_name, uint32_t* entry_addr, uint32_t* user_stack_to
                 0, 
                 header->p_memsz - header->p_filesz);
                 
-            printf("segment: offset=%x, vaddr=%x, filesize=%x, memsize=%x\n",
-                header->p_offset, header->p_vaddr, header->p_filesz, header->p_memsz);
+            //printf("segment: offset=%x, vaddr=%x, filesize=%x, memsize=%x\n",
+            //    header->p_offset, header->p_vaddr, header->p_filesz, header->p_memsz);
         }
     }
     *entry_addr = e_hdr->e_entry;

@@ -5,9 +5,34 @@
 #include <panic.h>
 #include "drivers/dev.h"
 
+file_descr_t* fd_copy(file_descr_t* fd)
+{
+    file_descr_t* copy = kmalloc(sizeof(file_descr_t));
+    copy->lock = kql_create();
+    copy->type = fd->type;
+    copy->perms = fd->perms;
+    switch (fd->type) {
+    case FD_TYPE_FILE:
+        copy->inode = fd->inode;
+        copy->offset = fd->offset;
+        break;
+    case FD_TYPE_STREAM_DEV:
+        copy->dev = fd->dev;
+        break;
+    case FD_TYPE_PIPE:
+        copy->pipe = fd->pipe;
+        break;
+    default: 
+        panic("unknown file descr type in fd_copy()");
+        break;
+    }
+    return fd;
+}
 
 static bool is_dev_path(char* path)
 {
+    // don't compare with the null terminator, we only 
+    // want to check for a prefix.
     return memcmp(path, DEV_FOLDER, strlen(DEV_FOLDER)) == 0;
 }
 

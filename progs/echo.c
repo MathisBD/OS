@@ -1,19 +1,25 @@
 #include <stdio.h>
 #include <user_file.h>
+#include <user_heap.h>
 
 
 
-
-int main(int argc, char** argv)
+int main()
 {
     printf("echo!!\n");
-    while(1);
     /*for (int i = 0; i < argc; i++) {
         printf(argv[i]);
         if (i < argc-1) {
             printf(" ");
         }
     }*/
+
+    
+
+    extern void print_lists();
+    print_lists();
+
+    while(1);
     return 0;
 }
 

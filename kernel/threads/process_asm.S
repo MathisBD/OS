@@ -4,19 +4,12 @@
 
 // arguments : 
 //   1) program entry address
-//   2) address of user stack top
-//   3) argc 
-//   4) argv
+//   2) address of user stack esp
 exec_jump_asm:
     cli // interrupts will be reenabled with iret
 
     push %ebp
     mov %esp, %ebp 
-
-    // prepare the initial stack frame for the new program
-    push 20(%ebp)   // argv
-    push 16(%ebp)   // argc
-    sub $4, %esp    // dummy return address
 
     // prepare the stack for iret.
     // the user RPL in CS will tell the cpu 
@@ -39,3 +32,4 @@ exec_jump_asm:
 
     iret
     
+str: .asciz "%x\n"

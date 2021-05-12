@@ -2,7 +2,6 @@
 #include <list.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <panic.h>
 #include "sync/spinlock.h"
 #include "interrupts/interrupts.h"
 #include "memory/constants.h"
@@ -139,10 +138,12 @@ extern void thread_switch_asm(
 );
 static void thread_switch(thread_t* prev, thread_t* next)
 {
-    vga_print("switch ");
+    // we can't use the standard vga methods since interrupts are disabled
+    /*vga_print("switch ");
     vga_print_mem(&(prev->tid), 4);
-    vga_print("->");
-    vga_print_int(&(next->tid), 4);
+    vga_print("-> ");
+    vga_print_mem(&(next->tid), 4);
+    vga_print("\n");*/
 
     set_tss_esp(((uint32_t)(next->stack)) + KSTACK_SIZE);
     uint32_t pt_addr = physical_address(next->process->page_table);
@@ -196,10 +197,6 @@ void sched_switch(uint32_t switch_mode)
     next->state = THREAD_RUNNING;
     running = next;
 
-    vga_print("A\n");
-    while(1);
-
-
     // do the actual switch
     thread_switch(prev, next);
     UNLOCK();
@@ -215,7 +212,8 @@ void sched_wake_up(thread_t* thread)
 {
     LOCK();
     if (thread->state != THREAD_WAITING) {
-        panic("can't wake up a thread that isn't waiting");
+        vga_print("can't wake up a thread that isn't waiting");
+        while(1);
     }
     thread->state = THREAD_READY;
     add_ready(thread);
@@ -229,7 +227,8 @@ void sched_suspend_and_release_spinlock(spinlock_t* lock)
 
     thread_t* prev = running;
     if (next_ready() == 0) {
-        panic("no ready thread to switch to (sched_suspend_and_release_spinlock) !");
+        vga_print("no ready thread to switch to (sched_suspend_and_release_spinlock) !");
+        while(1);
     }
     thread_t* next = pop_ready();
     prev->state = THREAD_WAITING;
@@ -246,7 +245,8 @@ void sched_suspend_and_release_queuelock(queuelock_t* lock)
 
     thread_t* prev = running;
     if (next_ready() == 0) {
-        panic("no ready thread to switch to (sched_suspend_and_release_queuelock) !");
+        vga_print("no ready thread to switch to (sched_suspend_and_release_queuelock) !");
+        while(1);
     }
     thread_t* next = pop_ready();
     prev->state = THREAD_WAITING;

@@ -147,10 +147,17 @@ void vga_putchar(char c)
     move_cursor(term_row, term_col);
 }
 
-void vga_print_mem(void* addr, uint32_t count)
+static char digits[] = { 
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+    'A', 'B', 'C', 'D', 'E', 'F'
+};
+void vga_print_mem(uint8_t* ptr, uint32_t count)
 {
     for (uint32_t i = 0; i < count; i++) {
-        vga_print_
+        uint8_t byte = ptr[i];
+        private_putchar(digits[(byte >> 4) & 0xF]);
+        private_putchar(digits[byte & 0xF]);
+        private_putchar(' ');
     }
 }
 

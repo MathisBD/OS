@@ -1,7 +1,7 @@
 #include <vect.h>
 
 
-void vect_add(vect_t* vect, void* val)
+void vect_append(vect_t* vect, void* val)
 {
     vect_grow(vect, vect->size + 1);
     vect->buf[vect->size] = val;

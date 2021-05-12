@@ -16,4 +16,4 @@ void finish_init_vga_driver();
 // thread safe printing : write to /dev/vga.
 void vga_putchar(char c);
 void vga_print(const char* str);
-void vga_print_int(uint64_t num, int base);
+void vga_print_mem(uint8_t* addr, uint32_t count);

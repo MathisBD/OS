@@ -240,7 +240,7 @@ static void key_pressed(uint8_t keycode)
             last_key.c = kbd_map[keycode];
         }
         key_received = true;
-        //printf("%c", last_key.c);
+        printf("%c", last_key.c);
         break;
     }
     }

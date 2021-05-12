@@ -54,6 +54,9 @@ typedef struct {
     };
 } file_descr_t;
 
+
+file_descr_t* fd_copy(file_descr_t*);
+
 // open 
 file_descr_t* kopen(char* name, uint8_t perms);
 void kclose(file_descr_t*);

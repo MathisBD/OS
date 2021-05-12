@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <list.h>
-#include <map.h>
+#include <vect.h>
 #include "interrupts/interrupts.h"
 #include "sync/queuelock.h"
 #include "sync/event.h"
@@ -33,12 +33,9 @@ typedef struct _process {
     uint32_t state;
     int exit_code;
     // process resources (local to the process)
-    map_t* file_descrs;
-    uint32_t next_fdid;
-    map_t* locks;
-    uint32_t next_lid;
-    map_t* events;
-    uint32_t next_eid;
+    vect_t* file_descrs;
+    vect_t* locks;
+    vect_t* events;
 } process_t;
 
 void init_process();
