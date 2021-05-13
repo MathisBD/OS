@@ -47,6 +47,9 @@ void init_process()
     proc->locks = vect_create();
     proc->events = vect_create();
     proc->file_descrs = vect_create();
+    // data and stack size don't have any sense for a kernel only process
+    proc->data_size = 0;
+    proc->stack_size = 0;
 
     thread_t* thread = curr_thread();
     thread->process = proc;
@@ -55,6 +58,7 @@ void init_process()
 
     proc->page_table = kernel_page_table();
 }
+
 
 static uint32_t add_resource(vect_t* vect, void* res)
 {
@@ -203,6 +207,9 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     // remember stacks grow towards the bottom,
     // and copy_frame points to the lowest address of the struct
     copy->esp = copy_frame;
+    // align the stack exactly as is done in mCallHandler (idt_asm.S)
+    copy->esp = ((uint32_t)(copy->esp)) & (-16);
+    copy->esp -= 3;
     // handle_interrupt argument (see idt_asm.S)
     // (if we wanted this argument to be valid,
     // we could do *(copy->esp) = copy_frame)
@@ -210,13 +217,16 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     // return address the original thread pushed for 
     // handle_interrupt. this will now become the return
     // address for the stub.
+    // notice the stack is aligned for the stub, because the stub
+    // replaces the handle_interrupt() function.
     copy->esp--;
+    // no need to align the stack for thread_switch_asm
     // return address of thread_switch_asm : it will jump to a stub
     // (that will unlock the scheduler).
     copy->esp--; *(copy->esp) = forked_thread_stub;
-    // dummy ebx and ebp registers for thread_switch_asm
-    copy->esp--;
-    copy->esp--;
+    // ebx and ebp registers for thread_switch_asm
+    copy->esp--; *(copy->esp) = copy_frame; // ebp
+    copy->esp--; // dummy ebx
 
     // return values : the child gets 0,
     // the parent gets the child pid (nonzero).
@@ -247,29 +257,49 @@ void do_proc_fork(intr_frame_t* frame)
     kql_release(proc_lock);
 }
 
-void kproc_exec(char* prog, uint32_t argc, char** argv)
+
+static uint32_t align(value, a)
 {
+    if (value % a != 0) {
+        return (value / a) * (a+1);
+    }
+    return value;
+}
+
+void kproc_exec(char* prog, int argc, char** argv)
+{
+    process_t* proc = curr_process();
+    kql_acquire(proc->lock);
+
     // load the user code/data
     //free_user_pages();
     uint32_t entry_addr;
     uint32_t user_stack_top;
-    load_program(prog, &entry_addr, &user_stack_top);
+    uint32_t data_size;
+    uint32_t stack_size;
+    load_program(prog, &entry_addr, &user_stack_top, &data_size, &stack_size);
 
-    // copy args to user heap
-    /*char** user_argv = malloc(argc);
+    // copy args to user space
+    uint32_t addr = data_size;
+    uint32_t user_argv = addr;
+    addr += argc * sizeof(char*);
     for (uint32_t i = 0; i < argc; i++) {
-        uint32_t len = strlen(argv[i]);
-        user_argv[i] = malloc(len);
-        memcpy(user_argv[i], argv[i], len);
-    }*/
-    char** user_argv = argv;
+        ((uint32_t*)user_argv)[i] = addr;
+        uint32_t size = strlen(argv[i]) + 1;
+        memcpy(addr, argv[i], size);
+        addr += size;
+    }
+    proc->stack_size = stack_size;
+    proc->data_size = addr; // skip argv
 
     // prepare initial user stack
-    uint32_t* esp = user_stack_top;
+    uint32_t* esp = (uint32_t*)user_stack_top;
+    esp -= 2; // stack alignment
     esp--; *esp = user_argv;
     esp--; *esp = argc;
     esp--; // dummy return address
 
+    kql_release(proc->lock);
     // assembly stub to jump
     extern void exec_jump_asm(
         uint32_t entry_addr, 

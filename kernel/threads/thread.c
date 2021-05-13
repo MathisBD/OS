@@ -90,14 +90,16 @@ tid_t kthread_create(void (*func)(int), int arg)
     // this frame has to mimmick that of a thread that was switched out
     // in thread_switch.
     // stub arguments
+    thread->esp -= 2; // stack alignment
     thread->esp--; *(thread->esp) = arg;
     thread->esp--; *(thread->esp) = func;
     // stub dummy return adress
     // this is needed so that stub can correctly find
     // its arguments on the stack
     thread->esp--;
-    // thread_switch return address
-    // (no need to push dummy arguments for thread_switch)
+    // no need to align the stack for thread_switch_asm
+    // thread_switch_asm return address
+    // (no need to push dummy arguments for thread_switch_asm)
     thread->esp--; *(thread->esp) = new_thread_stub;
     // dummy registers ebx and ebp
     thread->esp--;

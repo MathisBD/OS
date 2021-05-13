@@ -33,7 +33,8 @@ thread_switch_asm:
     // to the same place, so we can safely do the switch.
     mov %ebx, %cr3
 
-    // restore ebx and ebp
+    // restore ebx and ebp.
+    // the order matters here (it is used in process.c for example)
     pop %ebx 
     pop %ebp
 
@@ -42,5 +43,5 @@ thread_switch_asm:
     // this will be a stub.
     // Otherwise the calling function will restore all 
     // the registers pushed by gcc.
-    ret
+    ret²
 

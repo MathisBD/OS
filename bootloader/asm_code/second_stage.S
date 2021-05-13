@@ -74,12 +74,12 @@ protected_mode_entry:
     mov %ax, %fs 
     mov %ax, %gs 
     mov %ax, %ss 
+
     // reset stack
     mov $STACK_TOP, %esp
-    // align it on 8 mod 16
-    sub $0x8, %esp
     
-    // transition to C code
+    // transition to C code.
+    // don't forget to keep the stack aligned.
     push mmap_entry_count
     push $mmap
     push $kernel_inode_contents

@@ -7,6 +7,9 @@
 #include "sync/queuelock.h"
 #include <panic.h>
 #include <stdio.h>
+#include "drivers/vga_driver.h"
+#include <asm_debug.h>
+
 
 uint32_t get_syscall_arg(intr_frame_t* frame, uint32_t arg)
 {
@@ -24,6 +27,11 @@ uint32_t get_syscall_arg(intr_frame_t* frame, uint32_t arg)
 
 void handle_syscall(intr_frame_t* frame) 
 {
+	/*uint32_t esp = get_esp();
+	vga_print("syscall esp=");
+	vga_print_mem(&esp, 4);
+	vga_print("\n");*/
+
     switch (frame->eax) {
     case SC_PROC_FORK:
     {
@@ -147,6 +155,11 @@ void handle_syscall(intr_frame_t* frame)
     {
         kdup();
         return;
+    }
+    case SC_SEEK:
+    {
+        kseek();
+        return;   
     }*/
     case SC_EVENT_CREATE:
     {
@@ -189,8 +202,28 @@ void handle_syscall(intr_frame_t* frame)
         kevent_broadcast(event);
         return;
     }
+    case SC_PROC_DATA_SIZE:
+    {
+        process_t* proc = curr_process();
+        kql_acquire(proc->lock);
+        uint32_t size = proc->data_size;
+        kql_release(proc->lock);
+        frame->eax = size;
+        return;
+    }
+    case SC_PROC_STACK_SIZE:
+    {
+        process_t* proc = curr_process();
+        kql_acquire(proc->lock);
+        uint32_t size = proc->stack_size;
+        kql_release(proc->lock);
+        frame->eax = size;
+        return;
+    }
     default:
         printf("Unknown system call !\nsyscall number=0x%x\n", frame->eax);
+        printf("registers : eax=%x, ebx=%x, ecx=%x, edx=%x, esi=%x, edi=%x\n",
+			frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi);
         while(1);
     }
 }

@@ -188,20 +188,15 @@ uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
 
 void page_fault(intr_frame_t* frame, uint32_t mem_address)
 {
-    if (!is_all_init()) {
-        vga_print("[page fault] while kernel initialization isn't finished\n");
-    }
-    else {
-        printf("[page fault] address=%x\n", mem_address);
-    }
-
     // 0 : non-present page
     // 1 : privilege violation
     bool present = frame->error_code & 0x01;
-    // 1 : write
-    bool read_write = frame->error_code & 0x02;
+    // 0 : read only
+    // 1 : read & write
+    bool write = frame->error_code & 0x02;
+    // 0 : supervisor only
     // 1 : user
-    bool user_supervisor = frame->error_code & 0x04;
+    bool user = frame->error_code & 0x04;
     // 1 : the page reserved bit was set
     bool reserved = frame->error_code & 0x08;
     // 1 : caused by an instruction fetch
@@ -209,6 +204,12 @@ void page_fault(intr_frame_t* frame, uint32_t mem_address)
 
     // page was absent
     if (!present) {
+        if (!is_all_init()) {
+            vga_print("[page miss]\n");
+        }
+        else {
+            printf("[page miss] address=%x\n", mem_address);
+        }
         uint32_t page = mem_address / PAGE_SIZE;
         pt_entry_t* page_table;
         if (is_process_init()) {
@@ -221,7 +222,9 @@ void page_fault(intr_frame_t* frame, uint32_t mem_address)
         alloc_page(page_table, page);
     }
     else {
-        panic("page_fault : unknown page fault type");
+        printf("[page_fault] address=%x, present=%x, write=%x, user=%x, reserved=%x, instr_fetch=%x\n",
+            mem_address, present, write, user, reserved, instr_fetch);
+        while(1);
     }
 }
 

@@ -31,12 +31,16 @@
 #define SC_WRITE            16
 #define SC_PIPE             17
 #define SC_DUP              18
+#define SC_SEEK             19
 
-#define SC_EVENT_CREATE     19
-#define SC_EVENT_DELETE     20
-#define SC_EVENT_WAIT       21
-#define SC_EVENT_SIGNAL     22
-#define SC_EVENT_BROADCAST  23
+#define SC_EVENT_CREATE     20
+#define SC_EVENT_DELETE     21
+#define SC_EVENT_WAIT       22
+#define SC_EVENT_SIGNAL     23
+#define SC_EVENT_BROADCAST  24
+
+#define SC_PROC_DATA_SIZE   25
+#define SC_PROC_STACK_SIZE  26
 
 
 // arg 0 is the syscall number

@@ -38,24 +38,22 @@ load_idtr:
     mov %ax, %gs
 .endm
 
-.macro mHandleIntr
-    // call the C interrupt handler.
-    // push its argument : address of the intr_frame_t struct
-    // (which we just constructed on the stack)
-    mov %esp, %ecx
-    push %ecx
-    call handle_interrupt
-    add $4, %esp // remove the address of intr_frame_t struct
-.endm
+.macro mCallHandler handler
+    // get the address of the intr_frame_t struct 
+    // (which we just contructed on the stack)
+    mov %esp, %ebp
 
-.macro mHandleSyscall
-    // call the C syscall handler.
-    // push its argument : address of the intr_frame_t struct
-    // (which we just constructed on the stack)
-    mov %esp, %ecx
-    push %ecx
-    call handle_syscall
-    add $4, %esp // remove the address of intr_frame_t struct
+    // call the C syscall or interrupt handler,
+    // aligning the stack.
+    and $-16, %esp
+    sub $12, %esp 
+    push %ebp
+    call \handler
+    
+    // restore the stack pointer.
+    // we can't just pop into esp here,
+    // since the C handler might modify its stack arguments.
+    mov %ebp, %esp 
 .endm
 
 .macro mRestoreState 
@@ -80,7 +78,7 @@ isr\n:
     push $\n // interrupt number
     mSaveState
     mLoadKernelSel
-    mHandleIntr
+    mCallHandler handle_interrupt
     mRestoreState
     add $8, %esp // pop the interrupt number and error code
     iret // pops the stuff the cpu pushed 
@@ -95,7 +93,7 @@ isr\n:
     push $\n // interrupt number
     mSaveState
     mLoadKernelSel
-    mHandleIntr
+    mCallHandler handle_interrupt
     mRestoreState
     add $8, %esp // pop the interrupt number and error code
     iret // pops the stuff the cpu pushed 
@@ -113,7 +111,7 @@ isr\n:
 
     // interrupts are enabled during a syscall
     sti 
-    mHandleSyscall
+    mCallHandler handle_syscall
 
     cli
     mRestoreState

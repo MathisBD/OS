@@ -10,6 +10,8 @@
 #include "tables/gdt.h"
 #include <user_thread.h>
 #include "drivers/vga_driver.h"
+#include <asm_debug.h>
+
 
 
 #define LOCK() \

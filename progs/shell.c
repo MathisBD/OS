@@ -27,7 +27,7 @@ int parse_command(char** p_prog, int* p_argc, char*** p_argv)
     *p_argc = 
 }
 
-int main(int argc, char** argv)
+int _main(int argc, char** argv)
 {
     str_t prog;
     int argc;

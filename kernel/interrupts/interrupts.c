@@ -8,10 +8,16 @@
 #include <stdio.h>
 #include <panic.h>
 #include "drivers/vga_driver.h"
+#include <asm_debug.h>
 
 
 void handle_interrupt(intr_frame_t* frame)
 {
+	/*uint32_t esp = get_esp();
+	vga_print("interrupt esp=");
+	vga_print_mem(&esp, 4);
+	vga_print("\n");*/
+
 	// PIC IRQs
 	if (IDT_PIC_OFFSET <= frame->intr_num && 
 		frame->intr_num < IDT_PIC_OFFSET + 16)

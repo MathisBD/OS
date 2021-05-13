@@ -36,6 +36,9 @@ typedef struct _process {
     vect_t* file_descrs;
     vect_t* locks;
     vect_t* events;
+    // memory layout
+    uint32_t data_size; // size of the user code+data+bss
+    uint32_t stack_size; // size of the user stack
 } process_t;
 
 void init_process();
@@ -55,6 +58,8 @@ uint32_t proc_add_fd(process_t*, file_descr_t*);
 file_descr_t* proc_get_fd(process_t*, uint32_t id);
 file_descr_t* proc_remove_fd(process_t*, uint32_t id);
 
+// returns the previous brk value
+uint32_t kadd_brk(uint32_t ofs);
 
 // forks the current process.
 // takes no argument.
@@ -75,7 +80,7 @@ void do_proc_fork(intr_frame_t* frame);
 // thus we don't have to call thread_exit() for this thread
 // and we can just plainly replace it).
 // argument : program to run (full path to the file)
-void kproc_exec(char* prog, uint32_t argc, char** argv);
+void kproc_exec(char* prog, int argc, char** argv);
 // when a thread calls exit, all threads in the process are terminated.
 void kproc_exit(int code);
 // wait on a child process. blocks the thread that calls it.

@@ -67,6 +67,8 @@ user_process/proc_fork.o \
 user_process/proc_exec.o \
 user_process/proc_exit.o \
 user_process/proc_wait.o \
+user_process/proc_data_size.o \
+user_process/proc_stack_size.o \
 user_file/open.o \
 user_file/close.o \
 user_file/read.o \
@@ -85,7 +87,9 @@ vect/vect_get.o \
 vect/vect_append.o \
 vect/vect_set.o \
 vect/vect_pop.o \
-vect/vect_grow.o
+vect/vect_grow.o \
+user_heap/heap.o \
+asm_debug/get_esp.o 
 #ubsan/ubsan.o
 
 

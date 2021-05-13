@@ -28,7 +28,7 @@ void register_stream_dev(stream_dev_t* dev)
 
 void register_block_dev(block_dev_t* dev)
 {
-    return 0;
+    return;
 }
 
 stream_dev_t* get_stream_dev(char* name)

@@ -1,12 +1,16 @@
 #include <panic.h>
 #include <stdio.h>
 #include <user_lock.h>
+#include <user_heap.h>
+#include <user_process.h>
 
 
 // align nodes on 16 bytes
 // nodes are also 16 bytes long,
 // so malloced memory is 16-byte aligned
 #define NODE_ALIGN 16
+
+#define KERNEL_START 0xC0000000
 
 typedef struct _mem_node {
     // size of the following memory block that this node owns
@@ -64,8 +68,13 @@ static void add_block(mem_node_t* node)
     first_block = node;
 }
 
-void init_heap(uint32_t heap_start, uint32_t heap_size)
-{
+void init_heap()
+{ 
+    uint32_t data = proc_data_size();
+    uint32_t stack = proc_stack_size();
+    uint32_t heap_start = data;
+    uint32_t heap_size = KERNEL_START - stack - heap_start;
+
     heap_lock = lock_create();
     first_block = 0;
 
@@ -73,7 +82,6 @@ void init_heap(uint32_t heap_start, uint32_t heap_size)
     first_hole->size = heap_size - sizeof(mem_node_t);
     first_hole->prev = first_hole->next = 0;
 }
-
 
 // shrink a node down to a new size.
 // the part of the node that was cut off will become a new 
@@ -134,21 +142,21 @@ static mem_node_t* find_hole(uint32_t size, uint32_t align)
     return 0;
 }
 
-void print_node(mem_node_t* node)
+void print_user_node(mem_node_t* node)
 {
     printf("addr=%x\tsize=%x\n", (uint32_t)node, node->size);
 }
 
-void print_lists()
+void print_user_lists()
 {
     printf("FREE LIST\n");
     for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {
-        print_node(hole);
+        print_user_node(hole);
     }
     
     printf("BLOCK LIST\n");
     for (mem_node_t* block = first_block; block != 0; block = block->next) {  
-        print_node(block);
+        print_user_node(block);
     }
     printf("\n");
 }

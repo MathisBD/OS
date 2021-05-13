@@ -26,6 +26,7 @@ export CC=i686-elf-gcc
 export AR=i686-elf-ar
 export CFLAGS="--sysroot=$SYSROOT -g \
 -Wno-unused-parameter -Wno-unused-label -Wno-int-conversion \
+-Wno-unused-function \
 -Wno-incompatible-pointer-types -Werror=implicit-function-declaration"
 export CPPFLAGS=""
 # the cross compiler was configured with

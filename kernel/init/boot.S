@@ -27,7 +27,7 @@ boot_page_dir:
     .int 0x00000083 // first 4MB
     .fill (KERNEL_PAGE_IDX - 1), 4, 0x00000000
     .int 0x00000083 // kernel 4MB page
-    .fill (PT_SIZE - KERNEL_PAGE_IDX - 1), 0x00000000
+    .fill (PT_SIZE - KERNEL_PAGE_IDX - 1), 4, 0x00000000
 
 boot_info_addr: .int 0
 
@@ -66,10 +66,12 @@ launch_kernel:
     mov %cr3, %ecx 
     mov %ecx, %cr3
 
+    // interrupts will reenabled when initialization is finished
+    cli
+
     // initialize stack
     mov $init_stack_top, %esp 
-    
-    cli
+    sub $12, %esp // stack alignment
     push boot_info_addr
     call init_kernel   
 

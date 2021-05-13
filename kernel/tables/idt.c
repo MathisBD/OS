@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include "tables/idt.h"
-#include "utils/string_utils.h"
 #include <stdio.h>
 #include "tables/selectors.h"
 

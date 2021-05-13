@@ -8,6 +8,8 @@
 #include "filesystem/fs.h"
 #include "interrupts/interrupts.h"
 #include <panic.h>
+#include <user_heap.h>
+
 
 // memory layout :
 // ============ TOP (4GB)
@@ -26,6 +28,7 @@
 // =========== BOTTOM (0GB)
 
 #define STACK_TOP  V_KERNEL_START
+#define STACK_SIZE  8192
 
 bool valid_header(Elf32_Ehdr* e_hdr)
 {
@@ -39,8 +42,17 @@ bool valid_header(Elf32_Ehdr* e_hdr)
     return false;
 }
 
+static uint32_t max(uint32_t a, uint32_t b)
+{
+    return a > b ? a : b;
+}
 
-void load_program(char* prog_name, uint32_t* entry_addr, uint32_t* user_stack_top)
+void load_program(
+    char* prog_name, 
+    uint32_t* p_entry_addr, 
+    uint32_t* p_user_stack_top, 
+    uint32_t* p_data_size, 
+    uint32_t* p_stack_size)
 {
     uint32_t file;
     int r = find_inode(prog_name, &file);
@@ -62,6 +74,7 @@ void load_program(char* prog_name, uint32_t* entry_addr, uint32_t* user_stack_to
     }
 
     // load segments
+    uint32_t data_size = 0;
     for (int i = 0; i < e_hdr->e_phnum; i++) {
         Elf32_Phdr* header = kmalloc(sizeof(Elf32_Phdr));
         r = read_file(file, 
@@ -83,8 +96,12 @@ void load_program(char* prog_name, uint32_t* entry_addr, uint32_t* user_stack_to
                 
             //printf("segment: offset=%x, vaddr=%x, filesize=%x, memsize=%x\n",
             //    header->p_offset, header->p_vaddr, header->p_filesz, header->p_memsz);
+
+            data_size = max(data_size, header->p_vaddr + header->p_memsz);
         }
     }
-    *entry_addr = e_hdr->e_entry;
-    *user_stack_top = STACK_TOP;
+    *p_entry_addr = e_hdr->e_entry;
+    *p_user_stack_top = STACK_TOP;
+    *p_data_size = data_size;
+    *p_stack_size = STACK_SIZE;
 }

@@ -1,4 +1,5 @@
-ENTRY(main)
+/* don't call the entry 'main', GCC treats it differently */
+ENTRY(_main)
 
 SECTIONS
 {
