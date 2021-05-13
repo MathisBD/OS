@@ -18,17 +18,30 @@
 // protects global process data such as next_pid
 static queuelock_t* proc_lock;
 
+static process_t** proc_array;
 static pid_t next_pid = 0;
-pid_t new_pid()
+// assumes the process isn't visible to anyone yet
+// i.e. there is no need to lock it.
+static pid_t register_process(process_t* proc)
 {
     kql_acquire(proc_lock);
     if (next_pid >= MAX_PROC_COUNT) {
         panic("max process count reached\n");
     }
-    pid_t tmp = next_pid;
+    pid_t pid = next_pid;
     next_pid++;
+    proc->pid = pid;
+    proc_array[pid] = proc;
     kql_release(proc_lock);
-    return tmp;
+    return pid;
+}
+
+static process_t* get_process(pid_t pid)
+{
+    kql_acquire(proc_lock);
+    process_t* proc = proc_array[pid];
+    kql_release(proc_lock);
+    return proc;
 }
 
 
@@ -36,9 +49,11 @@ void init_process()
 {
     proc_lock = kql_create();
 
+    proc_array = kmalloc(MAX_PROC_COUNT * sizeof(process_t*));
+    memset(proc_array, 0, MAX_PROC_COUNT * sizeof(process_t*));
+
     // create the kernel process
     process_t* proc = kmalloc(sizeof(process_t));
-    proc->pid = new_pid();
     proc->lock = kql_create();
     proc->parent = 0;
     proc->children = list_create();
@@ -57,6 +72,7 @@ void init_process()
     list_add_front(proc->threads, thread);
 
     proc->page_table = kernel_page_table();
+    register_process(proc);
 }
 
 
@@ -164,7 +180,6 @@ static process_t* copy_process(process_t* original)
 
     // create a new process
     process_t* copy = kmalloc(sizeof(process_t));
-    copy->pid = new_pid();
     copy->lock = kql_create();
     // process relationships
     copy->parent = original;
@@ -180,6 +195,8 @@ static process_t* copy_process(process_t* original)
     copy->locks = vect_create();
     copy->events = vect_create();
     copy_file_descrs(copy, original);
+    
+    register_process(copy);
 
     kql_release(original->lock);
     return copy;
@@ -192,7 +209,6 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     kql_acquire(original->lock);
 
     thread_t* copy = kmalloc(sizeof(thread_t));
-    copy->tid = new_tid();
     copy->lock = kql_create();
     copy->on_finish = kevent_create(copy->lock);
     // dummy stack for the copied thread.
@@ -236,6 +252,8 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
     // book-keeping
     list_add_front(new_proc->threads, copy);
     copy->process = new_proc;
+
+    register_thread(copy);
 
     kql_release(original->lock);
     return copy;
@@ -312,7 +330,29 @@ void kproc_exit(int code)
 
 }
 
+static void delete_proc(proc_t* proc)
+{
+    kql_acquire(proc_lock);
+
+    kql_acquire(proc->lock);
+    proc_array[proc->pid] = 0;
+    kfree()
+
+    kql_release(proc_lock);
+}
+
 int kproc_wait(pid_t pid)
 {
-    return 0;
+    process_t* proc = get_process(pid);
+    kql_acquire(proc->lock);
+
+    // wait for the process to finish
+    while (proc->state != PROC_DEAD) {
+        kevent_wait(proc->on_finish);
+    }
+
+    int code = proc->exit_code;
+    delete_proc(proc);
+    // no need to release proc->lock, we just deleted it
+    return code;
 }

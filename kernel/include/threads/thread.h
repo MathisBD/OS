@@ -36,7 +36,7 @@ typedef struct _thread {
 
 
 void init_threads();
-tid_t new_tid();
+tid_t register_thread(thread_t* thread);
 
 // creates a thread in the same process.
 tid_t kthread_create(void(*func)(int), int arg);

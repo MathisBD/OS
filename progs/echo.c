@@ -1,8 +1,7 @@
 #include <stdio.h>
-#include <user_file.h>
 #include <user_heap.h>
+#include <user_process.h>
 #include <str.h>
-#include <asm_debug.h>
 
 
 int _main(int argc, char** argv)
@@ -18,6 +17,8 @@ int _main(int argc, char** argv)
             printf(" ");
         }
     }
+
+    proc_exit(42);
 
     while(1);
     return 0;

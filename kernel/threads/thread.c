@@ -21,21 +21,25 @@
 // protects access to global thread data, such as next_pid or thread_array.
 static queuelock_t* threads_lock;
 
+// TODO : reuse free tids ? with a bitmap ?
+// maybe use a vector instead of a thread array ?
 static thread_t** thread_array;
-
-// TODO : reuse free tids ? with a bitmap or something ?
 static tid_t next_tid = 0;
-tid_t new_tid()
+// assumes the thread isn't visible to anyone yet
+// i.e. there is no need to lock it.
+tid_t register_thread(thread_t* thread)
 {
     kql_acquire(threads_lock);
 
     if (next_tid >= MAX_THREAD_COUNT) {
         panic("max thread count reached\n");
     }
-    tid_t tmp = next_tid;
+    tid_t tid = next_tid;
     next_tid++;
+    thread->tid = tid;
+    thread_array[tid] = thread;
     kql_release(threads_lock);
-    return tmp;
+    return tid;
 }
 
 static thread_t* get_thread(tid_t tid)
@@ -79,7 +83,6 @@ tid_t kthread_create(void (*func)(int), int arg)
     // no need to lock this thread, we are the only one to have 
     // a pointer to it until this method ends.
     thread_t* thread = kmalloc(sizeof(thread_t));
-    thread->tid = new_tid();
     thread->lock = kql_create();
     thread->on_finish = kevent_create(thread->lock);
 
@@ -112,8 +115,8 @@ tid_t kthread_create(void (*func)(int), int arg)
     list_add_back(thread->process->threads, thread);
     kql_release(thread->process->lock);
 
+    register_thread(thread);
     sthread_create(thread);
-    thread_array[thread->tid] = thread;
     
     kql_release(threads_lock);
     return thread->tid;

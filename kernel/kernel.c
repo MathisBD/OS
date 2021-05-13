@@ -44,8 +44,8 @@ void kernel_main()
         argv[2] = "argv";
         kproc_exec("/progs/echo.elf", 3, argv);
     }
-    DELAY();
-    printf("execed!\n");
-
+    proc_wait(pid);
+    printf("child finished\n");
+    
     while (1);
 }
