@@ -43,5 +43,5 @@ thread_switch_asm:
     // this will be a stub.
     // Otherwise the calling function will restore all 
     // the registers pushed by gcc.
-    ret²
+    ret
 

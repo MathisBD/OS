@@ -57,7 +57,9 @@ void init_process()
     proc->lock = kql_create();
     proc->parent = 0;
     proc->children = list_create();
+    // scheduler state
     proc->state = PROC_ALIVE;
+    proc->on_finish = kevent_create(proc->lock);
     // process resources
     proc->locks = vect_create();
     proc->events = vect_create();
@@ -65,13 +67,13 @@ void init_process()
     // data and stack size don't have any sense for a kernel only process
     proc->data_size = 0;
     proc->stack_size = 0;
+    proc->page_table = kernel_page_table();
 
     thread_t* thread = curr_thread();
     thread->process = proc;
     proc->threads = list_create();
     list_add_front(proc->threads, thread);
 
-    proc->page_table = kernel_page_table();
     register_process(proc);
 }
 
@@ -181,6 +183,7 @@ static process_t* copy_process(process_t* original)
     // create a new process
     process_t* copy = kmalloc(sizeof(process_t));
     copy->lock = kql_create();
+    copy->on_finish = kevent_create(copy->lock);
     // process relationships
     copy->parent = original;
     copy->children = list_create();
@@ -325,18 +328,67 @@ void kproc_exec(char* prog, int argc, char** argv)
     exec_jump_asm(entry_addr, esp);
 }
 
-void kproc_exit(int code)
+static void move_to_root(process_t* proc)
 {
-
+    process_t* root = get_process(0);
+    kql_acquire(proc->lock);
+    kql_acquire(root->lock);
+    proc->parent = root;
+    list_add_back(root->children, proc);
+    kql_release(root->lock);
+    kql_release(proc->lock);
 }
 
-static void delete_proc(proc_t* proc)
+void kproc_exit(int code)
+{
+    process_t* proc = curr_process();
+    kql_acquire(proc->lock);
+    if (proc->pid == 0) {
+        panic("process 0 can't exit (it has to wait() on its children)");
+    }
+
+    proc->exit_code = code;
+    kevent_broadcast(proc->on_finish);
+    // move all children to process 0
+    for (list_node_t* node = proc->children->first; node != 0; node = node->next) {
+        process_t* proc = node->contents;
+        move_to_root(proc);
+    }
+
+    sched_finish_proc_and_release(proc->lock);
+    panic("executing code in finished process !");
+}
+
+// the process is in DEAD state and its threads
+// are in FINISHED state.
+static void delete_proc(process_t* proc)
 {
     kql_acquire(proc_lock);
 
     kql_acquire(proc->lock);
     proc_array[proc->pid] = 0;
-    kfree()
+    // delete the process' threads
+    for (list_node_t* node = proc->threads->first; node != 0; node = node->next) {
+        delete_thread(node->contents);
+    }
+    list_delete(proc->threads);
+    list_delete(proc->children);
+    // free the user pages
+    //free_user_pages();
+    kfree(proc->page_table);
+    vect_delete(proc->locks);
+    vect_delete(proc->events);
+    // close every file descriptor
+    for (uint32_t i = 0; i < proc->file_descrs->size; i++) {
+        file_descr_t* fd = vect_get(proc->file_descrs, i);
+        if (fd != 0) {
+            kclose(fd);
+        }
+    }
+    vect_delete(proc->file_descrs);
+
+    kql_delete(proc->lock);
+    kfree(proc);
 
     kql_release(proc_lock);
 }

@@ -25,18 +25,20 @@ typedef uint32_t pid_t;
 typedef struct _process {
     pid_t pid;
     queuelock_t* lock;
+    // thread/process relationships
     list_t* threads; // the threads in this process
     struct _process* parent; // parent process
     list_t* children; // child processes
-    uint32_t* page_table;
     // process lifecycle
     uint32_t state;
     int exit_code;
+    event_t* on_finish;
     // process resources (local to the process)
     vect_t* file_descrs;
     vect_t* locks;
     vect_t* events;
     // memory layout
+    uint32_t* page_table;
     uint32_t data_size; // size of the user code+data+bss
     uint32_t stack_size; // size of the user stack
 } process_t;

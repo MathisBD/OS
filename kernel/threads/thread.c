@@ -124,7 +124,7 @@ tid_t kthread_create(void (*func)(int), int arg)
 
 void kthread_yield()
 {
-    sched_switch(SWITCH_READY);
+    sched_switch();
 }
 
 void kthread_exit(int exit_code)
@@ -135,14 +135,14 @@ void kthread_exit(int exit_code)
 
     // wake up all threads waiting on the current thread
     kevent_broadcast(curr->on_finish);
-    kql_release(curr->lock);
-    
+
     // code past this will never be executed
-    sched_switch(SWITCH_FINISH);
+    sched_finish_thread_and_release(curr->lock);
     panic("executing code in finished thread !");    
 }
 
-static void delete_thread(thread_t* thread)
+// assumes the thread is in FINISHED state
+void delete_thread(thread_t* thread)
 {
     kql_acquire(threads_lock);
 

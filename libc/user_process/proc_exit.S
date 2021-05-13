@@ -1,7 +1,7 @@
 #include "syscall_internal.h"
 
 
-.global proc
+.global proc_exit
 proc_exit:
     mov $SC_PROC_EXIT, SC_ARG_0
     mov 4(%esp), SC_ARG_1

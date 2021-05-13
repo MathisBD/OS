@@ -22,8 +22,9 @@ typedef struct _thread {
     uint32_t* esp;
     //// scheduling info
     uint32_t state; // run status
-    // next thread in the ready list
+    // next/previous thread in the ready list
     struct _thread* sched_next;
+    struct _thread* sched_prev;
     // join() waits on this event.
     // exit() broadcasts this event.
     event_t* on_finish;
@@ -37,6 +38,9 @@ typedef struct _thread {
 
 void init_threads();
 tid_t register_thread(thread_t* thread);
+
+// assumes the thread is in FINISHED state
+void delete_thread(thread_t* thread);
 
 // creates a thread in the same process.
 tid_t kthread_create(void(*func)(int), int arg);

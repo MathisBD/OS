@@ -31,7 +31,7 @@ static spinlock_t* sched_spinlock;
 
 // the only process in THREAD_RUNNING state
 static thread_t* running;
-// first/last thread in the ready list.
+// first thread in the ready list (circular list).
 // we can't use regular lists here, because we 
 // can't use the heap (i.e. malloc/free) when switching between
 // threads : interrupts are disabled during the timer interrupt,
@@ -39,16 +39,14 @@ static thread_t* running;
 // if we use the heap in this interval, we need to acquire the 
 // heap spinlock, which might be busy if an interrupted process
 // was using it : deadlock.
-static thread_t* first_ready;
-static thread_t* last_ready;
+static thread_t* ready;
 
 
 // called by init_threads
 // thread : data of the first thread
 void sinit_threads(thread_t* thread)
 {
-    first_ready = 0;
-    last_ready = 0;
+    ready = 0;
 
     thread->state = THREAD_RUNNING;
     running = thread;   
@@ -68,38 +66,60 @@ process_t* curr_process()
 
 static void add_ready(thread_t* thread)
 {
-    if (last_ready == 0) {
-        first_ready = thread;
-        last_ready = thread;
+    if (ready == 0) {
+        ready = thread;
+        thread->sched_next = thread;
+        thread->sched_prev = thread;
     }
     else {
-        last_ready->sched_next = thread;
-        last_ready = thread;
+        thread_t* p = ready->sched_prev;
+        thread->sched_next = ready;
+        thread->sched_prev = p;
+        p->sched_next = thread;
+        ready->sched_prev = thread;
+    }
+}
+
+// assumes the thread is in the ready list
+static void remove_ready(thread_t* thread)
+{
+    if (thread == thread->sched_next) {
+        ready = 0;
+    }
+    else {
+        thread_t* p = thread->sched_prev;
+        thread_t* n = thread->sched_next;
+        p->sched_next = n;
+        n->sched_prev = p;
     }
 }
 
 static thread_t* pop_ready()
 {
-    if (first_ready == 0) {
+    if (ready == 0) {
         return 0;
     }
-    else if (first_ready == last_ready) {
-        thread_t* thread = first_ready;
-        first_ready = 0;
-        last_ready = 0;
-        return thread;
+    else if (ready == ready->sched_next) {
+        thread_t* r = ready;
+        ready = 0;
+        return r;
     }
     else {
-        thread_t* thread = first_ready;
-        first_ready = first_ready->sched_next;
-        return thread;
+        thread_t* p = ready->sched_prev;
+        thread_t* r = ready;
+        thread_t* n = ready->sched_next;
+        p->sched_next = n;
+        n->sched_prev = p;
+        ready = n; 
+        return r;
     }
 }
 
 static thread_t* next_ready()
 {
-    return first_ready;
+    return ready;
 }
+
 
 
 void sthread_create(thread_t* thread)
@@ -152,48 +172,21 @@ static void thread_switch(thread_t* prev, thread_t* next)
     thread_switch_asm(prev, next, offsetof(thread_t, esp), pt_addr);
 }
 
-void sched_switch(uint32_t switch_mode)
+void sched_switch()
 {
     LOCK();
 
     thread_t* prev = running;
-    if (next_ready() == 0) {
-        if (switch_mode == SWITCH_READY) {
-            UNLOCK();
-            return;
-        }
-        else {
-            vga_print("no ready thread to switch to !");
-            while(1);
-        }
-    }
     thread_t* next = pop_ready();
+    if (next == 0) {
+        UNLOCK();
+        return;
+    }
 
     // prev was in RUNNING state
-    switch (switch_mode) {
-    case SWITCH_FINISH:
-    {
-        prev->state = THREAD_FINISHED;
-        break;
-    }
-    case SWITCH_READY:
-    {
-        prev->state = THREAD_READY;
-        // add to the end of the ready list
-        add_ready(prev);
-        break;
-    }
-    case SWITCH_WAIT: 
-    {
-        prev->state = THREAD_WAITING;
-        break;
-    }
-    default:
-    {
-        vga_print("unknown switch mode\n");
-        while(1);
-    }
-    }
+    prev->state = THREAD_READY;
+    add_ready(prev);
+     
     // next was in READY state
     // and will enter RUNNING state
     next->state = THREAD_RUNNING;
@@ -206,7 +199,7 @@ void sched_switch(uint32_t switch_mode)
 
 void timer_tick(float seconds)
 {
-    sched_switch(SWITCH_READY);
+    sched_switch();
 }
 
 
@@ -222,17 +215,67 @@ void sched_wake_up(thread_t* thread)
     UNLOCK();
 }
 
+void sched_finish_thread_and_release(queuelock_t* lock)
+{
+    LOCK();
+    kql_release(lock);
+
+    thread_t* prev = running;
+    thread_t* next = pop_ready();
+    if (next == 0) {
+        vga_print("no ready thread to switch to (sched_finish_thread_and_release)");
+        while(1);
+    }
+    prev->state = THREAD_FINISHED;
+
+    next->state = THREAD_RUNNING;
+    running = next;
+    thread_switch(prev, next);
+    UNLOCK();
+}
+
+void sched_finish_proc_and_release(queuelock_t* lock)
+{
+    LOCK();
+    kql_release(lock);
+
+    thread_t* prev = running;
+    // finish all the threads in the process.
+    // no need for an exit code as no one can wait on them anymore.
+    process_t* proc = curr_process();
+    proc->state = PROC_DEAD;
+    for (list_node_t* node = proc->threads->first; node != 0; node = node->next) {
+        thread_t* thread = node->contents;
+        if (thread->state == THREAD_READY) {
+            remove_ready(thread);
+        }
+        // we don't care about removing waiting threads from their waiting queues,
+        // as the process is about to be dead.
+        thread->state = THREAD_FINISHED;
+    }
+
+    thread_t* next = pop_ready();
+    if (next == 0) {
+        vga_print("no ready thread to switch to (sched_finish_thread_and_release)");
+        while(1);
+    }
+    next->state = THREAD_RUNNING;
+    running = next;
+    thread_switch(prev, next);
+    UNLOCK();
+}
+
 void sched_suspend_and_release_spinlock(spinlock_t* lock)
 {
     LOCK();
     ksl_release(lock);
 
     thread_t* prev = running;
-    if (next_ready() == 0) {
+    thread_t* next = pop_ready();
+    if (next == 0) {
         vga_print("no ready thread to switch to (sched_suspend_and_release_spinlock) !");
         while(1);
     }
-    thread_t* next = pop_ready();
     prev->state = THREAD_WAITING;
     next->state = THREAD_RUNNING;
     running = next;
@@ -246,11 +289,11 @@ void sched_suspend_and_release_queuelock(queuelock_t* lock)
     kql_release(lock);
 
     thread_t* prev = running;
-    if (next_ready() == 0) {
+    thread_t* next = pop_ready();
+    if (next == 0) {
         vga_print("no ready thread to switch to (sched_suspend_and_release_queuelock) !");
         while(1);
     }
-    thread_t* next = pop_ready();
     prev->state = THREAD_WAITING;
     next->state = THREAD_RUNNING;
     running = next;
