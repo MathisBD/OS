@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <panic.h>
 #include "drivers/dev.h"
+#include "filesystem/fs.h"
 
 file_descr_t* fd_copy(file_descr_t* fd)
 {
@@ -91,19 +92,48 @@ file_descr_t* kopen(char* path, uint8_t perms)
         char* name = dev_name(path);
         return open_dev(name, perms);
     }
-    else {
-        panic("open file\n");
+    // file/dir
+    uint32_t inode;
+    int r = fs_find_inode(path, &inode);
+    if (r < 0) {
+        printf("kopen : couldn't find file/dir %s\n", path);
+        while(1);
     }
-    return 0;
+    uint32_t ftype;
+    r = fs_inode_type(inode, &ftype);
+    if (r < 0) {
+        printf("kopen : couldn't determine type of inode %s\n", path);
+        while(1);
+    }
+
+    file_descr_t* fd = kmalloc(sizeof(file_descr_t));
+    fd->lock = kql_create();
+    fd->perms = perms & (FD_PERM_READ | FD_PERM_WRITE | FD_PERM_SEEK);
+    switch (ftype) {
+    case FS_INODE_TYPE_FILE: 
+        fd->type = FD_TYPE_FILE; 
+        fd->finode = inode;
+        fd->offset = 0;
+        break;
+    case FD_INODE_TYPE_DIR: 
+        fd->type = FD_TYPE_DIR; 
+        fd->dinode = inode;
+        break;
+    default: panic("kopen"); break;
+    }
+    
+    return fd;
 }
 
 void kclose(file_descr_t* fd)
 {
-    /*kql_acquire(fd->lock);
-
-
+    kql_acquire(fd->lock);
+    if (fd->type == FD_TYPE_PIPE) {
+        // TODO : close the other end of the pipe
+        panic("kclose : TODO pipe")
+    }    
     kql_delete(fd->lock);
-    kfree(fd);*/
+    kfree(fd);
 }
 
 void kseek(file_descr_t* fd, int ofs, uint8_t flags)
@@ -116,7 +146,25 @@ void kseek(file_descr_t* fd, int ofs, uint8_t flags)
     case FD_TYPE_STREAM_DEV:
         fd->dev->seek(ofs, flags);
         break;
-    // we can never seek in a pipe
+    case FD_TYPE_FILE:
+        switch (flags) {
+        case FD_SEEK_SET: fd->offset = ofs; break;
+        case FD_SEEK_CUR: fd->offset += ofs; break;
+        case FD_SEEK_END:
+        {
+            uint32_t size;
+            int r = fs_file_size(fd->finode, &size);
+            if (r < 0) {
+                panic("kseek : couldn't get size of file");
+            }
+            fd->offset = size + ofs;
+            break;
+        }
+        default:
+            panic("kseek : unknown seek type");
+        }
+        break;
+    // we can never seek in a pipe/dir
     default:
         panic("kseek : unknown fd type");
     }
@@ -135,6 +183,15 @@ int kwrite(file_descr_t* fd, void* buf, uint32_t count)
     case FD_TYPE_STREAM_DEV:
         c = fd->dev->write(buf, count);
         break;
+    case FD_TYPE_FILE:
+    {
+        int r = fs_write_file(fd->finode, fd->offset, count, buf);
+        if (r < 0) {
+            panic("kwrite");
+        }
+        c = count;
+        break;
+    }
     case FD_TYPE_PIPE:
         bq_add(fd->pipe, buf, count);
         c = count;
@@ -160,6 +217,15 @@ int kread(file_descr_t* fd, void* buf, uint32_t count)
     case FD_TYPE_STREAM_DEV:
         c = fd->dev->read(buf, count);
         break;
+    case FD_TYPE_FILE:
+    {
+        int r = fs_read_file(fd->finode, fd->offset, count, buf);
+        if (r < 0) {
+            panic("kread");
+        }
+        c = count;
+        break;
+    }
     case FD_TYPE_PIPE:
         bq_remove(fd->pipe, buf, count);
         c = count;
@@ -189,4 +255,147 @@ void kpipe(file_descr_t** from_ptr, file_descr_t** to_ptr)
 
     *from_ptr = from;
     *to_ptr = to;
+}
+
+
+void kcreate(char* path, uint8_t type)
+{
+    switch (type) {
+    case FD_TYPE_FILE:
+    {
+        int r = fs_make_file(path);
+        if (r < 0) {
+            printf("couldn't make file %s\n", path);
+            while(1);
+        }
+        break;
+    }
+    case FD_TYPE_DIR:
+    {
+        int r = fs_make_dir(path);
+        if (r < 0) {
+            printf("couldn't make directory %s\n", path);
+            while(1);
+        }
+        break;
+    }
+    default:
+    {
+        panic("kcreate : unknown file type");
+        break;
+    }
+    }
+}
+
+void kremove(char* name, uint8_t type)
+{   
+    switch (type) {
+    case FD_TYPE_FILE:
+    {
+        int r = fs_rem_file(path);
+        if (r < 0) {
+            printf("couldn't remove file %s\n", path);
+            while(1);
+        }
+        break;
+    }
+    case FD_TYPE_DIR:
+    {
+        int r = fs_rem_dir(path);
+        if (r < 0) {
+            printf("couldn't remove directory %s\n", path);
+            while(1);
+        }
+        break;
+    }
+    default:
+    {
+        panic("kremove : unknown file type");
+        break;
+    }
+    }
+}
+
+uint32_t kget_size(file_descr_t* fd)
+{
+    kql_acquire(fd->lock);
+    uint32_t size;
+    switch (fd->type) {
+    case FD_TYPE_FILE:
+    {
+        int r = fs_file_size(fd->finode, &size);
+        if (r < 0) {
+            panic("kget_size");
+            while(1);
+        }
+        break;
+    }
+    default:
+    {
+        panic("kcreate : unknown file type");
+        size = 0;
+        break;
+    }
+    }
+    kql_release(fd->lock);
+    return size;
+}
+
+void kresize(file_descr_t* fd, uint32_t size)
+{
+    kql_acquire(fd->lock);
+
+    uint32_t old_size;
+    switch (fd->type) {
+    case FD_TYPE_FILE:
+    {
+        int r = fs_resize_file(fd->finode, size);
+        if (r < 0) {
+            panic("kresize");
+            while(1);
+        }
+        break;
+    }
+    default:
+    {
+        panic("kcreate : unknown file type");
+        break;
+    }
+    }
+    kql_release(fd->lock);
+    return old_size;
+}
+
+int klist_dir(file_descr_t* fd, void* buf, uint32_t size)
+{
+    kql_acquire(fd->lock);
+    switch (fd->type) {
+    case FD_TYPE_DIR:
+    {
+        dir_entry_t* ent;
+        int r = fs_list_dir(fd->dinode, &ent);
+        if (r < 0) {
+            panic("klist_dir");
+        }
+        uint32_t i = 0;
+        while (ent != 0) {
+            uint32_t len = strlen(ent->name) + 1;
+            if (i + len > size) {
+                kql_release(fd->lock);
+                return i;
+            }
+            memcpy(buf + i, ent->name, len);
+            i += len;
+            ent = ent->next; 
+        }
+        break;
+    }
+    default:
+    {
+        panic("klist_dir : unknown fd type");
+        break;
+    }
+    }
+    kql_release(fd->lock);
+    return 0;
 }

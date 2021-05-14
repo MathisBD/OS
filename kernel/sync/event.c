@@ -2,8 +2,9 @@
 #include "threads/scheduler.h"
 #include "memory/kheap.h"
 #include <panic.h>
+#include <stdio.h>
 
-
+/*
 // assumes we hold the monitor lock of the event
 static void add_waiting(event_t* e, thread_t* t)
 {
@@ -36,6 +37,21 @@ static thread_t* pop_waiting(event_t* e)
         e->wait_first = t->wait_next;
         return t;
     }
+}*/
+
+static void add_waiting(event_t* e, thread_t* t)
+{
+    list_add_back(e->waiting, t);
+}
+
+static bool has_waiting(event_t* e)
+{
+    return !list_empty(e->waiting);
+}
+
+static thread_t* pop_waiting(event_t* e)
+{
+    return list_pop_front(e->waiting);
 }
 
 static void check_monitor(event_t* event)
@@ -48,7 +64,7 @@ static void check_monitor(event_t* event)
 event_t* kevent_create(queuelock_t* lock)
 {
     event_t* event = kmalloc(sizeof(event_t));
-    event->wait_first = event->wait_last = 0;
+    event->waiting = list_create();
     event->monitor = lock;
     return event;
 }
@@ -56,7 +72,7 @@ event_t* kevent_create(queuelock_t* lock)
 void kevent_delete(event_t* event)
 {
     check_monitor(event);
-    if (event->wait_first != 0) {
+    if (has_waiting(event)) {
         panic("can't delete an event when threads are waiting on it\n");
     }
     // don't delete the monitor, we don't own it.
@@ -76,7 +92,7 @@ void kevent_signal(event_t* event)
 {
     check_monitor(event);
 
-    if (has_waiting(event->wait_first)) {
+    if (has_waiting(event)) {
         thread_t* next = pop_waiting(event);
         sched_wake_up(next);
     }
@@ -87,7 +103,8 @@ void kevent_broadcast(event_t* event)
     check_monitor(event);
 
     while (has_waiting(event)) {
-        thread_t* next = pop_waiting(event->waiting);
+        thread_t* next = pop_waiting(event);
+        printf("next->tid=%u\n", next->tid);
         sched_wake_up(next);
     }
 }

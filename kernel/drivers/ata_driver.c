@@ -5,6 +5,7 @@
 #include <panic.h>
 #include <string.h>
 #include "memory/kheap.h"
+#include "sync/queuelock.h"
 
 
 #define SECTOR_SIZE 512
@@ -16,6 +17,13 @@
 
 #define CMD_READ  0x20
 #define CMD_WRITE 0x30
+
+queuelock_t* ata_lock;
+
+void init_ata_driver()
+{
+	ata_lock = kql_create();
+}
 
 // returns 0 if the operation was successful
 int ata_wait(bool checkerr)
@@ -112,5 +120,5 @@ int ata_write_sector(uint32_t sector, void* buf)
 // not used for now
 void ata_primary_interrupt()
 {
-	//printf("ATA interrupt\n");
+	
 }

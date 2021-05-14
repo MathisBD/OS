@@ -18,6 +18,7 @@
 #define FD_TYPE_STREAM_DEV  1   // streaming device
 #define FD_TYPE_FILE        2   // file on disk
 #define FD_TYPE_PIPE        3   // pipe between two processes
+#define FD_TYPE_DIR         4   // directory on disk
 
 // file descriptor permissions
 #define FD_PERM_READ    0x1
@@ -38,9 +39,13 @@ typedef struct {
     uint32_t type;
     uint8_t perms; // permissions
     union {
+        // DIR
+        struct {
+            uint32_t dinode;
+        };
         // FILE
         struct {
-            uint32_t inode;
+            uint32_t finode;
             uint32_t offset; // current file offset in bytes
         };
         // STREAMING DEVICE
@@ -57,11 +62,19 @@ typedef struct {
 
 file_descr_t* fd_copy(file_descr_t*);
 
-// open 
 file_descr_t* kopen(char* name, uint8_t perms);
 void kclose(file_descr_t*);
 int kwrite(file_descr_t*, void* buf, uint32_t count);
 int kread(file_descr_t*, void* buf, uint32_t count);
+
 void kpipe(file_descr_t** from, file_descr_t** to);
 void kseek(file_descr_t* fd, int ofs, uint8_t flags);
+
+file_descr_t* kcreate(char* name, uint8_t type);
+void kremove(char* name, uint8_t type);
+
+uint32_t kget_size(file_descr_t* fd);
+void kresize(file_descr_t* fd, uint32_t size);
+
+int klist_dir(file_descr_t* fd, void* buf, uint32_t size);
 

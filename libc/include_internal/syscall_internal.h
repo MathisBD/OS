@@ -8,6 +8,7 @@
 
 // syscall interrupt number
 #define SC_INTR 0x80
+
 #define SC_PROC_FORK        1
 #define SC_PROC_EXEC        2
 #define SC_PROC_EXIT        3
@@ -28,8 +29,7 @@
 #define SC_READ             15
 #define SC_WRITE            16
 #define SC_PIPE             17
-#define SC_DUP              18
-#define SC_SEEK             19
+#define SC_SEEK             18
 
 #define SC_EVENT_CREATE     20
 #define SC_EVENT_DELETE     21
@@ -39,6 +39,15 @@
 
 #define SC_PROC_DATA_SIZE   25
 #define SC_PROC_STACK_SIZE  26
+
+// file/dir manipulation
+#define SC_CREATE           27
+#define SC_REMOVE           28
+#define SC_GET_SIZE         29
+#define SC_RESIZE           30
+#define SC_LIST_DIR         31
+#define SC_DUP              32
+#define SC_DUP2             33
 
 
 #define SC_ARG_0    %eax

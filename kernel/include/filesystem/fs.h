@@ -32,10 +32,10 @@
 #define FS_INODE_TYPE_DIR       1
 #define FS_INODE_TYPE_FILE      2
 
-typedef struct dir_entry_ {
+typedef struct _dir_entry {
     char* name;
     uint32_t inode;
-    struct dir_entry_* next;
+    struct _dir_entry* next;
 } dir_entry_t;
 
 // path format : '/' separated names, with a leading '/'
@@ -46,23 +46,23 @@ typedef struct dir_entry_ {
 int init_fs();
 
 // assumes the parent directory exists
-int make_dir(const char* path);
+int fs_make_dir(const char* path);
 // assumes the directory exists and is empty
-int rem_dir(const char* path);
+int fs_rem_dir(const char* path);
 
 // assumes the parent directory exists
-int make_file(const char* path);
+int fs_make_file(const char* path);
 // assumes the file exists
-int rem_file(const char* path);
+int fs_rem_file(const char* path);
 
-int find_inode(const char* path, uint32_t* inode);
-int inode_type(uint32_t inode, uint32_t* type);
-int file_size(uint32_t file, uint32_t* size);
+int fs_find_inode(const char* path, uint32_t* inode);
+int fs_inode_type(uint32_t inode, uint32_t* type);
+int fs_file_size(uint32_t file, uint32_t* size);
 
 // can't read past the file end
-int read_file(uint32_t file, uint32_t offset, uint32_t count, void* buf);
+int fs_read_file(uint32_t file, uint32_t offset, uint32_t count, void* buf);
 // automatically grows the file if writting past the bounds
-int write_file(uint32_t file, uint32_t offset, uint32_t count, void* buf);
-int resize_file(uint32_t file, uint32_t size);
+int fs_write_file(uint32_t file, uint32_t offset, uint32_t count, void* buf);
+int fs_resize_file(uint32_t file, uint32_t size);
 
-int list_dir(uint32_t dir, dir_entry_t** entries);
+int fs_list_dir(uint32_t dir, dir_entry_t** entries);

@@ -178,7 +178,7 @@ dir_entry_t* convert_dir_entry(ext2_dir_entry_t* ext2_entry)
     return entry;
 }
 
-int list_dir(uint32_t dir, dir_entry_t** entries)
+int klist_dir(uint32_t dir, dir_entry_t** entries)
 {
     // read the contents
     ext2_dir_entry_t* entry;
@@ -249,7 +249,7 @@ bool valid_path(const char* path)
     return true;
 }
 
-int find_inode(const char* path, uint32_t* inode)
+int fs_find_inode(const char* path, uint32_t* inode)
 {
     if (!valid_path(path)) {
         return FS_ERR_PATH_FORMAT;
@@ -292,7 +292,7 @@ int make_inode(const char* path, uint32_t type, uint32_t* inode, uint32_t* paren
         char* par_path = kmalloc(sep + 1);
         memcpy(par_path, path, sep);
         par_path[sep] = 0;
-        int r = find_inode(par_path, parent);
+        int r = kfind_inode(par_path, parent);
         kfree(par_path);
         if (r < 0) {
             return r;
@@ -318,14 +318,14 @@ int make_inode(const char* path, uint32_t type, uint32_t* inode, uint32_t* paren
     return 0;
 }
 
-int make_file(const char* path)
+int fs_make_file(const char* path)
 {
     uint32_t inode;
     uint32_t parent;
     return make_inode(path, FS_INODE_TYPE_FILE, &inode, &parent);
 }
 
-int make_dir(const char* path)
+int fs_make_dir(const char* path)
 {
     uint32_t inode;
     uint32_t parent;
@@ -362,7 +362,7 @@ int rem_inode(const char* path, uint32_t type)
         char* par_path = kmalloc(sep + 1);
         memcpy(par_path, path, sep);
         par_path[sep] = 0;
-        int r = find_inode(par_path, &parent);
+        int r = kfind_inode(par_path, &parent);
         kfree(par_path);
         if (r < 0) {
             return r;
@@ -422,17 +422,17 @@ int rem_inode(const char* path, uint32_t type)
 }
 
 
-int rem_file(const char* path)
+int fs_rem_file(const char* path)
 {
     return rem_inode(path, FS_INODE_TYPE_FILE);
 }
 
-int rem_dir(const char* path)
+int fs_rem_dir(const char* path)
 {
     return rem_inode(path, FS_INODE_TYPE_DIR);
 }
 
-int read_file(uint32_t file, uint32_t offset, uint32_t count, void* buf)
+int fs_read_file(uint32_t file, uint32_t offset, uint32_t count, void* buf)
 {
     // check inode type (this automatically checks the inode exists)
     uint32_t type;
@@ -451,7 +451,7 @@ int read_file(uint32_t file, uint32_t offset, uint32_t count, void* buf)
     return 0;
 }
 
-int write_file(uint32_t file, uint32_t offset, uint32_t count, void* buf)
+int fs_write_file(uint32_t file, uint32_t offset, uint32_t count, void* buf)
 {
     // check inode type (this automatically checks the inode exists)
     uint32_t type;
@@ -482,7 +482,7 @@ int write_file(uint32_t file, uint32_t offset, uint32_t count, void* buf)
     return 0;
 }
 
-int resize_file(uint32_t file, uint32_t size)
+int fs_resize_file(uint32_t file, uint32_t size)
 {
     // check inode type (this automatically checks the inode exists)
     uint32_t type;
@@ -501,7 +501,7 @@ int resize_file(uint32_t file, uint32_t size)
     return 0;
 }
 
-int file_size(uint32_t file, uint32_t* size)
+int fs_file_size(uint32_t file, uint32_t* size)
 {
     // check inode type (this automatically checks the inode exists)
     uint32_t type;
@@ -521,7 +521,7 @@ int file_size(uint32_t file, uint32_t* size)
 }
 
 
-int inode_type(uint32_t inode, uint32_t* type)
+int fs_inode_type(uint32_t inode, uint32_t* type)
 {
     int r = get_inode_type(inode, type);
     if (r < 0) {

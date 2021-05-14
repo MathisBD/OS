@@ -75,6 +75,13 @@ user_file/read.o \
 user_file/write.o \
 user_file/pipe.o \
 user_file/dup.o \
+user_file/dup2.o \
+user_file/seek.o \
+user_file/create.o \
+user_file/remove.o \
+user_file/list_dir.o \
+user_file/get_size.o \
+user_file/resize.o \
 str/str_create.o \
 str/str_delete.o \
 str/str_add_char.o \

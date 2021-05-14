@@ -55,13 +55,13 @@ void load_program(
     uint32_t* p_stack_size)
 {
     uint32_t file;
-    int r = find_inode(prog_name, &file);
+    int r = kfind_inode(prog_name, &file);
     if (r < 0) {
         panic("load_program : couldn't find program to load");
     }
 
     Elf32_Ehdr* e_hdr = kmalloc(sizeof(Elf32_Ehdr));
-    r = read_file(file, 0, sizeof(Elf32_Ehdr), e_hdr);
+    r = kread_file(file, 0, sizeof(Elf32_Ehdr), e_hdr);
     if (r < 0) {
         panic("load_program : couldn't read elf header");
     }
@@ -77,7 +77,7 @@ void load_program(
     uint32_t data_size = 0;
     for (int i = 0; i < e_hdr->e_phnum; i++) {
         Elf32_Phdr* header = kmalloc(sizeof(Elf32_Phdr));
-        r = read_file(file, 
+        r = kread_file(file, 
             e_hdr->e_phoff + i * e_hdr->e_phentsize, 
             sizeof(Elf32_Phdr), 
             header);
@@ -86,7 +86,7 @@ void load_program(
         }
         if (header->p_type == PT_LOAD) {
             // load the segment
-            r = read_file(file, header->p_offset, header->p_filesz, header->p_vaddr);
+            r = kread_file(file, header->p_offset, header->p_filesz, header->p_vaddr);
             if (r < 0) {
                 panic("load_program : couldn't load segment");
             }

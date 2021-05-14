@@ -20,7 +20,20 @@ uint32_t get_syscall_arg(intr_frame_t* frame, uint32_t arg)
     case 3: return frame->edx;
     case 4: return frame->edi;
     case 5: return frame->esi;
-    default: panic("invalid syscall arg index\n"); return 0;
+    default: panic("invalid syscall arg index (get)\n"); return 0;
+    }
+}
+
+uint32_t set_syscall_arg(intr_frame_t* frame, uint32_t arg, uint32_t value)
+{
+    switch(arg) {
+    case 0: frame->eax = value; return;
+    case 1: frame->ebx = value; return;
+    case 2: frame->ecx = value; return;
+    case 3: frame->edx = value; return;
+    case 4: frame->edi = value; return;
+    case 5: frame->esi = value; return;
+    default: panic("invalid syscall arg index (set)\n"); return 0;
     }
 }
 
@@ -146,21 +159,70 @@ void handle_syscall(intr_frame_t* frame)
             get_syscall_arg(frame, 3));
         return;
     }
-    /*case SC_PIPE:
+    case SC_PIPE:
     {
-        kpipe();
+        uint32_t* p_from_id = get_syscall_arg(frame, 1);
+        uint32_t* p_to_id = get_syscall_arg(frame, 2);
+
+        file_descr_t* from;
+        file_descr_t* to;
+        kpipe(&from, &to);
+        *p_from_id = proc_add_fd(curr_process(), from);
+        *p_to_id = proc_add_fd(curr_process(), to);
         return;
     }
     case SC_DUP:
     {
-        kdup();
+        file_descr_t* original = proc_get_fd(
+            curr_process(),
+            get_syscall_arg(curr_process(), 1));
+        if (original == 0) {
+            panic("SC_DUP\n");
+        }
+        frame->eax = proc_add_fd(
+            curr_process(), 
+            fd_copy(original));
+    }
+    case SC_DUP2:
+    {
+        uint32_t original_id = get_syscall_arg(frame, 1);
+        uint32_t copy_id = get_syscall_arg(frame, 2);
+        if (original_id == copy_id) {
+            return;
+        }
+
+        process_t* proc = curr_process();
+        kql_acquire(proc->lock);
+
+        if (original_id >= proc->file_descrs->size) {
+            panic("SC_DUP2\n");
+        }
+        file_descr_t* original = vect_get(proc->file_descrs, original_id);
+        if (original == 0) {
+            panic("SC_DUP2\n");
+        }
+        file_descr_t* copy = fd_copy(original);
+        if (copy_id >= proc->file_descrs->size) {
+            panic("SC_DUP2\n");
+        }
+        file_descr_t* old = vect_set(proc->file_descrs, copy_id, copy);
+        if (old != 0) {
+            kclose(old);
+        }
+
+        kql_release(proc->lock);
         return;
     }
     case SC_SEEK:
     {
-        kseek();
+        file_descr_t* fd = proc_get_fd(
+            curr_process(),
+            get_syscall_arg(frame, 1));
+        kseek(fd, 
+            get_syscall_arg(frame, 2),
+            get_syscall_arg(frame, 3));
         return;   
-    }*/
+    }
     case SC_EVENT_CREATE:
     {
         queuelock_t* lock = proc_get_lock(
@@ -218,6 +280,48 @@ void handle_syscall(intr_frame_t* frame)
         uint32_t size = proc->stack_size;
         kql_release(proc->lock);
         frame->eax = size;
+        return;
+    }
+    case SC_CREATE:
+    {
+        file_descr_t* fd = kcreate(
+            get_syscall_arg(frame, 1),
+            get_syscall_arg(frame, 2));
+        frame->eax = proc_add_fd(curr_process(), fd);
+        return;
+    }
+    case SC_REMOVE:
+    {
+        kremove(
+            get_syscall_arg(frame, 1),
+            get_syscall_arg(frame, 2));
+        return;
+    }
+    case SC_GET_SIZE:
+    {
+        file_descr_t* fd = proc_get_fd(
+            curr_process(), 
+            get_syscall_arg(frame, 1));
+        frame->eax = kget_size(fd);
+        return;
+    }
+    case SC_RESIZE:
+    {
+        file_descr_t* fd = proc_get_fd(
+            curr_process(), 
+            get_syscall_arg(frame, 1));
+        frame->eax = kresize(fd);
+        return;
+    }
+    case SC_LIST_DIR:
+    {
+        file_descr_t* fd = proc_get_fd(
+            curr_process(), 
+            get_syscall_arg(frame, 1));
+        frame->eax = klist_dir(
+            fd,
+            get_syscall_arg(frame, 2),
+            get_syscall_arg(frame, 3));
         return;
     }
     default:
