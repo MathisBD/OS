@@ -375,17 +375,32 @@ static void delete_proc(process_t* proc)
     list_delete(proc->children);
     // free the user pages
     //free_user_pages();
-    kfree(proc->page_table);
-    vect_delete(proc->locks);
-    vect_delete(proc->events);
     // close every file descriptor
     for (uint32_t i = 0; i < proc->file_descrs->size; i++) {
         file_descr_t* fd = vect_get(proc->file_descrs, i);
         if (fd != 0) {
-            kclose(fd);
+            //kclose(fd);
         }
     }
     vect_delete(proc->file_descrs);
+    // delete events 
+    for (uint32_t i = 0; i < proc->events->size; i++) {
+        event_t* event = vect_get(proc->events, i);
+        if (event != 0) {
+            kevent_delete(event);
+        }
+    }
+    vect_delete(proc->events);
+    // delete locks
+    for (uint32_t i = 0; i < proc->locks->size; i++) {
+        queuelock_t* lock = vect_get(proc->locks, i);
+        if (lock != 0) {
+            kql_delete(lock);
+        }
+    }
+    vect_delete(proc->locks);
+
+    kfree(proc->page_table);
 
     kql_delete(proc->lock);
     kfree(proc);

@@ -25,9 +25,14 @@ export IMGDIR="$(pwd)/imgdir"
 export CC=i686-elf-gcc 
 export AR=i686-elf-ar
 export CFLAGS="--sysroot=$SYSROOT -g \
--Wno-unused-parameter -Wno-unused-label -Wno-int-conversion \
+-Wno-unused-parameter \
+-Wno-unused-label \
+-Wno-int-conversion \
 -Wno-unused-function \
--Wno-incompatible-pointer-types -Werror=implicit-function-declaration"
+-Wno-incompatible-pointer-types \
+-Werror=implicit-function-declaration \
+-Werror=return-type \
+-Werror=implicit-fallthrough"
 export CPPFLAGS=""
 # the cross compiler was configured with
 # --without-headers but not --with-sysroot

@@ -19,10 +19,9 @@ void kql_delete(queuelock_t* lock)
 {
     ksl_acquire(lock->spinlock);
 
-    if (!list_empty(lock->waiting)) {
+    /*if (!list_empty(lock->waiting)) {
         panic("can't delete a queuelock if threads are waiting on it");
-    }
-
+    }*/
     list_delete(lock->waiting);
     ksl_delete(lock->spinlock);
     kfree(lock);

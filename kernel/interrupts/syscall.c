@@ -24,7 +24,7 @@ uint32_t get_syscall_arg(intr_frame_t* frame, uint32_t arg)
     }
 }
 
-uint32_t set_syscall_arg(intr_frame_t* frame, uint32_t arg, uint32_t value)
+void set_syscall_arg(intr_frame_t* frame, uint32_t arg, uint32_t value)
 {
     switch(arg) {
     case 0: frame->eax = value; return;
@@ -33,7 +33,7 @@ uint32_t set_syscall_arg(intr_frame_t* frame, uint32_t arg, uint32_t value)
     case 3: frame->edx = value; return;
     case 4: frame->edi = value; return;
     case 5: frame->esi = value; return;
-    default: panic("invalid syscall arg index (set)\n"); return 0;
+    default: panic("invalid syscall arg index (set)\n"); return;
     }
 }
 
@@ -182,6 +182,7 @@ void handle_syscall(intr_frame_t* frame)
         frame->eax = proc_add_fd(
             curr_process(), 
             fd_copy(original));
+        return;
     }
     case SC_DUP2:
     {
@@ -284,10 +285,9 @@ void handle_syscall(intr_frame_t* frame)
     }
     case SC_CREATE:
     {
-        file_descr_t* fd = kcreate(
+        kcreate(
             get_syscall_arg(frame, 1),
             get_syscall_arg(frame, 2));
-        frame->eax = proc_add_fd(curr_process(), fd);
         return;
     }
     case SC_REMOVE:
@@ -310,7 +310,7 @@ void handle_syscall(intr_frame_t* frame)
         file_descr_t* fd = proc_get_fd(
             curr_process(), 
             get_syscall_arg(frame, 1));
-        frame->eax = kresize(fd);
+        kresize(fd, get_syscall_arg(frame, 2));
         return;
     }
     case SC_LIST_DIR:

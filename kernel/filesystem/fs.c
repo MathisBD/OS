@@ -178,7 +178,7 @@ dir_entry_t* convert_dir_entry(ext2_dir_entry_t* ext2_entry)
     return entry;
 }
 
-int klist_dir(uint32_t dir, dir_entry_t** entries)
+int fs_list_dir(uint32_t dir, dir_entry_t** entries)
 {
     // read the contents
     ext2_dir_entry_t* entry;
@@ -292,7 +292,7 @@ int make_inode(const char* path, uint32_t type, uint32_t* inode, uint32_t* paren
         char* par_path = kmalloc(sep + 1);
         memcpy(par_path, path, sep);
         par_path[sep] = 0;
-        int r = kfind_inode(par_path, parent);
+        int r = fs_find_inode(par_path, parent);
         kfree(par_path);
         if (r < 0) {
             return r;
@@ -362,7 +362,7 @@ int rem_inode(const char* path, uint32_t type)
         char* par_path = kmalloc(sep + 1);
         memcpy(par_path, path, sep);
         par_path[sep] = 0;
-        int r = kfind_inode(par_path, &parent);
+        int r = fs_find_inode(par_path, &parent);
         kfree(par_path);
         if (r < 0) {
             return r;

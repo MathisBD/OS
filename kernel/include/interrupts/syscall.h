@@ -53,5 +53,5 @@
 
 // arg 0 is the syscall number
 uint32_t get_syscall_arg(intr_frame_t* frame, uint32_t arg);
-uint32_t set_syscall_arg(intr_frame_t* frame, uint32_t arg, uint32_t value);
+void set_syscall_arg(intr_frame_t* frame, uint32_t arg, uint32_t value);
 void handle_syscall(intr_frame_t* frame);

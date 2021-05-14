@@ -18,6 +18,7 @@ int _main(int argc, char** argv)
         }
     }
 
+    printf("exit\n");
     proc_exit(42);
 
     while(1);

@@ -5,6 +5,7 @@
 #include "drivers/vga_driver.h"
 #include "drivers/keyboard_driver.h"
 #include "drivers/pit_driver.h"
+#include "drivers/ata_driver.h"
 #include "drivers/timer_driver.h"
 #include "memory/paging.h"
 #include "memory/kheap.h"
@@ -104,9 +105,6 @@ void init_kernel(boot_info_t* boot_info)
     threads = true;
     init_process();
     process = true;
-    // filesystem
-    init_fs();
-    fs = true;
 
     // other drivers.
     // we have to initialize the pics 
@@ -117,6 +115,7 @@ void init_kernel(boot_info_t* boot_info)
     init_kbd_driver();
     float pit_freq = init_pit(PIT_DEFAULT_FREQ);
     init_timer(pit_freq);
+    init_ata_driver();
     drivers = true;
     
     /*for (int i = 0; i < boot_info->mmap_ent_count; i++) {
@@ -124,6 +123,10 @@ void init_kernel(boot_info_t* boot_info)
         printf("base=%llx\tlength=%llx\ttype=%d\n", ent->base, ent->length, ent->type);
     }*/
 
+    // filesystem
+    init_fs();
+    fs = true;
+    
     // add the default STDOUT and STDIN file descriptors
     // STDIN is 0
     file_descr_t* fd_stdin = kopen("/dev/kbd", FD_PERM_READ);

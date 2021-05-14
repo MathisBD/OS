@@ -41,7 +41,7 @@ void handle_interrupt(intr_frame_t* frame)
 			kbd_interrupt();
 			break;
 		case 14: // primary ATA drive
-			ata_primary_interrupt();
+			//ata_primary_interrupt();
 			break;
 		default:
 			vga_print("unknown pic irq");

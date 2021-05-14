@@ -14,8 +14,11 @@ file_descr_t* fd_copy(file_descr_t* fd)
     copy->perms = fd->perms;
     switch (fd->type) {
     case FD_TYPE_FILE:
-        copy->inode = fd->inode;
+        copy->finode = fd->finode;
         copy->offset = fd->offset;
+        break;
+    case FD_TYPE_DIR:
+        copy->dinode = fd->dinode;
         break;
     case FD_TYPE_STREAM_DEV:
         copy->dev = fd->dev;
@@ -115,7 +118,7 @@ file_descr_t* kopen(char* path, uint8_t perms)
         fd->finode = inode;
         fd->offset = 0;
         break;
-    case FD_INODE_TYPE_DIR: 
+    case FS_INODE_TYPE_DIR: 
         fd->type = FD_TYPE_DIR; 
         fd->dinode = inode;
         break;
@@ -130,9 +133,9 @@ void kclose(file_descr_t* fd)
     kql_acquire(fd->lock);
     if (fd->type == FD_TYPE_PIPE) {
         // TODO : close the other end of the pipe
-        panic("kclose : TODO pipe")
+        panic("kclose : TODO pipe");
     }    
-    kql_delete(fd->lock);
+    //kql_delete(fd->lock);
     kfree(fd);
 }
 
@@ -287,7 +290,7 @@ void kcreate(char* path, uint8_t type)
     }
 }
 
-void kremove(char* name, uint8_t type)
+void kremove(char* path, uint8_t type)
 {   
     switch (type) {
     case FD_TYPE_FILE:
@@ -363,7 +366,6 @@ void kresize(file_descr_t* fd, uint32_t size)
     }
     }
     kql_release(fd->lock);
-    return old_size;
 }
 
 int klist_dir(file_descr_t* fd, void* buf, uint32_t size)

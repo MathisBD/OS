@@ -70,7 +70,7 @@ int kread(file_descr_t*, void* buf, uint32_t count);
 void kpipe(file_descr_t** from, file_descr_t** to);
 void kseek(file_descr_t* fd, int ofs, uint8_t flags);
 
-file_descr_t* kcreate(char* name, uint8_t type);
+void kcreate(char* name, uint8_t type);
 void kremove(char* name, uint8_t type);
 
 uint32_t kget_size(file_descr_t* fd);

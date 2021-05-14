@@ -26,7 +26,7 @@ void init_ata_driver()
 }
 
 // returns 0 if the operation was successful
-int ata_wait(bool checkerr)
+static int ata_wait(bool checkerr)
 {
 	int r;
 	while(((r = port_int8_in(0x1f7)) & (ATA_BSY | ATA_DRDY)) != ATA_DRDY) {
@@ -39,7 +39,7 @@ int ata_wait(bool checkerr)
 }
 
 
-int rw_sector(uint32_t sector, void* data, bool write)
+static int rw_sector(uint32_t sector, void* data, bool write)
 {
 	if (ata_wait(true) != 0) {
 		return -1;
@@ -69,6 +69,8 @@ int rw_sector(uint32_t sector, void* data, bool write)
 
 int ata_read(uint32_t offset, uint32_t count, void* buf)
 {
+	kql_acquire(ata_lock);
+
 	uint32_t first_sct = offset / SECTOR_SIZE;
 	uint32_t last_sct = (offset + count - 1) / SECTOR_SIZE;
 
@@ -107,12 +109,16 @@ int ata_read(uint32_t offset, uint32_t count, void* buf)
 		buf_offs += cnt;
 	}
 	kfree(tmp_buf);
+	kql_release(ata_lock);
 	return 0;
 }
 
 int ata_write_sector(uint32_t sector, void* buf)
 {
-	return rw_sector(sector, buf, true);
+	kql_acquire(ata_lock);
+	int r = rw_sector(sector, buf, true);
+	kql_release(ata_lock);
+	return r;
 }
 
 

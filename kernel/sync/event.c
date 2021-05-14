@@ -104,7 +104,7 @@ void kevent_broadcast(event_t* event)
 
     while (has_waiting(event)) {
         thread_t* next = pop_waiting(event);
-        printf("next->tid=%u\n", next->tid);
+        //printf("will wake up %u\n", next->tid);
         sched_wake_up(next);
     }
 }
