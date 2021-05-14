@@ -244,15 +244,7 @@ void sched_finish_proc_and_release(queuelock_t* lock)
     // no need for an exit code as no one can wait on them anymore.
     process_t* proc = curr_process();
     proc->state = PROC_DEAD;
-    for (list_node_t* node = proc->threads->first; node != 0; node = node->next) {
-        thread_t* thread = node->contents;
-        if (thread->state == THREAD_READY) {
-            remove_ready(thread);
-        }
-        // we don't care about removing waiting threads from their waiting queues,
-        // as the process is about to be dead.
-        thread->state = THREAD_FINISHED;
-    }
+    prev->state = THREAD_FINISHED;
 
     thread_t* next = pop_ready();
     if (next == 0) {

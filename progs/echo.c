@@ -1,8 +1,17 @@
 #include <stdio.h>
 #include <user_heap.h>
 #include <user_process.h>
+#include <user_thread.h>
+#include <user_file.h>
 #include <str.h>
 
+void fn(int arg)
+{
+    printf("reading key\n");
+    char c;
+    read(FD_STDIN, &c, 1);
+    printf("done\n");
+}
 
 int _main(int argc, char** argv)
 {
@@ -17,6 +26,9 @@ int _main(int argc, char** argv)
             printf(" ");
         }
     }
+
+    thread_create(fn, 0);
+    for (int i = 0; i < 100000000; i++);
 
     printf("exit\n");
     proc_exit(42);

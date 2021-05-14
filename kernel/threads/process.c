@@ -287,10 +287,19 @@ static uint32_t align(value, a)
     return value;
 }
 
+static bool is_singleton(list_t* l)
+{
+    return l->first != 0 && l->first == l->last;
+}
+
 void kproc_exec(char* prog, int argc, char** argv)
 {
     process_t* proc = curr_process();
     kql_acquire(proc->lock);
+
+    if (!is_singleton(proc->threads)) {
+        panic("can't call exec() from a process that has more than one thread");
+    }
 
     // load the user code/data
     //free_user_pages();
@@ -345,6 +354,9 @@ void kproc_exit(int code)
     kql_acquire(proc->lock);
     if (proc->pid == 0) {
         panic("process 0 can't exit (it has to wait() on its children)");
+    }
+    if (!is_singleton(proc->threads)) {
+        panic("can't call exit() from a process that has more than one thread");
     }
 
     proc->exit_code = code;

@@ -52,5 +52,9 @@ void kernel_main()
     int c = proc_wait(pid);
     printf("child finished with %d\n", c);
     
+    char key;
+    read(FD_STDIN, &key, 1);
+    printf("got key : %c\n", key);
+
     while (1);
 }
