@@ -1,6 +1,7 @@
 #pragma once
 #include <list.h>
 #include "sync/queuelock.h"
+#include "threads/thread.h"
 
 
 // an event is always "monitored" by a lock.
@@ -8,7 +9,8 @@
 // this is why we don't need an internal lock in the struct.
 typedef struct {
     // list of threads waiting on this event
-    list_t* waiting;
+    thread_t* wait_first;
+    thread_t* wait_last;
     queuelock_t* monitor;
 } event_t;
 

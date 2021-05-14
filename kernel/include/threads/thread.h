@@ -25,6 +25,8 @@ typedef struct _thread {
     // next/previous thread in the ready list
     struct _thread* sched_next;
     struct _thread* sched_prev;
+    // next thread in this thread's waiting list
+    struct _thread* wait_next;
     // join() waits on this event.
     // exit() broadcasts this event.
     event_t* on_finish;
