@@ -64,6 +64,7 @@ void init_process()
     proc->locks = vect_create();
     proc->events = vect_create();
     proc->file_descrs = vect_create();
+    proc->cwd = "/";
     // data and stack size don't have any sense for a kernel only process
     proc->data_size = 0;
     proc->stack_size = 0;
@@ -198,7 +199,11 @@ static process_t* copy_process(process_t* original)
     copy->locks = vect_create();
     copy->events = vect_create();
     copy_file_descrs(copy, original);
-    
+    // cwd is inherited
+    uint32_t len = strlen(original->cwd) + 1;
+    copy->cwd = kmalloc(len);
+    memcpy(copy->cwd, original->cwd, len);
+
     register_process(copy);
 
     kql_release(original->lock);

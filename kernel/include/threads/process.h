@@ -37,6 +37,7 @@ typedef struct _process {
     vect_t* file_descrs;
     vect_t* locks;
     vect_t* events;
+    char* cwd; // current working diretory. this should be a valid directory.
     // memory layout
     uint32_t* page_table;
     uint32_t data_size; // size of the user code+data+bss

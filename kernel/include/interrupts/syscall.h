@@ -49,6 +49,9 @@
 #define SC_LIST_DIR         31
 #define SC_DUP              32
 #define SC_DUP2             33
+#define SC_CHDIR            34
+#define SC_GETCWD           35
+#define SC_FILE_TYPE        36
 
 
 // arg 0 is the syscall number

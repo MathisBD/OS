@@ -82,6 +82,9 @@ user_file/remove.o \
 user_file/list_dir.o \
 user_file/get_size.o \
 user_file/resize.o \
+user_file/file_type.o \
+user_file/chdir.o \
+user_file/getcwd.o \
 str/str_create.o \
 str/str_delete.o \
 str/str_add_char.o \

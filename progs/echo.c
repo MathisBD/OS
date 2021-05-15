@@ -13,12 +13,9 @@ void fn(int arg)
     printf("done\n");
 }
 
-int _main(int argc, char** argv)
+void _main(int argc, char** argv)
 {
     init_heap();
-    //printf("echo!!\n");
-
-    //printf("argc=%d, argv=%x\n", argc, argv);
 
     for (int i = 0; i < argc; i++) {
         printf(argv[i]);
@@ -26,15 +23,22 @@ int _main(int argc, char** argv)
             printf(" ");
         }
     }
+    printf("\n");
 
-    thread_create(fn, 0);
-    for (int i = 0; i < 100000000; i++);
+    char* cwd = malloc(32 * sizeof(char));
+    getcwd(cwd, 32);
+
+    printf("cwd=%s\n", cwd);
+    chdir("/progs");
+
+    getcwd(cwd, 32);
+
+    printf("cwd=%s\n", cwd);
 
     printf("exit\n");
     proc_exit(42);
 
     while(1);
-    return 0;
 }
 
 

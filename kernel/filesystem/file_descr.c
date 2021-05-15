@@ -173,6 +173,33 @@ void kseek(file_descr_t* fd, int ofs, uint8_t flags)
     }
 }
 
+uint32_t kfile_type(char* path)
+{
+    // device
+    if (is_dev_path(path)) {
+        char* name = dev_name(path);
+        stream_dev_t* dev = get_stream_dev(name);
+        if (dev != 0) {
+            return FD_TYPE_STREAM_DEV;
+        }
+        return FD_TYPE_ERR;
+    }
+    // file/dir
+    uint32_t inode;
+    if (fs_find_inode(path, &inode) >= 0) {
+        uint32_t type;
+        if (fs_inode_type(inode, &type) >= 0) {
+            switch (type) {
+            case FS_INODE_TYPE_FILE: return FD_TYPE_FILE;
+            case FS_INODE_TYPE_DIR: return FD_TYPE_DIR;
+            default: panic("kfile_type\n");
+            }
+        }
+        panic("kfile_type\n");
+    }
+    return FD_TYPE_ERR;
+}
+
 int kwrite(file_descr_t* fd, void* buf, uint32_t count)
 {
     kql_acquire(fd->lock);

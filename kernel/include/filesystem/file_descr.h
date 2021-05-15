@@ -19,6 +19,7 @@
 #define FD_TYPE_FILE        2   // file on disk
 #define FD_TYPE_PIPE        3   // pipe between two processes
 #define FD_TYPE_DIR         4   // directory on disk
+#define FD_TYPE_ERR         5   // file doesn't exist
 
 // file descriptor permissions
 #define FD_PERM_READ    0x1
@@ -69,6 +70,8 @@ int kread(file_descr_t*, void* buf, uint32_t count);
 
 void kpipe(file_descr_t** from, file_descr_t** to);
 void kseek(file_descr_t* fd, int ofs, uint8_t flags);
+
+uint32_t kfile_type(char* path);
 
 void kcreate(char* name, uint8_t type);
 void kremove(char* name, uint8_t type);

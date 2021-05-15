@@ -7,6 +7,7 @@
 #include "sync/queuelock.h"
 #include <panic.h>
 #include <stdio.h>
+#include <string.h>
 #include "drivers/vga_driver.h"
 #include <asm_debug.h>
 
@@ -322,6 +323,44 @@ void handle_syscall(intr_frame_t* frame)
             fd,
             get_syscall_arg(frame, 2),
             get_syscall_arg(frame, 3));
+        return;
+    }
+    case SC_GETCWD:
+    {
+        process_t* proc = curr_process();
+        kql_acquire(proc->lock);
+        char* path = proc->cwd;
+        kql_release(proc->lock);
+
+        void* buf = get_syscall_arg(frame, 1);
+        uint32_t size = get_syscall_arg(frame, 2);
+        if (strlen(path) + 1 <= size) {
+            memcpy(buf, path, strlen(path) + 1);
+            frame->eax = 0;
+        }
+        else {
+            memcpy(buf, path, size-1);
+            memset(buf+size-1, 0, 1);
+            frame->eax = 1;
+        } 
+        return;
+    }
+    case SC_CHDIR:
+    {
+        char* path = get_syscall_arg(frame, 1);
+        if (kfile_type(path) != FD_TYPE_DIR) {
+            panic("SC_CHDIR");
+        }    
+        process_t* proc = curr_process();
+        kql_acquire(proc->lock);
+        proc->cwd = path;
+        kql_release(proc->lock);
+        return;
+    }
+    case SC_FILE_TYPE:
+    {
+        char* path = get_syscall_arg(frame, 1);
+        frame->eax = kfile_type(path);
         return;
     }
     default:
