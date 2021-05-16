@@ -62,7 +62,10 @@ thread_t* curr_thread()
 
 process_t* curr_process()
 {
-    return running->process;
+    //bool old_if = set_interrupt_flag(false);
+    process_t* proc = running->process;
+    //set_interrupt_flag(old_if);
+    return proc;
 }
 
 static void add_ready(thread_t* thread)

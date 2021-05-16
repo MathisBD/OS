@@ -27,12 +27,14 @@ export AR=i686-elf-ar
 export CFLAGS="--sysroot=$SYSROOT -g \
 -Wno-unused-parameter \
 -Wno-unused-label \
+-Wno-unused-variable \
 -Wno-int-conversion \
 -Wno-unused-function \
 -Wno-incompatible-pointer-types \
 -Werror=implicit-function-declaration \
 -Werror=return-type \
 -Werror=implicit-fallthrough \
+-Werror=implicit-int \
 -Werror=invalid-memory-model"
 
 export CPPFLAGS=""

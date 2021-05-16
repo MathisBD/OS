@@ -142,7 +142,9 @@ static mem_node_t* find_hole(uint32_t size, uint32_t align)
 
 void print_node(mem_node_t* node)
 {
-    printf("addr=%x\tsize=%x\n", (uint32_t)node, node->size);
+    if (((uint32_t)node) >= 0xc0404000) {
+        printf("<addr=%xsize=%x> ", (uint32_t)node, node->size);
+    }
 }
 
 void print_lists()
@@ -151,6 +153,7 @@ void print_lists()
     for (mem_node_t* hole = first_hole; hole != 0; hole = hole->next) {
         print_node(hole);
     }
+    printf("\n");
     
     printf("BLOCK LIST\n");
     for (mem_node_t* block = first_block; block != 0; block = block->next) {  

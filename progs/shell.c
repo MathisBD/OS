@@ -82,8 +82,10 @@ void _main(int argc, char** argv)
             
             // child
             if (pid == 0) {
-                printf("EXEC\n");
-                proc_exec(prog, argc, argv);
+                //printf("EXEC\n");
+                //proc_exec(prog, argc, argv);
+                proc_exit(0);
+                printf("ERRR");
             }
             // parent 
             else {

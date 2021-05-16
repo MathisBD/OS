@@ -59,7 +59,7 @@ void init_process()
     proc->children = list_create();
     // scheduler state
     proc->state = PROC_ALIVE;
-    proc->on_finish = kevent_create(proc->lock);
+    proc->on_finish = kevent_create();
     // process resources
     proc->locks = vect_create();
     proc->events = vect_create();
@@ -176,7 +176,7 @@ void copy_locks(process_t* copy, process_t* original)
         }
         queuelock_t* new_lock = kql_create();
         new_lock->value = lock->value;
-        vect_append(copy->locks, lock);
+        vect_append(copy->locks, new_lock);
     }
 }
 
@@ -215,7 +215,7 @@ static process_t* copy_process(process_t* original)
     // create a new process
     process_t* copy = kmalloc(sizeof(process_t));
     copy->lock = kql_create();
-    copy->on_finish = kevent_create(copy->lock);
+    copy->on_finish = kevent_create();
     // process relationships
     copy->parent = original;
     copy->children = list_create();
@@ -249,7 +249,7 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
 
     thread_t* copy = kmalloc(sizeof(thread_t));
     copy->lock = kql_create();
-    copy->on_finish = kevent_create(copy->lock);
+    copy->on_finish = kevent_create();
     // dummy stack for the copied thread.
     // when thread_switch switches the copied thread in
     // and then returns, we want it to return to isr_common
@@ -324,7 +324,7 @@ void do_proc_fork(intr_frame_t* frame)
 }
 
 
-static uint32_t align(value, a)
+static uint32_t align(uint32_t value, uint32_t a)
 {
     if (value % a != 0) {
         return (value / a) * (a+1);
@@ -424,7 +424,7 @@ void kproc_exit(int code)
 // are in FINISHED state.
 static void delete_proc(process_t* proc)
 {
-    kql_acquire(proc_lock);
+    /*kql_acquire(proc_lock);
 
     kql_acquire(proc->lock);
     proc_array[proc->pid] = 0;
@@ -466,7 +466,7 @@ static void delete_proc(process_t* proc)
     kql_delete(proc->lock);
     kfree(proc);
 
-    kql_release(proc_lock);
+    kql_release(proc_lock); */
 }
 
 int kproc_wait(pid_t pid)

@@ -65,7 +65,7 @@ void init_threads()
     thread->tid = next_tid;
     next_tid++;
     thread->lock = kql_create();
-    thread->on_finish = kevent_create(thread->lock);
+    thread->on_finish = kevent_create();
  
     extern void init_stack_bottom();
     thread->stack = (uint32_t)init_stack_bottom;
@@ -84,7 +84,7 @@ tid_t kthread_create(void (*func)(int), int arg)
     // a pointer to it until this method ends.
     thread_t* thread = kmalloc(sizeof(thread_t));
     thread->lock = kql_create();
-    thread->on_finish = kevent_create(thread->lock);
+    thread->on_finish = kevent_create();
 
     thread->stack = kmalloc(KSTACK_SIZE);
     thread->esp = ((uint32_t)thread->stack) + KSTACK_SIZE;
