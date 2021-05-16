@@ -31,16 +31,20 @@ void handle_interrupt(intr_frame_t* frame)
 		// for other interrupts, calling this before or after
 		// the interrupt is processes shouldn't make a difference since
 		// interrupts are disabled in an ISR.
-		pic_eoi(irq); 
+		//pic_eoi(irq); 
 		
 		switch(irq) {
-		case 0: // clock (PIT)
+		case TIMER_IRQ:
 			timer_interrupt();
+
+			//vga_putchar('-');
+			pic_eoi(irq); 
 			break;
-		case 1: // keyboard
+		case KEYBOARD_IRQ:
 			kbd_interrupt();
+			pic_eoi(irq); 
 			break;
-		case 14: // primary ATA drive
+		case ATA_IRQ:
 			//ata_primary_interrupt();
 			break;
 		default:

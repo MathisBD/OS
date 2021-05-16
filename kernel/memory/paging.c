@@ -11,6 +11,11 @@
 #include "drivers/vga_driver.h"
 
 
+// page used to copy physical frames
+// without having to disable paging 
+// (see copy_address_space).
+#define COPY_PAGE (PT_SIZE-1)
+
 typedef struct {
     uint32_t address;
     uint32_t frame_count;
@@ -167,22 +172,17 @@ void free_frame(uint32_t frame_addr)
     }
 }
 
-// returns the (physical) address of the frame allocated to the page
-uint32_t alloc_page(pt_entry_t* pt, uint32_t page)
+void set_page_frame(pt_entry_t* pt, uint32_t page_idx, uint32_t frame_addr)
 {
-    uint32_t frame_addr = find_free_frame();
-    claim_frame(frame_addr);
+    memset(pt + page_idx, 0, sizeof(pt_entry_t));
+    pt[page_idx].present = 1;
+    pt[page_idx].rw = 1;
+    pt[page_idx].size = 1;
+    pt[page_idx].frame_addr = frame_addr >> 22;
 
-    memset(pt + page, 0, sizeof(pt_entry_t));
-    pt[page].present = 1;
-    pt[page].rw = 1;
-    pt[page].size = 1;
-    pt[page].frame_addr = frame_addr >> 22;
-
-    if (page < (V_KERNEL_START / PAGE_SIZE)) {
-        pt[page].user = 1;
+    if (page_idx < (V_KERNEL_START / PAGE_SIZE)) {
+        pt[page_idx].user = 1;
     }
-    return frame_addr;
 }
 
 
@@ -208,7 +208,8 @@ void page_fault(intr_frame_t* frame, uint32_t mem_address)
             vga_print("[page miss]\n");
         }
         else {
-            printf("[page miss] address=%x\n", mem_address);
+            printf("[page miss] address=%x pid=%u\n", 
+                mem_address, curr_process()->pid);
         }
         uint32_t page = mem_address / PAGE_SIZE;
         pt_entry_t* page_table;
@@ -219,7 +220,9 @@ void page_fault(intr_frame_t* frame, uint32_t mem_address)
         else {
             page_table = kernel_pt;
         }
-        alloc_page(page_table, page);
+        uint32_t frame_addr = find_free_frame();
+        claim_frame(frame_addr);
+        set_page_frame(page_table, page, frame_addr);
     }
     else {
         printf("[page_fault] address=%x, present=%x, write=%x, user=%x, reserved=%x, instr_fetch=%x\n",
@@ -258,10 +261,11 @@ void free_user_pages()
     panic("free user pages");
 }
 
-void copy_address_space(void* __dest_pt, void* __src_pt)
+// assumes src_pt is the page table of the current process
+void copy_address_space(void* _dest_pt, void* _src_pt)
 {
-    pt_entry_t* dest_pt = __dest_pt;
-    pt_entry_t* src_pt = __src_pt;
+    pt_entry_t* dest_pt = _dest_pt;
+    pt_entry_t* src_pt = _src_pt;
 
     uint32_t first_kernel_page = V_KERNEL_START / PAGE_SIZE;
     // don't duplicate the kernel pages
@@ -270,12 +274,18 @@ void copy_address_space(void* __dest_pt, void* __src_pt)
         (PT_SIZE - first_kernel_page) * sizeof(uint32_t));
 
     // duplicate every USED user page
-    /*memset(dest_pt, 0, first_kernel_page);
+    memset(dest_pt, 0, first_kernel_page * sizeof(uint32_t));
     for (uint32_t i = 0; i < first_kernel_page; i++) {
         if (src_pt[i].present) {
-            uint32_t src_addr = src_pt[i].frame_addr << 22;
-            uint32_t dest_addr = alloc_page(dest_pt, i);
-            panic("copy frame!\n");
+            uint32_t frame_addr = find_free_frame();
+            claim_frame(frame_addr);
+            set_page_frame(dest_pt, i, frame_addr);
+            // we map the COPY page in the current page table to the new frame,
+            // so we can memcpy() without carring about physical addresses.
+            set_page_frame(src_pt, COPY_PAGE, frame_addr);
+            memcpy(COPY_PAGE * PAGE_SIZE, i * PAGE_SIZE, PAGE_SIZE);
         }
-    }*/
+    }
+    // make sure we don't access the copy page later
+    src_pt[COPY_PAGE].present = 0;
 }

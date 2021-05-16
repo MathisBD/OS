@@ -164,6 +164,37 @@ file_descr_t* proc_remove_fd(process_t* proc, uint32_t id)
     return fd;
 }
 
+void copy_locks(process_t* copy, process_t* original)
+{
+    copy->locks = vect_create();
+    vect_grow(copy->locks, original->locks->size);
+    for (uint32_t i = 0; i < original->locks->size; i++) {
+        queuelock_t* lock = vect_get(original->locks, i);
+        if (!list_empty(lock->waiting)) {
+            // shouldn't happen since there is only one thread in the process
+            panic("copy_locks");
+        }
+        queuelock_t* new_lock = kql_create();
+        new_lock->value = lock->value;
+        vect_append(copy->locks, lock);
+    }
+}
+
+void copy_events(process_t* copy, process_t* original)
+{
+    copy->events = vect_create();
+    vect_grow(copy->events, original->events->size);
+    for (uint32_t i = 0; i < original->events->size; i++) {
+        event_t* ev = vect_get(original->events, i);
+        if (!list_empty(ev->waiting)) {
+            // shouldn't happen since there is only one thread in the process
+            panic("copy_events");
+        }
+        event_t* new_ev = kevent_create();
+        vect_append(copy->events, new_ev);
+    }
+}
+
 
 void copy_file_descrs(process_t* copy, process_t* original)
 {
@@ -196,8 +227,8 @@ static process_t* copy_process(process_t* original)
     copy_address_space(copy->page_table, original->page_table);
 
     // process resources
-    copy->locks = vect_create();
-    copy->events = vect_create();
+    copy_locks(copy, original);
+    copy_events(copy, original);
     copy_file_descrs(copy, original);
     // cwd is inherited
     uint32_t len = strlen(original->cwd) + 1;
@@ -268,9 +299,18 @@ static thread_t* copy_thread(thread_t* original, process_t* new_proc, intr_frame
 }
 
 
+static bool is_singleton(list_t* l)
+{
+    return l->first != 0 && l->first == l->last;
+}
+
 void do_proc_fork(intr_frame_t* frame)
 {
-    kql_acquire(proc_lock);
+    kql_acquire(proc_lock);    
+    
+    if (!is_singleton(curr_process()->threads)) {
+        panic("can't call fork() from a process that has more than one thread");
+    }
 
     process_t* new_proc = copy_process(curr_process());
     thread_t* new_thread = copy_thread(curr_thread(), new_proc, frame);
@@ -292,11 +332,6 @@ static uint32_t align(value, a)
     return value;
 }
 
-static bool is_singleton(list_t* l)
-{
-    return l->first != 0 && l->first == l->last;
-}
-
 void kproc_exec(char* prog, int argc, char** argv)
 {
     process_t* proc = curr_process();
@@ -304,6 +339,14 @@ void kproc_exec(char* prog, int argc, char** argv)
 
     if (!is_singleton(proc->threads)) {
         panic("can't call exec() from a process that has more than one thread");
+    }
+
+    // copy args to kernel space
+    char** kargv = kmalloc(argc * sizeof(char*));
+    for (uint32_t i = 0; i < argc; i++) {
+        uint32_t len = strlen(argv[i]) + 1;
+        kargv[i] = kmalloc(len);
+        memcpy(kargv[i], argv[i], len);
     }
 
     // load the user code/data
@@ -314,14 +357,14 @@ void kproc_exec(char* prog, int argc, char** argv)
     uint32_t stack_size;
     load_program(prog, &entry_addr, &user_stack_top, &data_size, &stack_size);
 
-    // copy args to user space
+    // copy args to the new user space
     uint32_t addr = data_size;
-    uint32_t user_argv = addr;
+    uint32_t uargv = addr;
     addr += argc * sizeof(char*);
     for (uint32_t i = 0; i < argc; i++) {
-        ((uint32_t*)user_argv)[i] = addr;
-        uint32_t size = strlen(argv[i]) + 1;
-        memcpy(addr, argv[i], size);
+        ((uint32_t*)uargv)[i] = addr;
+        uint32_t size = strlen(kargv[i]) + 1;
+        memcpy(addr, kargv[i], size);
         addr += size;
     }
     proc->stack_size = stack_size;
@@ -330,11 +373,12 @@ void kproc_exec(char* prog, int argc, char** argv)
     // prepare initial user stack
     uint32_t* esp = (uint32_t*)user_stack_top;
     esp -= 2; // stack alignment
-    esp--; *esp = user_argv;
+    esp--; *esp = uargv;
     esp--; *esp = argc;
     esp--; // dummy return address
 
     kql_release(proc->lock);
+
     // assembly stub to jump
     extern void exec_jump_asm(
         uint32_t entry_addr, 
@@ -432,7 +476,7 @@ int kproc_wait(pid_t pid)
 
     // wait for the process to finish
     while (proc->state != PROC_DEAD) {
-        kevent_wait(proc->on_finish);
+        kevent_wait(proc->on_finish, proc->lock);
     }
 
     int code = proc->exit_code;

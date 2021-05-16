@@ -9,6 +9,7 @@
 #include "threads/thread.h"
 #include "memory/kheap.h"
 #include "filesystem/file_descr.h"
+#include "drivers/vga_driver.h"
 
 
 // interrupt number for a keyboard interrupt
@@ -103,6 +104,8 @@ static void init_kbd_maps()
     kbd_map[52] = ':';
     kbd_map[53] = '!';
 
+    kbd_map[57] = ' ';
+
     // SHIFT MAP
     // first row
     kbd_shift_map[2] = '1';
@@ -152,7 +155,9 @@ static void init_kbd_maps()
     kbd_shift_map[49] = 'N';
     kbd_shift_map[50] = '?';
     kbd_shift_map[51] = '.';
-    kbd_shift_map[52] = '/';
+    kbd_shift_map[52] = '/';    
+    
+    kbd_shift_map[57] = ' ';
 
     // ALT MAP
     // first row
@@ -166,7 +171,9 @@ static void init_kbd_maps()
     kbd_alt_map[10] = '^';
     kbd_alt_map[11] = '@';
     kbd_alt_map[12] = ']';
-    kbd_alt_map[13] = '}';
+    kbd_alt_map[13] = '}';    
+    
+    kbd_alt_map[57] = ' ';
 }
 
 
@@ -174,7 +181,18 @@ static int kbd_read(void* buf, int count)
 {
     kql_acquire(kbd_lock);
 
-    disable_irq(KEYBOARD_IRQ);
+    __atomic_store_n(&key_received, false, __ATOMIC_RELEASE);
+    while (!__atomic_load_n(&key_received, __ATOMIC_ACQUIRE)) { 
+        // we can't use an event here : 
+        // it would be the keyboard interrupt that would wake us up,
+        // and we can't use signal() or broadcast() in an interrupt
+        // (because they need to acquire the heap spinlock).
+        //kthread_yield();
+    }
+    char c = __atomic_load_n(&(last_key.c), __ATOMIC_ACQUIRE);
+    memcpy(buf, &c, 1);
+
+    /*disable_irq(KEYBOARD_IRQ);
     key_received = false;
     while (!key_received) {
         enable_irq(KEYBOARD_IRQ);
@@ -183,10 +201,11 @@ static int kbd_read(void* buf, int count)
         // and we can't use signal() or broadcast() in an interrupt
         // (because they need to acquire the heap spinlock).
         kthread_yield();
+        for (int i = 0; i < 10000000; i++);
         disable_irq(KEYBOARD_IRQ);
     }
     memcpy(buf, &(last_key.c), 1);
-    enable_irq(KEYBOARD_IRQ);
+    enable_irq(KEYBOARD_IRQ);*/
 
     kql_release(kbd_lock);
     return 1;
@@ -240,7 +259,7 @@ static void key_pressed(uint8_t keycode)
             last_key.c = kbd_map[keycode];
         }
         key_received = true;
-        printf("%c", last_key.c);
+        //vga_putchar(last_key.c);
         break;
     }
     }

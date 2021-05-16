@@ -54,44 +54,37 @@ static thread_t* pop_waiting(event_t* e)
     return list_pop_front(e->waiting);
 }
 
-static void check_monitor(event_t* event)
+/*static void check_monitor(event_t* event)
 {
     if (!kql_is_held(event->monitor)) {
         panic("can't interact with an event when we don't hold it's monitor lock");
     }
-}
+}*/
 
-event_t* kevent_create(queuelock_t* lock)
+event_t* kevent_create()
 {
     event_t* event = kmalloc(sizeof(event_t));
     event->waiting = list_create();
-    event->monitor = lock;
     return event;
 }
 
 void kevent_delete(event_t* event)
 {
-    check_monitor(event);
     if (has_waiting(event)) {
         panic("can't delete an event when threads are waiting on it\n");
     }
-    // don't delete the monitor, we don't own it.
     kfree(event);
 }
 
-void kevent_wait(event_t* event)
+void kevent_wait(event_t* event, queuelock_t* lock)
 {
-    check_monitor(event);
-
     add_waiting(event, curr_thread());
-    sched_suspend_and_release_queuelock(event->monitor);
-    kql_acquire(event->monitor);
+    sched_suspend_and_release_queuelock(lock);
+    kql_acquire(lock);
 }
 
 void kevent_signal(event_t* event)
 {
-    check_monitor(event);
-
     if (has_waiting(event)) {
         thread_t* next = pop_waiting(event);
         sched_wake_up(next);
@@ -100,8 +93,6 @@ void kevent_signal(event_t* event)
 
 void kevent_broadcast(event_t* event)
 {
-    check_monitor(event);
-
     while (has_waiting(event)) {
         thread_t* next = pop_waiting(event);
         //printf("will wake up %u\n", next->tid);

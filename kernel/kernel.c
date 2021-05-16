@@ -15,12 +15,13 @@
 #include "drivers/vga_driver.h"
 
 
-#define DELAY() {for (int a = 0; a < 500000000; a++);}
+#define DELAY() {for (int a = 0; a < 100000000; a++);}
 
 void fn(int arg)
 {
     printf("arg=%d\n", arg);
     DELAY();
+    while(1);
 }
 
 
@@ -30,23 +31,22 @@ void kernel_main()
     // (by changing the queuelock implementation to not use the heap anymore,
     // and use instead the sched_next field of thread_t);
 
+    //vga_print("kernel\n");
+    //while(1);
+
     pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
 
     /*tid_t tid = thread_create(fn, 42);
-    thread_join(tid);
+    //thread_join(tid);
     printf("after\n");*/
 
 
     // child
     if (pid == 0) {
-        char** argv = kmalloc(3*sizeof(char*));
-        argv[0] = "this";
-        argv[1] = "is";
-        argv[2] = "argv";
-        kproc_exec("/progs/echo.elf", 3, argv);
-        /*DELAY();
-        proc_exit(25);*/
+        printf("child\n");
+        char** argv = kmalloc(0*sizeof(char*));
+        kproc_exec("/progs/shell.elf", 0, 0);
     }
     // parent
     int c = proc_wait(pid);

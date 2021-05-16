@@ -14,7 +14,8 @@ LIBS:=$(LIBS) -nostdlib -lc -lgcc
 
 OBJS= \
 test.o \
-echo.o
+echo.o \
+shell.o 
 
 #PROGS=$(basename $(OBJS))
 PROGS=$(OBJS:.o=.elf)

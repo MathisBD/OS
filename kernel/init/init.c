@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 
-#define PIT_DEFAULT_FREQ 100 // Hz
+#define PIT_DEFAULT_FREQ 5 // Hz
 
 
 // initialization state of parts of the kernel

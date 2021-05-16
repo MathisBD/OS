@@ -34,7 +34,7 @@ void bq_add(blocking_queue_t* q, void* buf, uint32_t count)
     uint32_t ofs = 0;
     while (ofs < count) {
         while (q->count >= q->capacity) {
-            EVENT_WAIT(q->on_remove);
+            EVENT_WAIT(q->on_remove, q->lock);
         }
         // how much bytes can we add ?
         uint32_t amount = min(count - ofs, q->capacity - q->count);

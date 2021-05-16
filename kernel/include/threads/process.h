@@ -73,9 +73,8 @@ uint32_t kadd_brk(uint32_t ofs);
 // forking a multithreaded program can be a real pain :
 // what if some threads have busy locks ?
 // see http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
-// for a discussion. I chose to not duplicate the locks (the forked process
-// can't access any lock anymore, it has to create new ones). Forking a multithreaded
-// process only really makes sense if you're calling exec() afterwards.
+// for a discussion. I chose to disallow forking a process that has more
+// than one thread.
 void do_proc_fork(intr_frame_t* frame);
 // replaces the user code/data for the current process.
 // only works if the process has a single thread.
@@ -84,7 +83,7 @@ void do_proc_fork(intr_frame_t* frame);
 // and we can just plainly replace it).
 // argument : program to run (full path to the file)
 void kproc_exec(char* prog, int argc, char** argv);
-// when a thread calls exit, all threads in the process are terminated.
+// only works if the process has only one thread.
 void kproc_exit(int code);
 // wait on a child process. blocks the thread that calls it.
 // returns the exit code of the process.

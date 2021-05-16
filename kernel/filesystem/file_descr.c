@@ -5,6 +5,8 @@
 #include <panic.h>
 #include "drivers/dev.h"
 #include "filesystem/fs.h"
+#include "drivers/vga_driver.h"
+
 
 file_descr_t* fd_copy(file_descr_t* fd)
 {

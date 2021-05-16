@@ -227,10 +227,7 @@ void handle_syscall(intr_frame_t* frame)
     }
     case SC_EVENT_CREATE:
     {
-        queuelock_t* lock = proc_get_lock(
-            curr_process(),
-            get_syscall_arg(frame, 1));
-        event_t* event = kevent_create(lock);
+        event_t* event = kevent_create();
         frame->eax = proc_add_event(curr_process(), event);
         return;
     }
@@ -247,7 +244,10 @@ void handle_syscall(intr_frame_t* frame)
         event_t* event = proc_get_event(
             curr_process(), 
             get_syscall_arg(frame, 1));
-        kevent_wait(event);
+        queuelock_t* lock = proc_get_lock(
+            curr_process(),
+            get_syscall_arg(frame, 2));
+        kevent_wait(event, lock);
         return;
     }
     case SC_EVENT_SIGNAL:

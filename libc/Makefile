@@ -143,7 +143,7 @@ install-libs: $(BINARIES)
 clean:
 	@rm -f $(BINARIES)
 	@rm -f $(OBJS:.o=.libk.o) $(OBJS:.o=.libc.o)
-	@rm -f $(OBJS:.o=.libk.d) 
+	@rm -f $(OBJS:.o=.libk.d) $(OBJS:.o=.libc.d)  
 
 -include $(OBJS:.o=.libk.d)
 -include $(OBJS:.o=.libc.d)

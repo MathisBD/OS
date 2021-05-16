@@ -163,7 +163,7 @@ int kthread_join(tid_t tid)
 
     // wait for the thread to be finished
     while (thread->state != THREAD_FINISHED) {
-        kevent_wait(thread->on_finish);
+        kevent_wait(thread->on_finish, thread->lock);
     }
 
     int code = thread->exit_code;

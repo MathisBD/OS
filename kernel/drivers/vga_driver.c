@@ -113,7 +113,7 @@ void start_init_vga_driver()
 
 static void private_putchar(char c) 
 {
-   if (term_row >= VGA_ROWS) {
+    if (term_row >= VGA_ROWS) {
         term_col = 0;
         term_row = 0;
         clear_screen();

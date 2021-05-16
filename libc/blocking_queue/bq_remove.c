@@ -34,7 +34,7 @@ void bq_remove(blocking_queue_t* q, void* buf, uint32_t count)
     uint32_t ofs = 0;
     while (ofs < count) {
         while (q->count == 0) {
-            EVENT_WAIT(q->on_add);
+            EVENT_WAIT(q->on_add, q->lock);
         }
         // how much bytes can we remove ?
         uint32_t amount = min(count - ofs, q->count);

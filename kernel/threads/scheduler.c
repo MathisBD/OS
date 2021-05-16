@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "sync/spinlock.h"
 #include "interrupts/interrupts.h"
+#include "drivers/pic_driver.h"
 #include "memory/constants.h"
 #include "memory/paging.h"
 #include "init/init.h"
@@ -137,6 +138,10 @@ void new_thread_stub(void (*func)(int), int arg)
     // the scheduler lock was acquired.
     ksl_release(sched_spinlock);
     set_interrupt_flag(true);
+
+    //vga_putchar('-');
+    pic_eoi(TIMER_IRQ);
+    
     (*func)(arg);
     kthread_exit(0); // in case the function didn't call exit already
 }
@@ -148,6 +153,10 @@ void forked_thread_stub()
     // the scheduler lock was acquired.
     ksl_release(sched_spinlock);
     set_interrupt_flag(true);
+
+    //vga_putchar('-');
+    pic_eoi(TIMER_IRQ);
+
     // simply pop an address from the stack and jump to it.
     return;
 }

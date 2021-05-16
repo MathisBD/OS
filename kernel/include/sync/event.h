@@ -9,10 +9,9 @@
 typedef struct {
     // list of threads waiting on this event
     list_t* waiting;
-    queuelock_t* monitor;
 } event_t;
 
-event_t* kevent_create(queuelock_t* lock);
+event_t* kevent_create();
 void kevent_delete(event_t* event);
 
 // event_wait() atomically releases the monitor lock and
@@ -22,6 +21,6 @@ void kevent_delete(event_t* event);
 // while(!condition) {
 //     event_wait(event);    
 // }
-void kevent_wait(event_t* event);
+void kevent_wait(event_t* event, queuelock_t* lock);
 void kevent_signal(event_t* event);
 void kevent_broadcast(event_t* event);

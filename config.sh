@@ -32,7 +32,9 @@ export CFLAGS="--sysroot=$SYSROOT -g \
 -Wno-incompatible-pointer-types \
 -Werror=implicit-function-declaration \
 -Werror=return-type \
--Werror=implicit-fallthrough"
+-Werror=implicit-fallthrough \
+-Werror=invalid-memory-model"
+
 export CPPFLAGS=""
 # the cross compiler was configured with
 # --without-headers but not --with-sysroot
