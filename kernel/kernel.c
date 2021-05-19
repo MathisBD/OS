@@ -27,13 +27,6 @@ void fn(int arg)
 
 void kernel_main()
 {
-    ////// TODO : replace the heap spinlock with a queuelock
-    // (by changing the queuelock implementation to not use the heap anymore,
-    // and use instead the sched_next field of thread_t);
-
-    //vga_print("kernel\n");
-    //while(1);
-
     pid_t pid = proc_fork();
     printf("pid=%u\n", pid);
 
@@ -52,9 +45,5 @@ void kernel_main()
     int c = proc_wait(pid);
     printf("child finished with %d\n", c);
     
-    char key;
-    read(FD_STDIN, &key, 1);
-    printf("got key : %c\n", key);
-
     while (1);
 }
